@@ -335,6 +335,7 @@ curl http://localhost:3000/odin/outages
 | Utility | Difficulty | Data Quality | API Type | Notes |
 |---------|-----------|--------------|----------|-------|
 | Wellington Electricity | ⭐⭐⭐ Easy | Excellent | Clean JSON REST API | Best implementation - public API with complete data |
+| EA Networks | ⭐⭐⭐ Easy | Excellent | Clean JSON REST API | Vercel-hosted API with GeoJSON polygons |
 | PowerCo | ⭐⭐ Moderate | Excellent | ArcGIS FeatureServer | Standard GIS API, coordinate conversion required |
 | Orion Group | ⭐ Moderate | Excellent | Embedded JavaScript | Data in `window.allOutages` object, requires parsing |
 | Vector Limited | ❌ Not Feasible | N/A | Address-based only | React SPA with no bulk outage API - address lookup only |
@@ -370,6 +371,16 @@ curl http://localhost:3000/odin/outages
   - Scrape: Background every 5 minutes
   - **Rating**: Best implementation - public API with complete data, no authentication required
 
+- **EA Networks** ✅ - Canterbury/East Coast (⭐⭐⭐ Easy)
+  - URL: `https://outages-eanetworks-co-nz.vercel.app/api/get-outages?tab=current`
+  - Format: Clean JSON REST API
+  - Location: WGS84 coordinates with GeoJSON polygons
+  - Customer Count: `current_affected_customers` and `total_affected_customers` fields
+  - Outage Type: `outage_type` field (PLANNED_OUTAGE vs unplanned)
+  - Metadata: Incident ID, energization status, street details
+  - Scrape: Background every 5 minutes
+  - **Rating**: Excellent API - Vercel-hosted with complete data, no authentication required
+
 ### Not Feasible
 - **Vector Limited** ❌ - Auckland region
   - URL: `https://www.vector.co.nz/outages`
@@ -380,10 +391,9 @@ curl http://localhost:3000/odin/outages
   - **Alternative**: Would require building address database and querying individually (impractical)
 
 ### To Be Implemented
-- **Aurora Energy** - Otago/Southland
+- **Aurora Energy** ❌ - Otago/Southland (Not Feasible - Mapbox only, no API)
+- **Horizon Energy** ❌ - Taranaki (Not Feasible - CloudFlare bot protection)
 - **Electricity Invercargill** - Southland
-- **Eastland Network** - East Coast
-- **Horizon Energy** - Taranaki
 
 ## License
 

@@ -2,6 +2,7 @@ import express from 'express';
 import { scrapeOrion } from './scrapers/orion.js';
 import { scrapePowerCo } from './scrapers/powerco.js';
 import { scrapeWellington } from './scrapers/wellington.js';
+import { scrapeEANetworks } from './scrapers/eanetworks.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,7 +11,8 @@ const SCRAPE_INTERVAL = parseInt(process.env.SCRAPE_INTERVAL) || 300000; // 5 mi
 const scrapers = {
   orion: scrapeOrion,
   powerco: scrapePowerCo,
-  wellington: scrapeWellington
+  wellington: scrapeWellington,
+  eanetworks: scrapeEANetworks
 };
 
 const outageCache = new Map();
