@@ -338,6 +338,7 @@ curl http://localhost:3000/odin/outages
 | EA Networks | ⭐⭐⭐ Easy | Excellent | Clean JSON REST API | Vercel-hosted API with GeoJSON polygons |
 | PowerCo | ⭐⭐ Moderate | Excellent | ArcGIS FeatureServer | Standard GIS API, coordinate conversion required |
 | Orion Group | ⭐ Moderate | Excellent | Embedded JavaScript | Data in `window.allOutages` object, requires parsing |
+| Aurora Energy | ⭐ Moderate | Good | HTML data attributes | Coordinates in data-latitude/longitude, no customer counts |
 | Vector Limited | ❌ Not Feasible | N/A | Address-based only | React SPA with no bulk outage API - address lookup only |
 
 ### Production (Implemented)
@@ -381,6 +382,16 @@ curl http://localhost:3000/odin/outages
   - Scrape: Background every 5 minutes
   - **Rating**: Excellent API - Vercel-hosted with complete data, no authentication required
 
+- **Aurora Energy** ✅ - Otago/Southland (⭐ Moderate)
+  - URL: `https://www.auroraenergy.co.nz/power-outages`
+  - Format: HTML with data attributes
+  - Location: WGS84 coordinates in `data-latitude`/`data-longitude` attributes
+  - Customer Count: Not available
+  - Outage Type: Status class (status-planned/status-unplanned)
+  - Metadata: Incident ID, town, suburbs, time off/on
+  - Scrape: Background every 5 minutes
+  - **Rating**: HTML parsing required, coordinates available, no customer counts
+
 ### Not Feasible
 - **Vector Limited** ❌ - Auckland region
   - URL: `https://www.vector.co.nz/outages`
@@ -391,7 +402,6 @@ curl http://localhost:3000/odin/outages
   - **Alternative**: Would require building address database and querying individually (impractical)
 
 ### To Be Implemented
-- **Aurora Energy** ❌ - Otago/Southland (Not Feasible - Mapbox only, no API)
 - **Horizon Energy** ❌ - Taranaki (Not Feasible - CloudFlare bot protection)
 - **Electricity Invercargill** - Southland
 

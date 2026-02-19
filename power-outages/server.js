@@ -3,6 +3,7 @@ import { scrapeOrion } from './scrapers/orion.js';
 import { scrapePowerCo } from './scrapers/powerco.js';
 import { scrapeWellington } from './scrapers/wellington.js';
 import { scrapeEANetworks } from './scrapers/eanetworks.js';
+import { scrapeAurora } from './scrapers/aurora.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,7 +13,8 @@ const scrapers = {
   orion: scrapeOrion,
   powerco: scrapePowerCo,
   wellington: scrapeWellington,
-  eanetworks: scrapeEANetworks
+  eanetworks: scrapeEANetworks,
+  aurora: scrapeAurora
 };
 
 const outageCache = new Map();
