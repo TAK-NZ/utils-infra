@@ -122,14 +122,18 @@ app.get('/power-outages/aggregate', async (req, res) => {
     // Track earliest start and latest restoration
     if (outage.outageStart) {
       const start = new Date(outage.outageStart);
-      if (!byCity[key].earliestStart || start < byCity[key].earliestStart) {
-        byCity[key].earliestStart = start;
+      if (!isNaN(start.getTime())) {
+        if (!byCity[key].earliestStart || start < byCity[key].earliestStart) {
+          byCity[key].earliestStart = start;
+        }
       }
     }
     if (outage.estimatedRestoration) {
       const restore = new Date(outage.estimatedRestoration);
-      if (!byCity[key].latestRestoration || restore > byCity[key].latestRestoration) {
-        byCity[key].latestRestoration = restore;
+      if (!isNaN(restore.getTime())) {
+        if (!byCity[key].latestRestoration || restore > byCity[key].latestRestoration) {
+          byCity[key].latestRestoration = restore;
+        }
       }
     }
   });
