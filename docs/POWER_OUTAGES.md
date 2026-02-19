@@ -340,6 +340,8 @@ curl http://localhost:3000/odin/outages
 | Orion Group | ⭐ Moderate | Excellent | Embedded JavaScript | Data in `window.allOutages` object, requires parsing |
 | Aurora Energy | ⭐ Moderate | Good | HTML data attributes | Coordinates in data-latitude/longitude, customer counts in accordion |
 | Vector Limited | ❌ Not Feasible | N/A | Address-based only | React SPA with no bulk outage API - address lookup only |
+| Horizon Energy | ❌ Not Feasible | N/A | CloudFlare protected | Bot protection prevents automated scraping |
+| PowerNet | ❌ Not Feasible | N/A | API timeout/CORS | API exists but times out on direct access, requires browser context |
 
 ### Production (Implemented)
 - **Orion Group** ✅ - Canterbury region (⭐ Moderate)
@@ -402,8 +404,20 @@ curl http://localhost:3000/odin/outages
   - **Impact**: Cannot scrape Auckland region (600K customers, 1/3 of NZ population)
   - **Alternative**: Would require building address database and querying individually (impractical)
 
+- **Horizon Energy** ❌ - Taranaki
+  - URL: `https://www.horizonenergy.co.nz/outages`
+  - **Issue**: CloudFlare bot protection
+  - **Limitation**: Automated scraping blocked by security measures
+  - **Alternative**: Would require headless browser with anti-detection (complex, resource-intensive)
+
+- **PowerNet** ❌ - Southland/Otago
+  - URL: `https://powernet.co.nz/outages/current-and-planned-outages/`
+  - API: `https://outage-api.powernet.co.nz/api`
+  - **Issue**: API times out on direct access
+  - **Limitation**: Likely requires browser context, CORS restrictions, or authentication
+  - **Alternative**: Would require headless browser (Puppeteer) - complex and resource-intensive
+
 ### To Be Implemented
-- **Horizon Energy** ❌ - Taranaki (Not Feasible - CloudFlare bot protection)
 - **Electricity Invercargill** - Southland
 
 ## License
