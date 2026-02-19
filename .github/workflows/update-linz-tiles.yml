@@ -74,6 +74,7 @@ jobs:
           
           ./pmtiles convert linz-vector-tiles.mbtiles linz-vector-tiles.pmtiles
 
+          sqlite3 linz-vector-tiles.mbtiles "UPDATE metadata SET value='174.7,-41.3,12' WHERE name='center';"
       - name: Upload to S3
         run: |
           aws s3 cp linz-vector-tiles.pmtiles \
@@ -215,6 +216,7 @@ jobs:
             s3://${{ steps.stack.outputs.assets-bucket }}/public/linz-vector-tiles.pmtiles
           aws s3 cp linz-vector-tiles.mbtiles \
             s3://${{ steps.stack.outputs.artifacts-bucket }}/linz-vector-tiles.mbtiles
+          sqlite3 linz-vector-tiles.mbtiles "UPDATE metadata SET value='174.7,-41.3,12' WHERE name='center';"
 
       - name: Force Tileserver Reload with Fresh Download
         if: steps.check.outputs.enabled == 'true'
