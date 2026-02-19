@@ -137,38 +137,14 @@ Production service returns standardized JSON format with multi-utility support:
 4. **Scalability** - Easy to add more EDB sources
 5. **Rich Metadata** - Includes crew status, feeder info, and detailed locations
 
-## Next Steps
+## Future Enhancements
 
-### Phase 1: Core Implementation ✅
-- [x] Implement Orion scraper with full data extraction
-- [x] Create Express service with REST API endpoints
-- [x] Add error handling and retry logic
-- [x] Implement 5-minute caching for performance
-- [x] Deploy to utils-infra stack
-
-### Phase 2: Multi-EDB Support ✅
-- [x] Add PowerCo scraper
-- [x] Add Wellington Electricity scraper
-- [x] Unified aggregation service
-- [x] Query parameter filtering
-- [x] Regional summary endpoint
-- [x] Background scheduled scraping
-- [x] ISO 3166-2:NZ region codes
-- [ ] Add Vector Limited scraper (address-based only)
-- [ ] Add Aurora Energy scraper
-
-### Phase 3: TAK Integration
-- [ ] Outage ETL service
-- [ ] CoT message generation
-- [ ] KML overlay creation
-- [ ] Real-time updates via WebSocket
-
-### Phase 4: Production ✅
-- [x] Docker containerization
-- [x] CDK configuration
-- [ ] AWS deployment (ECS Fargate)
-- [ ] Monitoring and alerting
-- [ ] Rate limiting and compliance
+- Add Vector Limited scraper (Auckland region - requires address-based approach)
+- Add Aurora Energy scraper (Otago/Southland)
+- TAK ETL integration (CoT messages, KML overlays)
+- WebSocket support for real-time updates
+- Monitoring and alerting
+- Rate limiting and compliance
 
 ## Technical Stack
 
