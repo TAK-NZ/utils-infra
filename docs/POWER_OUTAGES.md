@@ -338,7 +338,7 @@ curl http://localhost:3000/odin/outages
 | EA Networks | ⭐⭐⭐ Easy | Excellent | Clean JSON REST API | Vercel-hosted API with GeoJSON polygons |
 | PowerCo | ⭐⭐ Moderate | Excellent | ArcGIS FeatureServer | Standard GIS API, coordinate conversion required |
 | Orion Group | ⭐ Moderate | Excellent | Embedded JavaScript | Data in `window.allOutages` object, requires parsing |
-| Aurora Energy | ⭐ Moderate | Good | HTML data attributes | Coordinates in data-latitude/longitude, no customer counts |
+| Aurora Energy | ⭐ Moderate | Good | HTML data attributes | Coordinates in data-latitude/longitude, customer counts in accordion |
 | Vector Limited | ❌ Not Feasible | N/A | Address-based only | React SPA with no bulk outage API - address lookup only |
 
 ### Production (Implemented)
@@ -386,11 +386,12 @@ curl http://localhost:3000/odin/outages
   - URL: `https://www.auroraenergy.co.nz/power-outages`
   - Format: HTML with data attributes
   - Location: WGS84 coordinates in `data-latitude`/`data-longitude` attributes
-  - Customer Count: Not available
+  - Customer Count: Available in accordion content (`.outage-details-customers`)
   - Outage Type: Status class (status-planned/status-unplanned)
+  - Filter: Only current (unplanned) outages returned
   - Metadata: Incident ID, town, suburbs, time off/on
   - Scrape: Background every 5 minutes
-  - **Rating**: HTML parsing required, coordinates available, no customer counts
+  - **Rating**: HTML parsing required, coordinates and customer counts available
 
 ### Not Feasible
 - **Vector Limited** ❌ - Auckland region
