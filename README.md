@@ -39,6 +39,15 @@ AISHub-compatible proxy service providing access to real-time AIS vessel data fr
 - **Upload Format**: jsonais (compatible with aprs.fi)
 - **Documentation**: [AIS Proxy API](docs/AIS_PROXY.md)
 
+### power-outages
+NZ power outage data aggregator that scrapes Electricity Distribution Board (EDB) websites and provides standardized JSON format for TAK integration.
+
+- **Path**: `/power-outages/*`
+- **Health Check**: `/power-outages/health`
+- **Data Sources**: Orion Group, PowerCo, Wellington Electricity
+- **Features**: Real-time outage tracking, filtering by utility/region/severity, city-level aggregation
+- **Documentation**: [Power Outages API](docs/POWER_OUTAGES.md)
+
 ### tileserver-gl
 MapTiler TileServer GL providing vector and raster tile services for New Zealand topographic maps with API key authentication.
 
@@ -73,11 +82,17 @@ Environment-specific configuration is managed in `cdk.json`:
         "port": 3000,
         "priority": 2
       },
+      "power-outages": {
+        "enabled": true,
+        "path": "/power-outages",
+        "port": 3000,
+        "priority": 3
+      },
       "tileserver-gl": {
         "enabled": true,
         "hostname": "tiles",
         "port": 8080,
-        "priority": 3
+        "priority": 4
       }
     }
   }
