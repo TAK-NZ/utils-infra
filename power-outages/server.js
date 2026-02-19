@@ -3,6 +3,7 @@ import { scrapeOrion } from './scrapers/orion.js';
 import { scrapePowerCo } from './scrapers/powerco.js';
 import { scrapeWellington } from './scrapers/wellington.js';
 import { scrapeEANetworks } from './scrapers/eanetworks.js';
+import { scrapeAurora } from './scrapers/aurora.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,7 +13,8 @@ const scrapers = {
   orion: scrapeOrion,
   powerco: scrapePowerCo,
   wellington: scrapeWellington,
-  eanetworks: scrapeEANetworks
+  eanetworks: scrapeEANetworks,
+  aurora: scrapeAurora
 };
 
 const outageCache = new Map();
@@ -120,14 +122,18 @@ app.get('/power-outages/aggregate', async (req, res) => {
     // Track earliest start and latest restoration
     if (outage.outageStart) {
       const start = new Date(outage.outageStart);
-      if (!byCity[key].earliestStart || start < byCity[key].earliestStart) {
-        byCity[key].earliestStart = start;
+      if (!isNaN(start.getTime())) {
+        if (!byCity[key].earliestStart || start < byCity[key].earliestStart) {
+          byCity[key].earliestStart = start;
+        }
       }
     }
     if (outage.estimatedRestoration) {
       const restore = new Date(outage.estimatedRestoration);
-      if (!byCity[key].latestRestoration || restore > byCity[key].latestRestoration) {
-        byCity[key].latestRestoration = restore;
+      if (!isNaN(restore.getTime())) {
+        if (!byCity[key].latestRestoration || restore > byCity[key].latestRestoration) {
+          byCity[key].latestRestoration = restore;
+        }
       }
     }
   });
