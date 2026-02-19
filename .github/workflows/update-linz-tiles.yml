@@ -42,38 +42,8 @@ jobs:
 
       - name: Download and Convert LINZ Tiles
         run: |
-          MAX_RETRIES=3
-          RETRY=0
-          while [ $RETRY -lt $MAX_RETRIES ]; do
-            echo "Download attempt $((RETRY+1))/$MAX_RETRIES"
-            
-            # Get fresh redirect URL on each attempt
-            DOWNLOAD_URL=$(curl -sI "https://basemaps.linz.govt.nz/v1/export/topographic-v2/3857.mbtiles?api=${{ secrets.LINZ_API_KEY }}" \
-              | grep -i "^location:" | cut -d' ' -f2 | tr -d '\r')
-            
-            if [ -z "$DOWNLOAD_URL" ]; then
-              echo "Failed to get download URL"
-              RETRY=$((RETRY+1))
-              [ $RETRY -lt $MAX_RETRIES ] && sleep 10
-              continue
-            fi
-            
-            echo "Got fresh download URL, starting download..."
-            if wget -O linz-vector-tiles.mbtiles "$DOWNLOAD_URL"; then
-              break
-            fi
-            
-            RETRY=$((RETRY+1))
-            [ $RETRY -lt $MAX_RETRIES ] && sleep 10
-          done
-          
-          if [ $RETRY -eq $MAX_RETRIES ]; then
-            echo "Failed to download after $MAX_RETRIES attempts"
-            exit 1
-          fi
-          
+          wget -O linz-vector-tiles.mbtiles "https://basemaps.linz.govt.nz/v1/export/topographic-v2/3857.mbtiles?api=${{ secrets.LINZ_API_KEY }}"
           ./pmtiles convert linz-vector-tiles.mbtiles linz-vector-tiles.pmtiles
-
           sqlite3 linz-vector-tiles.mbtiles "UPDATE metadata SET value='174.7,-41.3,12' WHERE name='center';"
       - name: Upload to S3
         run: |
@@ -177,36 +147,7 @@ jobs:
       - name: Download and Convert LINZ Tiles
         if: steps.check.outputs.enabled == 'true'
         run: |
-          MAX_RETRIES=3
-          RETRY=0
-          while [ $RETRY -lt $MAX_RETRIES ]; do
-            echo "Download attempt $((RETRY+1))/$MAX_RETRIES"
-            
-            # Get fresh redirect URL on each attempt
-            DOWNLOAD_URL=$(curl -sI "https://basemaps.linz.govt.nz/v1/export/topographic-v2/3857.mbtiles?api=${{ secrets.LINZ_API_KEY }}" \
-              | grep -i "^location:" | cut -d' ' -f2 | tr -d '\r')
-            
-            if [ -z "$DOWNLOAD_URL" ]; then
-              echo "Failed to get download URL"
-              RETRY=$((RETRY+1))
-              [ $RETRY -lt $MAX_RETRIES ] && sleep 10
-              continue
-            fi
-            
-            echo "Got fresh download URL, starting download..."
-            if wget -O linz-vector-tiles.mbtiles "$DOWNLOAD_URL"; then
-              break
-            fi
-            
-            RETRY=$((RETRY+1))
-            [ $RETRY -lt $MAX_RETRIES ] && sleep 10
-          done
-          
-          if [ $RETRY -eq $MAX_RETRIES ]; then
-            echo "Failed to download after $MAX_RETRIES attempts"
-            exit 1
-          fi
-          
+          wget -O linz-vector-tiles.mbtiles "https://basemaps.linz.govt.nz/v1/export/topographic-v2/3857.mbtiles?api=${{ secrets.LINZ_API_KEY }}"
           ./pmtiles convert linz-vector-tiles.mbtiles linz-vector-tiles.pmtiles
 
       - name: Upload to S3
