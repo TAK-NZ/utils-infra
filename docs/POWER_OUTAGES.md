@@ -15,13 +15,7 @@ NZ EDB Websites → Power Outages Service → Standardized JSON → TAK Integrat
 ### Components
 
 1. **Power Outages Service**: Scrapes EDB websites, converts to standardized format
-2. **TAK Integration**: Consumes outage data, transforms for TAK
-3. **TAK Display**: Generates CoT messages, KML overlays
-
-## Implementation Status
-
-✅ **Phase 1 Complete** - Orion Group scraper fully operational
-✅ **Phase 2 In Progress** - PowerCo scraper operational
+2. **TAK ETL Integration**: Consumes outage data, transforms for TAK
 
 ### Service Endpoints
 
@@ -137,35 +131,7 @@ Production service returns standardized JSON format with multi-utility support:
 4. **Scalability** - Easy to add more EDB sources
 5. **Rich Metadata** - Includes crew status, feeder info, and detailed locations
 
-## Future Enhancements
-
-- Add Vector Limited scraper (Auckland region - requires address-based approach)
-- Add Aurora Energy scraper (Otago/Southland)
-- TAK ETL integration (CoT messages, KML overlays)
-- WebSocket support for real-time updates
-- Monitoring and alerting
-- Rate limiting and compliance
-
 ## Technical Stack
-
-### Dependencies
-```json
-{
-  "express": "^4.18.2",
-  "node-fetch": "^2.6.7",
-  "cheerio": "^1.0.0-rc.12",
-  "proj4": "^2.9.2"
-}
-```
-
-### Environment
-- Node.js 20 (Alpine)
-- Docker containerization
-- AWS ECS Fargate deployment
-- Background scraper runs every 5 minutes
-- Environment variables:
-  - `PORT` - Server port (default: 3000)
-  - `SCRAPE_INTERVAL` - Scrape interval in ms (default: 300000 / 5 minutes)
 
 ## Usage
 
@@ -418,15 +384,6 @@ curl http://localhost:3000/odin/outages
 - **Electricity Invercargill** - Southland
 - **Eastland Network** - East Coast
 - **Horizon Energy** - Taranaki
-
-## Integration with TAK.NZ
-
-ODIN-Proxy fits into the TAK.NZ infrastructure as a utility monitoring service:
-
-1. **Real-time Awareness** - Power outages displayed on TAK maps
-2. **Emergency Response** - Automatic alerts for large outages
-3. **Resource Planning** - Historical outage data for preparedness
-4. **Multi-agency Coordination** - Shared situational picture
 
 ## License
 
