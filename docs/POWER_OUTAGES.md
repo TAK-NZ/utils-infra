@@ -37,7 +37,9 @@ NZ EDB Websites → Power Outages Service → Standardized JSON → TAK Integrat
 - `scrapers/aurora.js` - Aurora Energy outage scraper
 - `scrapers/tlc.js` - The Lines Company outage scraper
 - `scrapers/mainpower.js` - MainPower outage scraper
-- `scrapers/tlc-localities.js` - TLC locality coordinates (211 localities)
+- `scrapers/alpine.js` - Alpine Energy outage scraper
+- `scrapers/tlc-localities.js` - TLC locality coordinates (255 localities)
+- `scrapers/alpine-localities.js` - Alpine Energy locality coordinates (161 localities)
 - `scrapers/regions.js` - NZ region code mappings (ISO 3166-2:NZ)
 
 ### Key Findings
@@ -342,6 +344,8 @@ curl http://localhost:3000/power-outages/outages
 | Wellington Electricity | ⭐⭐⭐ Easy | Excellent | Clean JSON REST API | Best implementation - public API with complete data |
 | EA Networks | ⭐⭐⭐ Easy | Excellent | Clean JSON REST API | Vercel-hosted API with GeoJSON polygons |
 | TLC | ⭐⭐⭐ Easy | Good | Clean JSON REST API | Static locality mapping, customer counts in text field |
+| MainPower | ⭐⭐⭐ Easy | Excellent | Clean JSON REST API | Includes polygon geometries for affected areas |
+| Alpine Energy | ⭐⭐⭐ Easy | Good | Clean JSON REST API | TVD API system (same as TLC), 161 localities |
 | PowerCo | ⭐⭐ Moderate | Excellent | ArcGIS FeatureServer | Standard GIS API, coordinate conversion required |
 | Orion Group | ⭐ Moderate | Excellent | Embedded JavaScript | Data in `window.allOutages` object, requires parsing |
 | Aurora Energy | ⭐ Moderate | Good | HTML data attributes | Coordinates in data-latitude/longitude, customer counts in accordion |
@@ -406,13 +410,34 @@ curl http://localhost:3000/power-outages/outages
 - **The Lines Company (TLC)** ✅ - Central North Island/King Country (⭐⭐⭐ Easy)
   - URL: `https://ifstlc.tvd.co.nz/api/FaultsAPI/GetFaults?locality=&faultType=false&site_id=121`
   - Format: Clean JSON REST API
-  - Location: Static locality mapping (211 localities from ENA boundaries + OpenStreetMap)
+  - Location: Static locality mapping (255 localities from NZ Gazetteer)
   - Customer Count: Extracted from `AdditionalContent` text field
   - Outage Type: `FaultType` boolean (false=current, true=planned)
   - Metadata: Feeder name, cause, region, detailed description
   - Scrape: Background every 5 minutes
   - Regenerate localities: `node tools/generate-tlc-localities.js`
   - **Rating**: Clean API similar to Wellington Electricity, static coordinate mapping
+
+- **MainPower** ✅ - North Canterbury (⭐⭐⭐ Easy)
+  - URL: `https://outages.mainpower.co.nz/jobs?source=pcc&view=external`
+  - Format: Clean JSON REST API
+  - Location: WGS84 coordinates with polygon geometries
+  - Customer Count: `CustomersOff` field
+  - Outage Type: Separate `current_outages` and `planned_jobs` objects
+  - Metadata: Crew status, updates, area details
+  - Scrape: Background every 5 minutes
+  - **Rating**: Excellent API - includes polygon geometries for affected areas
+
+- **Alpine Energy** ✅ - South Canterbury/Timaru (⭐⭐⭐ Easy)
+  - URL: `https://outages.alpineenergy.co.nz/api/FaultsAPI/GetFaults?locality={lat},{lng}&faultType=false&site_id=59`
+  - Format: Clean JSON REST API (TVD system, same as TLC)
+  - Location: Static locality mapping (161 localities from NZ Gazetteer)
+  - Customer Count: `AffectedCustomers` field
+  - Outage Type: `faultType` parameter (false=current, true=planned)
+  - Metadata: Fault ID, location, cause, timestamps
+  - Scrape: Background every 5 minutes, samples 20 random localities
+  - Regenerate localities: `node tools/generate-alpine-localities.js`
+  - **Rating**: Clean API identical to TLC, static coordinate mapping
 
 ### Not Feasible
 - **Vector Limited** ❌ - Auckland region
@@ -464,7 +489,6 @@ curl http://localhost:3000/power-outages/outages
 - **Scanpower** - Wairarapa
 
 **South Island:**
-- **Alpine Energy** - South Canterbury/Timaru
 - **Buller Electricity** - Buller/West Coast
 - **Nelson Electricity** - Nelson
 - **Network Tasman** - Tasman/Golden Bay
@@ -472,20 +496,10 @@ curl http://localhost:3000/power-outages/outages
 - **Stewart Island Electrical Supply Authority** - Stewart Island
 
 **Coverage Status:**
-- ✅ Implemented: 7/30 utilities (23%)
+- ✅ Implemented: 8/30 utilities (27%)
 - ❌ Not Feasible: 6/30 utilities (20%) - Vector, Horizon, Westpower, Network Waitaki, PowerNet group (3)
-- 📋 To Be Implemented: 17/30 utilities (57%)
+- 📋 To Be Implemented: 16/30 utilities (53%)
 
 ## License
 
 AGPL-3.0-only - Copyright (C) 2025 Team Awareness Kit New Zealand (TAK.NZ)
-
-- **MainPower** ✅ - North Canterbury (⭐⭐⭐ Easy)
-  - URL: `https://outages.mainpower.co.nz/jobs?source=pcc&view=external`
-  - Format: Clean JSON REST API
-  - Location: WGS84 coordinates with polygon geometries
-  - Customer Count: `CustomersOff` field
-  - Outage Type: Separate `current_outages` and `planned_jobs` objects
-  - Metadata: Crew status, updates, area details
-  - Scrape: Background every 5 minutes
-  - **Rating**: Excellent API - includes polygon geometries for affected areas

@@ -1,33 +1,14 @@
 #!/usr/bin/env node
-import fetch from 'node-fetch';
-import { parseString } from 'xml2js';
-import { promisify } from 'util';
 import fs from 'fs/promises';
 
-const parseXML = promisify(parseString);
-
 async function getTLCBoundary() {
-  console.log('📥 Fetching ENA network boundaries KML...');
-  const response = await fetch('https://www.ena.org.nz/assets/Maps/networkboundaries-2.kml');
-  const kmlText = await response.text();
-  
-  console.log('🔍 Parsing KML and extracting TLC boundary...');
-  const parsed = await parseXML(kmlText);
-  
-  const placemark = parsed.kml.Document[0].Placemark.find(
-    p => p.name[0] === 'The Lines Company'
-  );
-  
-  if (!placemark) throw new Error('TLC not found in KML');
-  
-  const coordsText = placemark.Polygon[0].outerBoundaryIs[0].LinearRing[0].coordinates[0].trim();
-  const coordinates = coordsText.split(/\s+/).map(coord => {
-    const [lng, lat] = coord.split(',').map(Number);
-    return [lng, lat];
-  });
-  
-  console.log(`✅ Extracted TLC boundary: ${coordinates.length} points`);
-  return coordinates;
+  console.log('📥 Reading TLC boundary from GeoJSON...');
+  const geojson = JSON.parse(await fs.readFile('../data/nz-network-boundaries.geojson', 'utf8'));
+  const tlc = geojson.features.find(f => f.properties.Region.includes('Lines Company'));
+  if (!tlc) throw new Error('TLC not found');
+  const boundary = tlc.geometry.coordinates[0];
+  console.log(`✅ Extracted TLC boundary: ${boundary.length} points`);
+  return boundary;
 }
 
 function isPointInPolygon(point, polygon) {
@@ -55,117 +36,63 @@ function isPointNearPolygon(point, polygon, bufferDegrees = 0.05) {
   return false;
 }
 
-async function getLocalitiesFromOSM(boundary) {
-  console.log('🌍 Querying OpenStreetMap for localities...');
+
+
+async function getLocalitiesFromLINZ(boundary) {
+  console.log('📥 Reading LINZ Gazetteer...');
+  const csv = await fs.readFile('../data/gaz_csv.csv', 'utf8');
+  const lines = csv.split('\n');
+  const header = lines[0].replace(/^\uFEFF/, '');
   
-  const polyString = boundary.map(([lng, lat]) => `${lat} ${lng}`).join(' ');
+  // Parse CSV properly handling quoted fields
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
+  }
   
-  const query = `[out:json][timeout:60];
-(
-  node["place"~"city|town|village|suburb|hamlet|locality"]["name"](poly:"${polyString}");
-  way["place"~"city|town|village|suburb|hamlet|locality"]["name"](poly:"${polyString}");
-  relation["place"~"city|town|village|suburb|hamlet|locality"]["name"](poly:"${polyString}");
-);
-out center;`;
-  
-  const response = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    body: query,
-    headers: { 'Content-Type': 'text/plain' }
-  });
-  
-  const data = await response.json();
+  const headers = parseCSVLine(header);
+  const nameIdx = headers.indexOf('name');
+  const latIdx = headers.indexOf('crd_latitude');
+  const lngIdx = headers.indexOf('crd_longitude');
+  const featTypeIdx = headers.indexOf('feat_type');
+  const settlementTypes = ['Town', 'Locality', 'Populated Place', 'Settlement', 'Village', 'Suburb'];
   
   const localities = {};
-  for (const element of data.elements) {
-    const name = element.tags.name;
-    const lat = element.lat || element.center?.lat;
-    const lon = element.lon || element.center?.lon;
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cols = parseCSVLine(lines[i]);
+    if (cols.length < Math.max(nameIdx, latIdx, lngIdx, featTypeIdx)) continue;
     
-    if (name && lat && lon) {
-      localities[name] = { lat, lng: lon };
+    const name = cols[nameIdx]?.trim();
+    const lat = parseFloat(cols[latIdx]);
+    const lng = parseFloat(cols[lngIdx]);
+    const featType = cols[featTypeIdx]?.trim();
+    
+    if (name && !isNaN(lat) && !isNaN(lng) && settlementTypes.includes(featType) && isPointNearPolygon([lng, lat], boundary)) {
+      localities[name] = { lat, lng };
     }
   }
   
-  console.log(`✅ Found ${Object.keys(localities).length} localities from OSM`);
+  console.log(`✅ Found ${Object.keys(localities).length} localities from LINZ`);
   return localities;
 }
 
-async function getLocalitiesFromLINZ(boundary, apiKey) {
-  if (!apiKey) {
-    console.log('ℹ️  Skipping LINZ query...');
-    return {};
-  }
-  
-  console.log('🏛️  Downloading LINZ Gazetteer CSV...');
-  
-  try {
-    const response = await fetch('https://gazetteer.linz.govt.nz/gaz.csv');
-    if (!response.ok) {
-      console.log(`⚠️  LINZ CSV download failed: ${response.status}, skipping...`);
-      return {};
-    }
-    
-    const csvText = await response.text();
-    const lines = csvText.split('\n');
-    
-    // Parse header (remove BOM if present)
-    const header = lines[0].replace(/^\uFEFF/, '');
-    const headers = header.split(',');
-    
-    // Find column indices
-    const nameIdx = headers.indexOf('name');
-    const latIdx = headers.indexOf('crd_latitude');
-    const lngIdx = headers.indexOf('crd_longitude');
-    const featTypeIdx = headers.indexOf('feat_type');
-    
-    const localities = {};
-    let checkedCount = 0;
-    
-    // Feature types that represent settlements
-    const settlementTypes = ['Town', 'Locality', 'Populated Place', 'Settlement', 'Village', 'Suburb'];
-    
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      
-      const cols = line.split(',');
-      if (cols.length < Math.max(nameIdx, latIdx, lngIdx, featTypeIdx)) continue;
-      
-      const name = cols[nameIdx]?.trim();
-      const lat = parseFloat(cols[latIdx]);
-      const lng = parseFloat(cols[lngIdx]);
-      const featType = cols[featTypeIdx]?.trim();
-      
-      // Only include settlements
-      if (name && !isNaN(lat) && !isNaN(lng) && settlementTypes.includes(featType)) {
-        checkedCount++;
-        // Check if point is within or near TLC boundary (with buffer for edge cases)
-        if (isPointNearPolygon([lng, lat], boundary)) {
-          localities[name] = { lat, lng };
-        }
-      }
-    }
-    
-    console.log(`✅ Found ${Object.keys(localities).length} localities from LINZ (checked ${checkedCount} settlements)`);
-    return localities;
-  } catch (error) {
-    console.log(`⚠️  LINZ query failed: ${error.message}, skipping...`);
-    return {};
-  }
-}
-
-async function getLocalitiesInBoundary(boundary, linzApiKey) {
-  const [osmLocalities, linzLocalities] = await Promise.all([
-    getLocalitiesFromOSM(boundary),
-    getLocalitiesFromLINZ(boundary, linzApiKey)
-  ]);
-  
-  // Merge, preferring LINZ data (more authoritative)
-  const merged = { ...osmLocalities, ...linzLocalities };
-  
-  console.log(`📊 Total unique localities: ${Object.keys(merged).length}`);
-  return merged;
+async function getLocalitiesInBoundary(boundary) {
+  return await getLocalitiesFromLINZ(boundary);
 }
 
 function getNZRegion(lat, lng) {
@@ -252,25 +179,16 @@ export function getAllLocalities() {
 }
 `;
   
-  await fs.writeFile('scrapers/tlc-localities.js', fileContent);
+  await fs.writeFile('../scrapers/tlc-localities.js', fileContent);
   console.log(`✅ Generated tlc-localities.js with ${Object.keys(localities).length} localities`);
 }
 
 async function main() {
   try {
-    // LINZ CSV is public, no API key needed
-    const useLINZ = process.argv[2] !== '--osm-only';
-    
-    if (!useLINZ) {
-      console.log('ℹ️  Using OpenStreetMap data only (--osm-only flag set)\n');
-    }
-    
     const boundary = await getTLCBoundary();
-    const localities = await getLocalitiesInBoundary(boundary, useLINZ ? 'enabled' : null);
+    const localities = await getLocalitiesInBoundary(boundary);
     await generateLocalitiesFile(localities);
-    
-    console.log('\n✨ Complete! TLC localities mapping generated.');
-    console.log(`📍 Total localities mapped: ${Object.keys(localities).length}`);
+    console.log('\n✨ Complete!');
   } catch (error) {
     console.error('❌ Error:', error.message);
     process.exit(1);
