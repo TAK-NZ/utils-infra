@@ -10,48 +10,37 @@ export async function scrapeAlpineEnergy() {
   };
 
   const outages = [];
-  const localities = Object.keys(ALPINE_LOCALITIES);
-  const sampleSize = Math.min(20, localities.length);
-  const samples = [];
-  
-  for (let i = 0; i < sampleSize; i++) {
-    const idx = Math.floor(Math.random() * localities.length);
-    samples.push(localities[idx]);
-  }
 
-  for (const locality of samples) {
-    try {
-      const coords = getCoordinates(locality);
-      const url = `https://outages.alpineenergy.co.nz/api/FaultsAPI/GetFaults?locality=${coords.latitude},${coords.longitude}&faultType=false&site_id=59`;
-      const response = await fetch(url);
-      const data = await response.json();
+  try {
+    const url = 'https://outages.alpineenergy.co.nz/api/FaultsAPI/GetFaults?locality=&faultType=false&site_id=59';
+    const response = await fetch(url);
+    const data = await response.json();
 
-      if (data?.FaultList) {
-        for (const fault of data.FaultList) {
-          outages.push({
-            outageId: `ALPINE-${fault.FaultId || Date.now()}`,
-            utility,
-            region: 'South Canterbury',
-            regionCode: 'SC',
-            outageStart: fault.StartTime || null,
-            estimatedRestoration: fault.EstimatedRestoration || null,
-            cause: fault.Cause || 'Unknown',
-            status: 'active',
-            outageType: 'unplanned',
-            customersAffected: fault.AffectedCustomers || 0,
-            location: {
-              coordinates: {
-                latitude: fault.Latitude || 0,
-                longitude: fault.Longitude || 0
-              },
-              areas: [fault.Location || 'Unknown']
-            }
-          });
-        }
+    if (data?.FaultList) {
+      for (const fault of data.FaultList) {
+        const locality = fault.Location || 'Unknown';
+        const coords = getCoordinates(locality) || { latitude: 0, longitude: 0 };
+
+        outages.push({
+          outageId: `ALPINE-${fault.FaultId || Date.now()}`,
+          utility,
+          region: 'South Canterbury',
+          regionCode: 'SC',
+          outageStart: fault.StartTime || null,
+          estimatedRestoration: fault.EstimatedRestoration || null,
+          cause: fault.Cause || 'Unknown',
+          status: 'active',
+          outageType: 'unplanned',
+          customersAffected: fault.AffectedCustomers || 0,
+          location: {
+            coordinates: coords,
+            areas: [locality]
+          }
+        });
       }
-    } catch (error) {
-      // Silent fail
     }
+  } catch (error) {
+    console.error('Alpine Energy scrape error:', error.message);
   }
 
   return { utility, outages };

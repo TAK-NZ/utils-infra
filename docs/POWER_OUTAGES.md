@@ -429,13 +429,13 @@ curl http://localhost:3000/power-outages/outages
   - **Rating**: Excellent API - includes polygon geometries for affected areas
 
 - **Alpine Energy** ✅ - South Canterbury/Timaru (⭐⭐⭐ Easy)
-  - URL: `https://outages.alpineenergy.co.nz/api/FaultsAPI/GetFaults?locality={lat},{lng}&faultType=false&site_id=59`
+  - URL: `https://outages.alpineenergy.co.nz/api/FaultsAPI/GetFaults?locality=&faultType=false&site_id=59`
   - Format: Clean JSON REST API (TVD system, same as TLC)
   - Location: Static locality mapping (161 localities from NZ Gazetteer)
   - Customer Count: `AffectedCustomers` field
   - Outage Type: `faultType` parameter (false=current, true=planned)
   - Metadata: Fault ID, location, cause, timestamps
-  - Scrape: Background every 5 minutes, samples 20 random localities
+  - Scrape: Background every 5 minutes
   - Regenerate localities: `node tools/generate-alpine-localities.js`
   - **Rating**: Clean API identical to TLC, static coordinate mapping
 
