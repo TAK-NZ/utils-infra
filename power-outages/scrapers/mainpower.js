@@ -21,7 +21,8 @@ function extractCoordinates(job) {
       longitude: firstStep.properties.Lon
     };
   }
-  return null;
+  // Fallback: return null but don't skip the outage
+  return { latitude: 0, longitude: 0 };
 }
 
 export async function scrapeMainPower() {
@@ -29,10 +30,9 @@ export async function scrapeMainPower() {
   const data = await response.json();
   const outages = [];
 
-  // Process current outages (unplanned)
+  // Process current outages (unplanned) ONLY
   for (const [jobId, job] of Object.entries(data.current_outages || {})) {
     const coords = extractCoordinates(job);
-    if (!coords) continue;
 
     outages.push({
       outageId: jobId,
@@ -51,34 +51,6 @@ export async function scrapeMainPower() {
       },
       metadata: {
         crewStatus: job.CrewState,
-        updates: job.Updates
-      }
-    });
-  }
-
-  // Process planned jobs
-  for (const [jobId, job] of Object.entries(data.planned_jobs || {})) {
-    if (job.Status === 'Complete') continue;
-    
-    const coords = extractCoordinates(job);
-    if (!coords) continue;
-
-    outages.push({
-      outageId: jobId,
-      utility: { name: 'MainPower', id: 'MAINPOWER_NZ' },
-      region: 'Canterbury',
-      regionCode: getRegionCode('Canterbury'),
-      outageStart: parseDateTime(job.ActualStartTime || job.PlannedStartTime),
-      estimatedRestoration: parseDateTime(job.ActualEndTime || job.PlannedEndTime),
-      cause: job.Reason || 'Planned Maintenance',
-      status: job.Status?.toLowerCase() || 'active',
-      outageType: 'planned',
-      customersAffected: job.CustomersOff || 0,
-      location: {
-        coordinates: coords,
-        areas: job.Area ? [job.Area] : []
-      },
-      metadata: {
         updates: job.Updates
       }
     });
