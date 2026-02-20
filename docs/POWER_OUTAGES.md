@@ -419,21 +419,49 @@ curl http://localhost:3000/power-outages/outages
   - **Impact**: Cannot scrape Auckland region (600K customers, 1/3 of NZ population)
   - **Alternative**: Would require building address database and querying individually (impractical)
 
-- **Horizon Energy** ❌ - Taranaki
+- **Horizon Networks** ❌ - Taranaki
   - URL: `https://www.horizonenergy.co.nz/outages`
   - **Issue**: CloudFlare bot protection
   - **Limitation**: Automated scraping blocked by security measures
   - **Alternative**: Would require headless browser with anti-detection (complex, resource-intensive)
 
-- **PowerNet** ❌ - Southland/Otago
+- **PowerNet (manages 3 utilities)** ❌ - Southland/Otago
+  - Manages: Electricity Invercargill, OtagoNet, The Power Company
   - URL: `https://powernet.co.nz/outages/current-and-planned-outages/`
   - API: `https://outage-api.powernet.co.nz/api`
   - **Issue**: API times out on direct access
   - **Limitation**: Likely requires browser context, CORS restrictions, or authentication
   - **Alternative**: Would require headless browser (Puppeteer) - complex and resource-intensive
 
-### To Be Implemented
-- **Electricity Invercargill** - Southland
+### To Be Implemented (24 utilities remaining)
+
+**North Island:**
+- **Top Energy** - Northland
+- **Northpower** - Northland/Kaipara
+- **Counties Energy** - South Auckland/Waikato
+- **WEL Networks** - Hamilton/Waikato
+- **Waipa Networks** - Waikato
+- **Unison Networks** - Hawke's Bay/Taupo/Rotorua
+- **Firstlight Network** - Taranaki/Whanganui
+- **Electra** - Kapiti Coast/Horowhenua
+- **CentraLines** - Manawatu
+- **Scanpower** - Wairarapa
+
+**South Island:**
+- **MainPower** - North Canterbury
+- **Alpine Energy** - South Canterbury/Timaru
+- **Network Waitaki** - Waitaki/Oamaru
+- **Westpower** - West Coast
+- **Buller Electricity** - Buller/West Coast
+- **Nelson Electricity** - Nelson
+- **Network Tasman** - Tasman/Golden Bay
+- **Marlborough Lines** - Marlborough
+- **Stewart Island Electrical Supply Authority** - Stewart Island
+
+**Coverage Status:**
+- ✅ Implemented: 6/30 utilities (20%)
+- ❌ Not Feasible: 4/30 utilities (13%) - Vector, Horizon, PowerNet group (3)
+- 📋 To Be Implemented: 20/30 utilities (67%)
 
 ## License
 
