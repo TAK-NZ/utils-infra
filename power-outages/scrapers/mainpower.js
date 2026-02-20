@@ -9,7 +9,7 @@ function parseDateTime(dateStr) {
   const match = dateStr.match(/(\d+)\/(\d+)\/(\d+) (\d+):(\d+)/);
   if (!match) return null;
   const [, day, month, year, hour, minute] = match;
-  return new Date(year, month - 1, day, hour, minute).toISString();
+  return new Date(year, month - 1, day, hour, minute).toISOString();
 }
 
 function extractCoordinates(job) {
