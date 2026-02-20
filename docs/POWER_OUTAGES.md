@@ -33,6 +33,10 @@ NZ EDB Websites → Power Outages Service → Standardized JSON → TAK Integrat
 - `scrapers/orion.js` - Orion Group outage scraper
 - `scrapers/powerco.js` - PowerCo outage scraper
 - `scrapers/wellington.js` - Wellington Electricity scraper
+- `scrapers/eanetworks.js` - EA Networks outage scraper
+- `scrapers/aurora.js` - Aurora Energy outage scraper
+- `scrapers/tlc.js` - The Lines Company outage scraper
+- `scrapers/tlc-localities.js` - TLC locality coordinates (211 localities)
 - `scrapers/regions.js` - NZ region code mappings (ISO 3166-2:NZ)
 
 ### Key Findings
@@ -325,7 +329,7 @@ npm install
 node server.js
 
 # Test locally
-curl http://localhost:3000/odin/outages
+curl http://localhost:3000/power-outages/outages
 ```
 
 ## Data Sources
@@ -394,6 +398,17 @@ curl http://localhost:3000/odin/outages
   - Metadata: Incident ID, town, suburbs, time off/on
   - Scrape: Background every 5 minutes
   - **Rating**: HTML parsing required, coordinates and customer counts available
+
+- **The Lines Company (TLC)** ✅ - Central North Island/King Country (⭐⭐⭐ Easy)
+  - URL: `https://ifstlc.tvd.co.nz/api/FaultsAPI/GetFaults?locality=&faultType=false&site_id=121`
+  - Format: Clean JSON REST API
+  - Location: Static locality mapping (211 localities from ENA boundaries + OpenStreetMap)
+  - Customer Count: Extracted from `AdditionalContent` text field
+  - Outage Type: `FaultType` boolean (false=current, true=planned)
+  - Metadata: Feeder name, cause, region, detailed description
+  - Scrape: Background every 5 minutes
+  - Regenerate localities: `node tools/generate-tlc-localities.js`
+  - **Rating**: Clean API similar to Wellington Electricity, static coordinate mapping
 
 ### Not Feasible
 - **Vector Limited** ❌ - Auckland region
