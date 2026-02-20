@@ -341,6 +341,7 @@ curl http://localhost:3000/power-outages/outages
 |---------|-----------|--------------|----------|-------|
 | Wellington Electricity | ⭐⭐⭐ Easy | Excellent | Clean JSON REST API | Best implementation - public API with complete data |
 | EA Networks | ⭐⭐⭐ Easy | Excellent | Clean JSON REST API | Vercel-hosted API with GeoJSON polygons |
+| TLC | ⭐⭐⭐ Easy | Good | Clean JSON REST API | Static locality mapping, customer counts in text field |
 | PowerCo | ⭐⭐ Moderate | Excellent | ArcGIS FeatureServer | Standard GIS API, coordinate conversion required |
 | Orion Group | ⭐ Moderate | Excellent | Embedded JavaScript | Data in `window.allOutages` object, requires parsing |
 | Aurora Energy | ⭐ Moderate | Good | HTML data attributes | Coordinates in data-latitude/longitude, customer counts in accordion |
