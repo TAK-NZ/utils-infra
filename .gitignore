@@ -3,6 +3,10 @@
 !ais-proxy/server.js
 !weather-proxy/server.js
 !camera-proxy/server.js
+!power-outages/server.js
+!power-outages/scrapers/*.js
+!power-outages/tools/*.js
+!power-outages/verify-tlc-localities.js
 !scripts/*.js
 *.d.ts
 node_modules
