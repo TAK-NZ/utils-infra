@@ -6,6 +6,7 @@ import { scrapeEANetworks } from './scrapers/eanetworks.js';
 import { scrapeAurora } from './scrapers/aurora.js';
 import { scrapeTLC } from './scrapers/tlc.js';
 import { scrapeMainPower } from './scrapers/mainpower.js';
+import { scrapeAlpineEnergy } from './scrapers/alpine.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,7 +19,8 @@ const scrapers = {
   eanetworks: scrapeEANetworks,
   aurora: scrapeAurora,
   tlc: scrapeTLC,
-  mainpower: scrapeMainPower
+  mainpower: scrapeMainPower,
+  alpine: scrapeAlpineEnergy
 };
 
 const outageCache = new Map();
