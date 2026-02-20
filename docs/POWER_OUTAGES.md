@@ -36,6 +36,7 @@ NZ EDB Websites → Power Outages Service → Standardized JSON → TAK Integrat
 - `scrapers/eanetworks.js` - EA Networks outage scraper
 - `scrapers/aurora.js` - Aurora Energy outage scraper
 - `scrapers/tlc.js` - The Lines Company outage scraper
+- `scrapers/mainpower.js` - MainPower outage scraper
 - `scrapers/tlc-localities.js` - TLC locality coordinates (211 localities)
 - `scrapers/regions.js` - NZ region code mappings (ISO 3166-2:NZ)
 
@@ -345,6 +346,8 @@ curl http://localhost:3000/power-outages/outages
 | Aurora Energy | ⭐ Moderate | Good | HTML data attributes | Coordinates in data-latitude/longitude, customer counts in accordion |
 | Vector Limited | ❌ Not Feasible | N/A | Address-based only | React SPA with no bulk outage API - address lookup only |
 | Horizon Energy | ❌ Not Feasible | N/A | CloudFlare protected | Bot protection prevents automated scraping |
+| Westpower | ❌ Not Feasible | N/A | CloudFlare protected | Bot protection prevents automated scraping |
+| Network Waitaki | ❌ Not Feasible | N/A | No data available | Unplanned outages not published on website, Facebook only |
 | PowerNet | ❌ Not Feasible | N/A | API timeout/CORS | API exists but times out on direct access, requires browser context |
 
 ### Production (Implemented)
@@ -425,6 +428,18 @@ curl http://localhost:3000/power-outages/outages
   - **Limitation**: Automated scraping blocked by security measures
   - **Alternative**: Would require headless browser with anti-detection (complex, resource-intensive)
 
+- **Westpower** ❌ - West Coast
+  - URL: `https://outages.westpower.co.nz/`
+  - **Issue**: CloudFlare bot protection
+  - **Limitation**: Automated scraping blocked by security measures
+  - **Alternative**: Would require headless browser with anti-detection (complex, resource-intensive)
+
+- **Network Waitaki** ❌ - Waitaki/Oamaru
+  - URL: `https://www.networkwaitaki.co.nz/customers/power-outages/`
+  - **Issue**: No unplanned outage data available
+  - **Limitation**: Website states "Unplanned power outages are not currently updated on our website"
+  - **Alternative**: Directs users to Facebook page for outage information (not suitable for automated scraping)
+
 - **PowerNet (manages 3 utilities)** ❌ - Southland/Otago
   - Manages: Electricity Invercargill, OtagoNet, The Power Company
   - URL: `https://powernet.co.nz/outages/current-and-planned-outages/`
@@ -448,10 +463,7 @@ curl http://localhost:3000/power-outages/outages
 - **Scanpower** - Wairarapa
 
 **South Island:**
-- **MainPower** - North Canterbury
 - **Alpine Energy** - South Canterbury/Timaru
-- **Network Waitaki** - Waitaki/Oamaru
-- **Westpower** - West Coast
 - **Buller Electricity** - Buller/West Coast
 - **Nelson Electricity** - Nelson
 - **Network Tasman** - Tasman/Golden Bay
@@ -459,10 +471,20 @@ curl http://localhost:3000/power-outages/outages
 - **Stewart Island Electrical Supply Authority** - Stewart Island
 
 **Coverage Status:**
-- ✅ Implemented: 6/30 utilities (20%)
-- ❌ Not Feasible: 4/30 utilities (13%) - Vector, Horizon, PowerNet group (3)
-- 📋 To Be Implemented: 20/30 utilities (67%)
+- ✅ Implemented: 7/30 utilities (23%)
+- ❌ Not Feasible: 6/30 utilities (20%) - Vector, Horizon, Westpower, Network Waitaki, PowerNet group (3)
+- 📋 To Be Implemented: 17/30 utilities (57%)
 
 ## License
 
 AGPL-3.0-only - Copyright (C) 2025 Team Awareness Kit New Zealand (TAK.NZ)
+
+- **MainPower** ✅ - North Canterbury (⭐⭐⭐ Easy)
+  - URL: `https://outages.mainpower.co.nz/jobs?source=pcc&view=external`
+  - Format: Clean JSON REST API
+  - Location: WGS84 coordinates with polygon geometries
+  - Customer Count: `CustomersOff` field
+  - Outage Type: Separate `current_outages` and `planned_jobs` objects
+  - Metadata: Crew status, updates, area details
+  - Scrape: Background every 5 minutes
+  - **Rating**: Excellent API - includes polygon geometries for affected areas
