@@ -11,7 +11,7 @@ export async function scrapeOrion() {
   const match = html.match(/window\.allOutages\s*=\s*({[\s\S]*?});\s*(?:\/\/|<\/script>)/);
   if (!match) {
     console.error('Orion: No window.allOutages found in page');
-    return { utility: { name: 'Orion Group', id: 'ORION_NZ' }, region: 'Canterbury, New Zealand', outages: [] };
+    return { utility: { name: 'Orion New Zealand', id: '30' }, region: 'Central Canterbury (Orion New Zealand)', outages: [] };
   }
   
   const allOutages = JSON.parse(match[1]);
@@ -22,7 +22,7 @@ export async function scrapeOrion() {
     .filter(data => data.State === 'OPEN')
     .map(data => ({
       outageId: data.IncidentRef,
-      utility: { name: 'Orion Group', id: 'ORION_NZ' },
+      utility: { name: 'Orion New Zealand', id: '30' },
       region,
       regionCode: getRegionCode(region),
       outageStart: data.TimeDown,
@@ -38,8 +38,8 @@ export async function scrapeOrion() {
     }));
 
   return {
-    utility: { name: 'Orion Group', id: 'ORION_NZ' },
-    region: 'Canterbury, New Zealand',
+    utility: { name: 'Orion New Zealand', id: '30' },
+    region: 'Central Canterbury (Orion New Zealand)',
     outages
   };
 }

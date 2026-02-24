@@ -16,8 +16,8 @@ export async function scrapeEANetworks() {
       
       return {
         outageId: outage.incident_id,
-        utility: { name: 'EA Networks', id: 'EANETWORKS_NZ' },
-        region: 'Canterbury',
+        utility: { name: 'Electricity Ashburton', id: '31' },
+        region: 'Ashburton (Electricity Ashburton)',
         regionCode: 'NZ-CAN',
         outageStart: outage.start_time,
         estimatedRestoration: outage.estimated_end_time,
@@ -42,9 +42,9 @@ export async function scrapeEANetworks() {
       };
     });
     
-    return { utility: { name: 'EA Networks', id: 'EANETWORKS_NZ' }, outages };
+    return { utility: { name: 'Electricity Ashburton', id: '31' }, region: 'Ashburton (Electricity Ashburton)', outages };
   } catch (error) {
     console.error('EA Networks scrape error:', error.message);
-    return { utility: { name: 'EA Networks', id: 'EANETWORKS_NZ' }, outages: [] };
+    return { utility: { name: 'Electricity Ashburton', id: '31' }, region: 'Ashburton (Electricity Ashburton)', outages: [] };
   }
 }

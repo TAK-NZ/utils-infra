@@ -21,8 +21,9 @@ NZ EDB Websites → Power Outages Service → Standardized JSON → TAK Integrat
 
 - **All Outages**: `/power-outages/outages`
 - **Filtered Outages**: `/power-outages/outages?utility=POWERCO_NZ&minCustomers=10&outageType=unplanned`
-- **Regional Summary**: `/power-outages/summary`
+- **Utilities Summary**: `/power-outages/summary`
 - **City Aggregation**: `/power-outages/aggregate`
+- **GeoJSON Boundaries**: `/power-outages/geojson`
 - **Health Check**: `/power-outages/health`
 - **Port**: 3000
 - **Cache**: 5 minutes (background scraper)
@@ -169,10 +170,13 @@ curl https://utils.tak.nz/power-outages/outages
 #### Filter by Utility
 ```bash
 # Orion Group only
-curl https://utils.tak.nz/power-outages/outages?utility=ORION_NZ
+curl https://utils.tak.nz/power-outages/outages?utility=30
 
-# PowerCo only
-curl https://utils.tak.nz/power-outages/outages?utility=POWERCO_NZ
+# PowerCo Tauranga region only
+curl https://utils.tak.nz/power-outages/outages?utility=10
+
+# The Lines Company only
+curl https://utils.tak.nz/power-outages/outages?utility=9
 ```
 
 #### Filter by Outage Type
@@ -208,16 +212,19 @@ curl https://utils.tak.nz/power-outages/outages?regionCode=NZ-BOP
 #### Combined Filters
 ```bash
 # PowerCo major unplanned outages
-curl 'https://utils.tak.nz/power-outages/outages?utility=POWERCO_NZ&outageType=unplanned&minCustomers=10'
+curl 'https://utils.tak.nz/power-outages/outages?utility=10&outageType=unplanned&minCustomers=10'
 ```
 
-#### Regional Summary
+#### Utilities Summary
 ```bash
-# Aggregated view by region/town
+# Get utilities summary with customer counts and outage percentages
 curl https://utils.tak.nz/power-outages/summary
+```
 
-# Summary for specific utility
-curl https://utils.tak.nz/power-outages/summary?utility=POWERCO_NZ
+#### GeoJSON with Outage Data
+```bash
+# Get network boundaries with outage statistics as properties
+curl https://utils.tak.nz/power-outages/geojson
 ```
 
 #### City-Level Aggregation
@@ -225,8 +232,8 @@ curl https://utils.tak.nz/power-outages/summary?utility=POWERCO_NZ
 # Aggregate outages by city with centroid coordinates
 curl https://utils.tak.nz/power-outages/aggregate
 
-# Aggregate PowerCo outages only
-curl https://utils.tak.nz/power-outages/aggregate?utility=POWERCO_NZ
+# Aggregate PowerCo Tauranga outages only
+curl https://utils.tak.nz/power-outages/aggregate?utility=10
 
 # Aggregate unplanned outages
 curl https://utils.tak.nz/power-outages/aggregate?outageType=unplanned
@@ -238,7 +245,7 @@ Note: The aggregate endpoint returns the same format as `/power-outages/outages`
 
 | Parameter | Type | Description | Example |
 |-----------|------|-------------|----------|
-| `utility` | string | Filter by utility ID | `ORION_NZ`, `POWERCO_NZ` |
+| `utility` | string | Filter by utility ID | `30` (Orion), `10` (Powerco Tauranga), `9` (TLC) |
 | `minCustomers` | integer | Minimum customers affected | `10`, `50`, `100` |
 | `region` | string | Filter by region name | `Canterbury`, `Auckland` |
 | `regionCode` | string | Filter by ISO 3166-2:NZ code | `NZ-CAN`, `NZ-BOP` |
@@ -265,19 +272,123 @@ Note: The aggregate endpoint returns the same format as `/power-outages/outages`
 }
 ```
 
-#### Summary Endpoint
+#### GeoJSON Endpoint (Network Boundaries with Outage Data)
+
+Returns NZ electricity network boundaries as GeoJSON with real-time outage statistics. Multi-region utilities are split into separate features.
+
+**Region Status:**
+- `status: 'ok'` - Live outage data available (implemented scrapers)
+- `status: 'not-feasible'` - Data collection not possible (technical limitations)
+- Unimplemented regions are excluded from the response
+
+```json
+{
+  "type": "FeatureCollection",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+  "timestamp": "2026-02-18T08:00:00.000Z",
+  "lastScrape": "2026-02-18T07:58:30.000Z",
+  "colorScheme": {
+    "description": "Recommended color scheme based on percentage of customers affected",
+    "ranges": [
+      { "min": 0, "max": 0.1, "color": "#22c55e", "label": "Normal (< 0.1%)" },
+      { "min": 0.1, "max": 1.0, "color": "#84cc16", "label": "Minor (0.1-1%)" },
+      { "min": 1.0, "max": 5.0, "color": "#eab308", "label": "Moderate (1-5%)" },
+      { "min": 5.0, "max": 10.0, "color": "#f97316", "label": "Significant (5-10%)" },
+      { "min": 10.0, "max": 25.0, "color": "#ef4444", "label": "Major (10-25%)" },
+      { "min": 25.0, "max": 100, "color": "#991b1b", "label": "Critical (> 25%)" }
+    ],
+    "notFeasible": { "color": "#9ca3af", "label": "Data Collection Not Feasible" }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "ID": "30",
+        "Region": "Central Canterbury (Orion New Zealand)",
+        "id": "30",
+        "name": "Orion New Zealand",
+        "region": "Central Canterbury (Orion New Zealand)",
+        "totalCustomers": 218450,
+        "affectedCustomers": 247,
+        "affectedPercentage": 0.1131,
+        "outageCount": 15,
+        "status": "ok",
+        "lastUpdate": "2026-02-18T07:58:30.000Z"
+      },
+      "geometry": { "type": "MultiPolygon", "coordinates": [...] }
+    }
+  ]
+}
+```
+
+Note: Region status in the response:
+- **Supported regions** (`status: 'ok'`): Live outage data with customer counts and percentages
+- **Not feasible regions** (`status: 'not-feasible'`): Technical limitations prevent data collection (Vector, Horizon, Westpower, Network Waitaki, PowerNet utilities)
+- **Unimplemented regions**: Excluded from response (not yet attempted)
+
+The colorScheme provides recommended colors based on utility industry standards:
+- **Green (#22c55e)**: Normal operation (< 0.1% affected)
+  - JSONata: `properties.metadata.status = 'ok' and properties.metadata.affectedPercentage < 0.1`
+- **Lime (#84cc16)**: Minor issues (0.1-1%)
+  - JSONata: `properties.metadata.status = 'ok' and properties.metadata.affectedPercentage >= 0.1 and properties.metadata.affectedPercentage < 1.0`
+- **Yellow (#eab308)**: Moderate outages (1-5%)
+  - JSONata: `properties.metadata.status = 'ok' and properties.metadata.affectedPercentage >= 1.0 and properties.metadata.affectedPercentage < 5.0`
+- **Orange (#f97316)**: Significant outages (5-10%)
+  - JSONata: `properties.metadata.status = 'ok' and properties.metadata.affectedPercentage >= 5.0 and properties.metadata.affectedPercentage < 10.0`
+- **Red (#ef4444)**: Major outages (10-25%)
+  - JSONata: `properties.metadata.status = 'ok' and properties.metadata.affectedPercentage >= 10.0 and properties.metadata.affectedPercentage < 25.0`
+  - Note: US DOE considers events affecting >10% of customers as "major events" requiring regulatory reporting
+- **Dark Red (#991b1b)**: Critical outages (> 25%)
+  - JSONata: `properties.metadata.status = 'ok' and properties.metadata.affectedPercentage >= 25.0`
+- **Grey (#9ca3af)**: Data collection not feasible
+  - JSONata: `properties.metadata.status = 'not-feasible'`
+
+References:
+- [IEEE 1366 Guide for Electric Power Distribution Reliability Indices](https://standards.ieee.org/standard/1366-2012.html)
+- [US DOE Electric Disturbance Events (OE-417)](https://www.oe.netl.doe.gov/oe417.aspx) - Major events defined as affecting ≥50,000 customers or ≥10% of utility customers
+
+#### Summary Endpoint (Utilities Overview)
+
+Returns utility-level statistics with customer counts and outage percentages. Multi-region utilities (PowerCo, Aurora Energy) are split into separate regional entries.
+
 ```json
 {
   "version": "1.0",
   "timestamp": "2026-02-18T08:00:00.000Z",
-  "totalOutages": 375,
-  "totalCustomersAffected": 1247,
-  "byRegion": [
+  "lastScrape": "2026-02-18T07:58:30.000Z",
+  "utilities": [
     {
-      "region": "Bulls",
-      "outageCount": 12,
-      "customersAffected": 156,
-      "utilities": ["PowerCo"]
+      "id": "30",
+      "name": "Orion New Zealand",
+      "region": "Central Canterbury (Orion New Zealand)",
+      "totalCustomers": 218450,
+      "affectedCustomers": 247,
+      "affectedPercentage": "0.1131",
+      "status": "ok",
+      "outageCount": 15,
+      "lastUpdate": "2026-02-18T07:58:30.000Z"
+    },
+    {
+      "id": "21",
+      "name": "Powerco",
+      "region": "Taranaki (Powerco)",
+      "totalCustomers": 85000,
+      "affectedCustomers": 150,
+      "affectedPercentage": "0.1765",
+      "status": "ok",
+      "outageCount": 25,
+      "lastUpdate": "2026-02-18T07:58:31.000Z"
+    },
+    {
+      "id": "34",
+      "name": "Aurora Energy",
+      "region": "Queenstown (Aurora Energy)",
+      "totalCustomers": 45000,
+      "affectedCustomers": 12,
+      "affectedPercentage": "0.0267",
+      "status": "ok",
+      "outageCount": 3,
+      "lastUpdate": "2026-02-18T07:58:32.000Z"
     }
   ]
 }
@@ -337,6 +448,15 @@ curl http://localhost:3000/power-outages/outages
 
 ## Data Sources
 
+### Customer Data (ICP Counts)
+
+The service uses Installation Control Point (ICP) data from the Electricity Authority to calculate total customers per region and outage impact percentages.
+
+- **Data Source**: [Electricity Authority - ICP and Metering Details](https://www.ea.govt.nz/data-and-insights/datasets/retail/market-structure/icp-and-metering-details/)
+- **File**: `data/MarketShareByMEPandTrader.csv`
+- **Update Frequency**: Monthly (manual update required)
+- **Usage**: Calculates `totalCustomers`, `affectedCustomers`, and `affectedPercentage` in utilities response
+
 ### Implementation Difficulty Rating
 
 | Utility | Difficulty | Data Quality | API Type | Notes |
@@ -355,6 +475,15 @@ curl http://localhost:3000/power-outages/outages
 | Network Waitaki | ❌ Not Feasible | N/A | No data available | Unplanned outages not published on website, Facebook only |
 | PowerNet | ❌ Not Feasible | N/A | API timeout/CORS | API exists but times out on direct access, requires browser context |
 
+### Multi-Region Utilities
+
+Some utilities operate across multiple regions. The service automatically splits these into separate regional entries:
+
+- **PowerCo**: 5 regions (Taranaki, Manawatu-Whanganui, Whanganui, Hawke's Bay, Wellington)
+- **Aurora Energy**: 2 regions (Queenstown, Dunedin)
+
+Each region is tracked independently with its own customer counts, outage statistics, and geographic boundaries.
+
 ### Production (Implemented)
 - **Orion Group** ✅ - Canterbury region (⭐ Moderate)
   - URL: `https://www.oriongroup.co.nz/outages-and-support/outages`
@@ -366,15 +495,16 @@ curl http://localhost:3000/power-outages/outages
   - Scrape: Background every 5 minutes
   - **Rating**: Requires HTML parsing and JavaScript extraction
 
-- **PowerCo** ✅ - Central North Island (⭐⭐ Moderate)
+- **PowerCo** ✅ - Multi-region (5 regions) (⭐⭐ Moderate)
   - URL: `https://outages.powerco.co.nz/server/rest/services/Hosted/Outages/FeatureServer/1`
   - Format: ArcGIS FeatureServer REST API
   - Location: NZTM2000 coordinates (converted to WGS84)
   - Customer Count: `number_of_detail_records` field
   - Outage Type: `planned_outage` field (0=unplanned, 1=planned)
   - Metadata: Feeder name, crew status, last update
+  - Regions: Taranaki, Manawatu-Whanganui, Whanganui, Hawke's Bay, Wellington
   - Scrape: Background every 5 minutes
-  - **Rating**: Standard GIS API, requires coordinate system conversion
+  - **Rating**: Standard GIS API, requires coordinate system conversion and region mapping
 
 - **Wellington Electricity** ✅ - Wellington region (⭐⭐⭐ Easy)
   - URL: `https://www.welectricity.co.nz/api/outages`
@@ -396,7 +526,7 @@ curl http://localhost:3000/power-outages/outages
   - Scrape: Background every 5 minutes
   - **Rating**: Excellent API - Vercel-hosted with complete data, no authentication required
 
-- **Aurora Energy** ✅ - Otago/Southland (⭐ Moderate)
+- **Aurora Energy** ✅ - Multi-region (2 regions) (⭐ Moderate)
   - URL: `https://www.auroraenergy.co.nz/power-outages`
   - Format: HTML with data attributes
   - Location: WGS84 coordinates in `data-latitude`/`data-longitude` attributes
@@ -404,8 +534,9 @@ curl http://localhost:3000/power-outages/outages
   - Outage Type: Status class (status-planned/status-unplanned)
   - Filter: Only current (unplanned) outages returned
   - Metadata: Incident ID, town, suburbs, time off/on
+  - Regions: Queenstown (Aurora Energy), Dunedin (Aurora Energy)
   - Scrape: Background every 5 minutes
-  - **Rating**: HTML parsing required, coordinates and customer counts available
+  - **Rating**: HTML parsing required, coordinates and customer counts available, region mapping by coordinates
 
 - **The Lines Company (TLC)** ✅ - Central North Island/King Country (⭐⭐⭐ Easy)
   - URL: `https://ifstlc.tvd.co.nz/api/FaultsAPI/GetFaults?locality=&faultType=false&site_id=121`
@@ -496,7 +627,9 @@ curl http://localhost:3000/power-outages/outages
 - **Stewart Island Electrical Supply Authority** - Stewart Island
 
 **Coverage Status:**
-- ✅ Implemented: 8/30 utilities (27%)
+- ✅ Implemented: 8 utilities covering 14 regions (27% of utilities)
+  - Single-region: Orion, Wellington Electricity, EA Networks, TLC, MainPower, Alpine Energy (6 utilities, 6 regions)
+  - Multi-region: PowerCo (5 regions), Aurora Energy (2 regions)
 - ❌ Not Feasible: 6/30 utilities (20%) - Vector, Horizon, Westpower, Network Waitaki, PowerNet group (3)
 - 📋 To Be Implemented: 16/30 utilities (53%)
 

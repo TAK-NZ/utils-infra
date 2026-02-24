@@ -10,7 +10,7 @@ export async function scrapeWellington() {
   const region = 'Wellington';
   const outages = data.map(outage => ({
     outageId: `WE-${outage.id}`,
-    utility: { name: 'Wellington Electricity', id: 'WELLINGTON_NZ' },
+    utility: { name: 'Wellington Electricity', id: '23' },
     region,
     regionCode: getRegionCode(region),
     outageStart: outage.fault_time,
@@ -29,8 +29,8 @@ export async function scrapeWellington() {
   }));
 
   return {
-    utility: { name: 'Wellington Electricity', id: 'WELLINGTON_NZ' },
-    region: 'Wellington, New Zealand',
+    utility: { name: 'Wellington Electricity', id: '23' },
+    region: 'Wellington (Wellington Electricity)',
     outages
   };
 }

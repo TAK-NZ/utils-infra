@@ -36,12 +36,7 @@ export async function scrapeTLC() {
   const outages = [];
   const seenIds = new Set();
 
-  // Query a sample of localities for both current and planned outages
-  // TLC API requires locality parameter, so we check key localities
-  const sampleLocalities = ['Taumarunui', 'Turangi', 'Mangakino', 'Ohakune', 'National Park', 
-                            'Matapara', 'Panetapu', 'Waihaha', 'Waipa Valley', 'Wharepapa South'];
-  
-  for (const locality of sampleLocalities) {
+  for (const locality of localities) {
     for (const faultType of ['false', 'true']) {
       try {
         const data = await fetchOutagesForLocality(locality, faultType);
@@ -56,7 +51,7 @@ export async function scrapeTLC() {
           
           outages.push({
             outageId: `TLC-${fault.OutagesID}`,
-            utility: { name: 'The Lines Company', id: 'TLC_NZ' },
+            utility: { name: 'The Lines Company', id: '9' },
             region,
             regionCode: getRegionCode(region),
             outageStart: parseDateTime(fault.ReportedAt),
@@ -83,8 +78,8 @@ export async function scrapeTLC() {
   }
 
   return {
-    utility: { name: 'The Lines Company', id: 'TLC_NZ' },
-    region: 'Central North Island, New Zealand',
+    utility: { name: 'The Lines Company', id: '9' },
+    region: 'King Country (The Lines Company)',
     outages
   };
 }

@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
+import { getRegionFromCoordinates } from '../region-mapper.js';
 
 export async function scrapeAurora() {
   try {
@@ -27,6 +28,10 @@ export async function scrapeAurora() {
       const lat = parseFloat($elem.attr('data-latitude'));
       const lng = parseFloat($elem.attr('data-longitude'));
       
+      // Use coordinates to determine actual region from GeoJSON boundaries
+      const region = getRegionFromCoordinates(lng, lat) || 'Dunedin (Aurora Energy)';
+      const regionId = region === 'Queenstown (Aurora Energy)' ? '34' : region === 'Central Otago (Aurora Energy)' ? '35' : '37';
+      
       const statusElem = $elem.find('.status-unplanned, .status-planned, .status-restored, .status-cancelled');
       const statusClass = statusElem.attr('class') || '';
       
@@ -48,8 +53,8 @@ export async function scrapeAurora() {
 
       outages.push({
         outageId: incidentId,
-        utility: { name: 'Aurora Energy', id: 'AURORA_NZ' },
-        region: 'Otago',
+        utility: { name: 'Aurora Energy', id: regionId },
+        region,
         regionCode: 'NZ-OTA',
         outageStart: timeOff || null,
         estimatedRestoration: timeOn || null,
@@ -68,9 +73,9 @@ export async function scrapeAurora() {
       });
     });
 
-    return { utility: { name: 'Aurora Energy', id: 'AURORA_NZ' }, outages };
+    return { utility: { name: 'Aurora Energy', id: 'AURORA' }, region: 'Aurora Energy (Multiple Regions)', outages };
   } catch (error) {
     console.error('Aurora scrape error:', error.message);
-    return { utility: { name: 'Aurora Energy', id: 'AURORA_NZ' }, outages: [] };
+    return { utility: { name: 'Aurora Energy', id: 'AURORA' }, region: 'Aurora Energy (Multiple Regions)', outages: [] };
   }
 }

@@ -36,8 +36,8 @@ export async function scrapeMainPower() {
 
     outages.push({
       outageId: jobId,
-      utility: { name: 'MainPower', id: 'MAINPOWER_NZ' },
-      region: 'Canterbury',
+      utility: { name: 'MainPower NZ', id: '29' },
+      region: 'North Canterbury (MainPower NZ)',
       regionCode: getRegionCode('Canterbury'),
       outageStart: parseDateTime(job.StartTime),
       estimatedRestoration: parseDateTime(job.EndTime),
@@ -57,8 +57,8 @@ export async function scrapeMainPower() {
   }
 
   return {
-    utility: { name: 'MainPower', id: 'MAINPOWER_NZ' },
-    region: 'North Canterbury, New Zealand',
+    utility: { name: 'MainPower NZ', id: '29' },
+    region: 'North Canterbury (MainPower NZ)',
     outages
   };
 }

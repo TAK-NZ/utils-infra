@@ -7,6 +7,9 @@ import { scrapeAurora } from './scrapers/aurora.js';
 import { scrapeTLC } from './scrapers/tlc.js';
 import { scrapeMainPower } from './scrapers/mainpower.js';
 import { scrapeAlpineEnergy } from './scrapers/alpine.js';
+import { getICPData } from './icp-data.js';
+import { POWERCO_REGIONS, AURORA_REGIONS } from './powerco-regions.js';
+import { NOT_FEASIBLE_REGIONS } from './not-feasible-regions.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,25 +71,86 @@ app.get('/power-outages/aggregate', async (req, res) => {
   const { utility, outageType } = req.query;
   
   // Get utilities info from cache
+  const icpData = getICPData();
   const utilities = [];
+  const now = Date.now();
+  
   for (const [name, cache] of outageCache.entries()) {
     if (cache.data) {
-      utilities.push({
-        ...cache.data.utility,
-        status: 'ok',
-        outageCount: cache.data.outages.length,
-        lastUpdate: new Date(cache.timestamp).toISOString()
+      const { id, name: utilityName } = cache.data.utility;
+      
+      // Filter out future outages (same logic as /outages endpoint)
+      const activeOutages = cache.data.outages.filter(o => {
+        if (!o.outageStart) return true;
+        const startTime = new Date(o.outageStart).getTime();
+        return isNaN(startTime) || startTime <= now;
       });
+      
+      if (utilityName === 'Powerco') {
+        for (const { region: powercoRegion, id: regionId } of POWERCO_REGIONS) {
+          const totalCustomers = icpData[powercoRegion] || 0;
+          const regionOutages = activeOutages.filter(o => o.region === powercoRegion);
+          const affectedCustomers = regionOutages.reduce((sum, o) => sum + (o.customersAffected || 0), 0);
+          utilities.push({
+            id: regionId,
+            name: utilityName,
+            region: powercoRegion,
+            totalCustomers,
+            affectedCustomers,
+            affectedPercentage: totalCustomers > 0 ? ((affectedCustomers / totalCustomers) * 100).toFixed(4) : '0.0000',
+            status: 'ok',
+            outageCount: regionOutages.length,
+            lastUpdate: new Date(cache.timestamp).toISOString()
+          });
+        }
+      } else if (utilityName === 'Aurora Energy') {
+        for (const { region: auroraRegion, id: regionId } of AURORA_REGIONS) {
+          const totalCustomers = icpData[auroraRegion] || 0;
+          const regionOutages = activeOutages.filter(o => o.region === auroraRegion);
+          const affectedCustomers = regionOutages.reduce((sum, o) => sum + (o.customersAffected || 0), 0);
+          utilities.push({
+            id: regionId,
+            name: utilityName,
+            region: auroraRegion,
+            totalCustomers,
+            affectedCustomers,
+            affectedPercentage: totalCustomers > 0 ? ((affectedCustomers / totalCustomers) * 100).toFixed(4) : '0.0000',
+            status: 'ok',
+            outageCount: regionOutages.length,
+            lastUpdate: new Date(cache.timestamp).toISOString()
+          });
+        }
+      } else {
+        const totalCustomers = icpData[cache.data.region] || 0;
+        const affectedCustomers = activeOutages.reduce((sum, o) => sum + (o.customersAffected || 0), 0);
+        utilities.push({
+          id,
+          name: utilityName,
+          region: cache.data.region,
+          totalCustomers,
+          affectedCustomers,
+          affectedPercentage: totalCustomers > 0 ? ((affectedCustomers / totalCustomers) * 100).toFixed(4) : '0.0000',
+          status: 'ok',
+          outageCount: activeOutages.length,
+          lastUpdate: new Date(cache.timestamp).toISOString()
+        });
+      }
     }
   }
+  
+  utilities.sort((a, b) => parseInt(a.id) - parseInt(b.id));
   
   // Get all outages from cache
   const allOutages = Array.from(outageCache.values())
     .filter(cache => cache.data && cache.data.outages)
     .flatMap(cache => cache.data.outages);
   
-  // Apply filters
-  let filtered = allOutages;
+  // Apply filters (reuse now from above)
+  let filtered = allOutages.filter(o => {
+    if (!o.outageStart) return true;
+    const startTime = new Date(o.outageStart).getTime();
+    return isNaN(startTime) || startTime <= now;
+  });
   if (utility) {
     filtered = filtered.filter(o => o.utility.id === utility.toUpperCase());
   }
@@ -189,51 +253,245 @@ app.get('/power-outages/aggregate', async (req, res) => {
   });
 });
 
-app.get('/power-outages/summary', async (req, res) => {
-  const { utility, outageType } = req.query;
+app.get('/power-outages/geojson', async (req, res) => {
+  const fs = await import('fs');
+  const path = await import('path');
+  const { fileURLToPath } = await import('url');
   
-  // Get all outages from cache
-  const allOutages = Array.from(outageCache.values())
-    .filter(cache => cache.data && cache.data.outages)
-    .flatMap(cache => cache.data.outages);
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
   
-  // Apply filters
-  let filtered = allOutages;
-  if (utility) {
-    filtered = filtered.filter(o => o.utility.id === utility.toUpperCase());
-  }
-  if (outageType) {
-    filtered = filtered.filter(o => o.outageType === outageType);
-  }
+  // Load GeoJSON boundaries
+  const geojsonPath = path.join(__dirname, 'data', 'nz-network-boundaries.geojson');
+  const geojsonData = JSON.parse(fs.readFileSync(geojsonPath, 'utf-8'));
   
-  // Group by region/town
-  const byRegion = {};
-  filtered.forEach(outage => {
-    const region = outage.location?.areas?.[0] || outage.region || 'Unknown';
-    if (!byRegion[region]) {
-      byRegion[region] = {
-        region,
-        outageCount: 0,
-        customersAffected: 0,
-        utilities: new Set()
-      };
+  // Get utilities data
+  const icpData = getICPData();
+  const utilitiesMap = new Map();
+  const now = Date.now();
+  
+  // PowerCo regions that should be aggregated
+  for (const [name, cache] of outageCache.entries()) {
+    if (cache.data) {
+      const { id, name: utilityName } = cache.data.utility;
+      const region = cache.data.region;
+      
+      // Filter out future outages (same logic as /outages endpoint)
+      const activeOutages = cache.data.outages.filter(o => {
+        if (!o.outageStart) return true;
+        const startTime = new Date(o.outageStart).getTime();
+        return isNaN(startTime) || startTime <= now;
+      });
+      
+      // For PowerCo, aggregate data for each of its regions
+      if (utilityName === 'Powerco') {
+        for (const { region: powercoRegion, id: regionId } of POWERCO_REGIONS) {
+          const totalCustomers = icpData[powercoRegion] || 0;
+          const affectedCustomers = activeOutages
+            .filter(o => o.region === powercoRegion)
+            .reduce((sum, o) => sum + (o.customersAffected || 0), 0);
+          const outageCount = activeOutages.filter(o => o.region === powercoRegion).length;
+          
+          utilitiesMap.set(powercoRegion, {
+            id: regionId,
+            name: utilityName,
+            region: powercoRegion,
+            totalCustomers,
+            affectedCustomers,
+            affectedPercentage: totalCustomers > 0 ? parseFloat(((affectedCustomers / totalCustomers) * 100).toFixed(4)) : 0,
+            outageCount,
+            lastUpdate: new Date(cache.timestamp).toISOString()
+          });
+        }
+      } else if (utilityName === 'Aurora Energy') {
+        for (const { region: auroraRegion, id: regionId } of AURORA_REGIONS) {
+          const totalCustomers = icpData[auroraRegion] || 0;
+          const regionOutages = activeOutages.filter(o => o.region === auroraRegion);
+          const affectedCustomers = regionOutages.reduce((sum, o) => sum + (o.customersAffected || 0), 0);
+          const outageCount = regionOutages.length;
+          
+          utilitiesMap.set(auroraRegion, {
+            id: regionId,
+            name: utilityName,
+            region: auroraRegion,
+            totalCustomers,
+            affectedCustomers,
+            affectedPercentage: totalCustomers > 0 ? parseFloat(((affectedCustomers / totalCustomers) * 100).toFixed(4)) : 0,
+            outageCount,
+            lastUpdate: new Date(cache.timestamp).toISOString()
+          });
+        }
+      } else {
+        // For other utilities, use region directly
+        const totalCustomers = icpData[region] || 0;
+        const affectedCustomers = activeOutages.reduce((sum, o) => sum + (o.customersAffected || 0), 0);
+        utilitiesMap.set(region, {
+          id,
+          name: utilityName,
+          region,
+          totalCustomers,
+          affectedCustomers,
+          affectedPercentage: totalCustomers > 0 ? parseFloat(((affectedCustomers / totalCustomers) * 100).toFixed(4)) : 0,
+          outageCount: activeOutages.length,
+          lastUpdate: new Date(cache.timestamp).toISOString()
+        });
+      }
     }
-    byRegion[region].outageCount++;
-    byRegion[region].customersAffected += outage.customersAffected || 0;
-    byRegion[region].utilities.add(outage.utility.name);
+  }
+  
+  // Merge utility data into GeoJSON features
+  const features = [];
+  
+  geojsonData.features.forEach(feature => {
+    const region = feature.properties.Region;
+    const utilityData = utilitiesMap.get(region);
+    
+    let featureData;
+    if (utilityData) {
+      featureData = {
+        ...feature.properties,
+        ...utilityData,
+        status: 'ok'
+      };
+    } else if (NOT_FEASIBLE_REGIONS.has(region)) {
+      const totalCustomers = icpData[region] || 0;
+      featureData = {
+        ...feature.properties,
+        id: feature.properties.ID,
+        name: region.split('(')[1]?.replace(')', '') || 'Unknown',
+        region,
+        totalCustomers,
+        affectedCustomers: null,
+        affectedPercentage: null,
+        outageCount: null,
+        status: 'not-feasible',
+        lastUpdate: null
+      };
+    } else {
+      return; // Skip unimplemented regions
+    }
+    
+    // Split MultiPolygon into separate Polygon features for CloudTAK compatibility
+    if (feature.geometry.type === 'MultiPolygon') {
+      feature.geometry.coordinates.forEach((polygonCoords, index) => {
+        features.push({
+          type: 'Feature',
+          properties: {
+            ...featureData,
+            ID: `${feature.properties.ID}-${index}`,
+            id: `${featureData.id}-${index}`
+          },
+          geometry: {
+            type: 'Polygon',
+            coordinates: polygonCoords
+          }
+        });
+      });
+    } else {
+      features.push({
+        ...feature,
+        properties: featureData
+      });
+    }
   });
   
-  const summary = Object.values(byRegion).map(r => ({
-    ...r,
-    utilities: Array.from(r.utilities)
-  })).sort((a, b) => b.customersAffected - a.customersAffected);
+  res.json({
+    type: 'FeatureCollection',
+    crs: geojsonData.crs,
+    timestamp: new Date().toISOString(),
+    lastScrape: lastScrapeTime ? new Date(lastScrapeTime).toISOString() : null,
+    colorScheme: {
+      description: 'Recommended color scheme based on percentage of customers affected',
+      ranges: [
+        { min: 0, max: 0.1, color: '#22c55e', label: 'Normal (< 0.1%)' },
+        { min: 0.1, max: 1.0, color: '#84cc16', label: 'Minor (0.1-1%)' },
+        { min: 1.0, max: 5.0, color: '#eab308', label: 'Moderate (1-5%)' },
+        { min: 5.0, max: 10.0, color: '#f97316', label: 'Significant (5-10%)' },
+        { min: 10.0, max: 25.0, color: '#ef4444', label: 'Major (10-25%)' },
+        { min: 25.0, max: 100, color: '#991b1b', label: 'Critical (> 25%)' }
+      ],
+      notFeasible: { color: '#9ca3af', label: 'Data Collection Not Feasible' }
+    },
+    features
+  });
+});
+
+app.get('/power-outages/summary', async (req, res) => {
+  // Get utilities info from cache
+  const icpData = getICPData();
+  const utilities = [];
+  const now = Date.now();
   
+  for (const [name, cache] of outageCache.entries()) {
+    if (cache.data) {
+      const { id, name: utilityName } = cache.data.utility;
+      
+      // Filter out future outages (same logic as /outages endpoint)
+      const activeOutages = cache.data.outages.filter(o => {
+        if (!o.outageStart) return true;
+        const startTime = new Date(o.outageStart).getTime();
+        return isNaN(startTime) || startTime <= now;
+      });
+      
+      if (utilityName === 'Powerco') {
+        for (const { region: powercoRegion, id: regionId } of POWERCO_REGIONS) {
+          const totalCustomers = icpData[powercoRegion] || 0;
+          const regionOutages = activeOutages.filter(o => o.region === powercoRegion);
+          const affectedCustomers = regionOutages.reduce((sum, o) => sum + (o.customersAffected || 0), 0);
+          utilities.push({
+            id: regionId,
+            name: utilityName,
+            region: powercoRegion,
+            totalCustomers,
+            affectedCustomers,
+            affectedPercentage: totalCustomers > 0 ? ((affectedCustomers / totalCustomers) * 100).toFixed(4) : '0.0000',
+            status: 'ok',
+            outageCount: regionOutages.length,
+            lastUpdate: new Date(cache.timestamp).toISOString()
+          });
+        }
+      } else if (utilityName === 'Aurora Energy') {
+        for (const { region: auroraRegion, id: regionId } of AURORA_REGIONS) {
+          const totalCustomers = icpData[auroraRegion] || 0;
+          const regionOutages = activeOutages.filter(o => o.region === auroraRegion);
+          const affectedCustomers = regionOutages.reduce((sum, o) => sum + (o.customersAffected || 0), 0);
+          utilities.push({
+            id: regionId,
+            name: utilityName,
+            region: auroraRegion,
+            totalCustomers,
+            affectedCustomers,
+            affectedPercentage: totalCustomers > 0 ? ((affectedCustomers / totalCustomers) * 100).toFixed(4) : '0.0000',
+            status: 'ok',
+            outageCount: regionOutages.length,
+            lastUpdate: new Date(cache.timestamp).toISOString()
+          });
+        }
+      } else {
+        const totalCustomers = icpData[cache.data.region] || 0;
+        const affectedCustomers = activeOutages.reduce((sum, o) => sum + (o.customersAffected || 0), 0);
+        utilities.push({
+          id,
+          name: utilityName,
+          region: cache.data.region,
+          totalCustomers,
+          affectedCustomers,
+          affectedPercentage: totalCustomers > 0 ? ((affectedCustomers / totalCustomers) * 100).toFixed(4) : '0.0000',
+          status: 'ok',
+          outageCount: activeOutages.length,
+          lastUpdate: new Date(cache.timestamp).toISOString()
+        });
+      }
+    }
+  }
+  
+  utilities.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+
   res.json({
     version: '1.0',
     timestamp: new Date().toISOString(),
-    totalOutages: filtered.length,
-    totalCustomersAffected: filtered.reduce((sum, o) => sum + (o.customersAffected || 0), 0),
-    byRegion: summary
+    lastScrape: lastScrapeTime ? new Date(lastScrapeTime).toISOString() : null,
+    utilities
   });
 });
 
@@ -241,23 +499,21 @@ app.get('/power-outages/outages', async (req, res) => {
   const { utility, minCustomers, region, regionCode, outageType } = req.query;
   
   // Serve from cache only
-  const utilities = [];
   const allOutages = [];
   
   for (const [name, cache] of outageCache.entries()) {
     if (cache.data) {
-      utilities.push({
-        ...cache.data.utility,
-        status: 'ok',
-        outageCount: cache.data.outages.length,
-        lastUpdate: new Date(cache.timestamp).toISOString()
-      });
       allOutages.push(...cache.data.outages);
     }
   }
   
   // Apply filters
-  let filtered = allOutages;
+  const now = Date.now();
+  let filtered = allOutages.filter(o => {
+    if (!o.outageStart) return true;
+    const startTime = new Date(o.outageStart).getTime();
+    return isNaN(startTime) || startTime <= now;
+  });
   if (utility) {
     filtered = filtered.filter(o => o.utility.id === utility.toUpperCase());
   }
@@ -284,11 +540,9 @@ app.get('/power-outages/outages', async (req, res) => {
     timestamp: new Date().toISOString(),
     lastScrape: lastScrapeTime ? new Date(lastScrapeTime).toISOString() : null,
     summary: {
-      totalUtilities: utilities.length,
       totalOutages: filtered.length,
       totalCustomersAffected: filtered.reduce((sum, o) => sum + (o.customersAffected || 0), 0)
     },
-    utilities,
     outages: filtered
   };
   
@@ -308,6 +562,7 @@ app.get('/power-outages', (req, res) => {
       majorOutages: '/power-outages/outages?minCustomers=10',
       aggregate: '/power-outages/aggregate',
       summary: '/power-outages/summary',
+      geojson: '/power-outages/geojson',
       health: '/power-outages/health'
     }
   });

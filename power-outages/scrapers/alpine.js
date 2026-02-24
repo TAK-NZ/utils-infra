@@ -3,10 +3,9 @@ import { ALPINE_LOCALITIES, getCoordinates } from './alpine-localities.js';
 
 export async function scrapeAlpineEnergy() {
   const utility = {
-    id: 'ALPINE_NZ',
+    id: '32',
     name: 'Alpine Energy',
-    region: 'South Canterbury',
-    website: 'https://www.alpineenergy.co.nz'
+    region: 'South Canterbury (Alpine Energy)'
   };
 
   const outages = [];
@@ -24,7 +23,7 @@ export async function scrapeAlpineEnergy() {
         outages.push({
           outageId: `ALPINE-${fault.FaultId || Date.now()}`,
           utility,
-          region: 'South Canterbury',
+          region: 'South Canterbury (Alpine Energy)',
           regionCode: 'SC',
           outageStart: fault.StartTime || null,
           estimatedRestoration: fault.EstimatedRestoration || null,
