@@ -1,54 +1,55 @@
 import fetch from 'node-fetch';
 import proj4 from 'proj4';
 import { getRegionCode } from './regions.js';
+import { getRegionFromCoordinates } from '../region-mapper.js';
 
-// PowerCo region mapping (town -> region)
+// PowerCo region mapping (town -> official CSV region)
 const TOWN_TO_REGION = {
-  // Bay of Plenty
-  'Tauranga': 'Bay of Plenty',
-  'Mount Maunganui': 'Bay of Plenty',
-  'Pauanui': 'Bay of Plenty',
-  'Whangamata': 'Bay of Plenty',
-  'Waihi': 'Bay of Plenty',
-  'Katikati': 'Bay of Plenty',
-  'Te Puke': 'Bay of Plenty',
+  // Tauranga (Powerco) - Region ID 10
+  'Tauranga': 'Tauranga (Powerco)',
+  'Mount Maunganui': 'Tauranga (Powerco)',
+  'Pauanui': 'Thames Valley (Powerco)',
+  'Whangamata': 'Thames Valley (Powerco)',
+  'Waihi': 'Thames Valley (Powerco)',
+  'Katikati': 'Tauranga (Powerco)',
+  'Te Puke': 'Tauranga (Powerco)',
   
-  // Taranaki
-  'New Plymouth': 'Taranaki',
-  'Stratford': 'Taranaki',
-  'Hawera': 'Taranaki',
-  'Opunake': 'Taranaki',
-  'Waitara': 'Taranaki',
-  'Inglewood': 'Taranaki',
-  'Eltham': 'Taranaki',
-  'Patea': 'Taranaki',
+  // Taranaki (Powerco) - Region ID 19
+  'New Plymouth': 'Taranaki (Powerco)',
+  'Stratford': 'Taranaki (Powerco)',
+  'Hawera': 'Taranaki (Powerco)',
+  'Opunake': 'Taranaki (Powerco)',
+  'Waitara': 'Taranaki (Powerco)',
+  'Inglewood': 'Taranaki (Powerco)',
+  'Eltham': 'Taranaki (Powerco)',
+  'Patea': 'Taranaki (Powerco)',
   
-  // Manawatu-Whanganui
-  'Palmerston North': 'Manawatu-Whanganui',
-  'Whanganui': 'Manawatu-Whanganui',
-  'Feilding': 'Manawatu-Whanganui',
-  'Levin': 'Manawatu-Whanganui',
-  'Bulls': 'Manawatu-Whanganui',
-  'Marton': 'Manawatu-Whanganui',
-  'Taihape': 'Manawatu-Whanganui',
-  'Dannevirke': 'Manawatu-Whanganui',
-  'Woodville': 'Manawatu-Whanganui',
-  'Ohakune': 'Manawatu-Whanganui',
-  'Raetihi': 'Manawatu-Whanganui',
-  'Waiouru': 'Manawatu-Whanganui',
-  'Mangaweka': 'Manawatu-Whanganui',
+  // Manawatu (Powerco) - Region ID 21 / Wanganui (Powerco) - Region ID 20
+  'Palmerston North': 'Manawatu (Powerco)',
+  'Whanganui': 'Wanganui (Powerco)',
+  'Feilding': 'Manawatu (Powerco)',
+  'Levin': 'Manawatu (Powerco)',
+  'Bulls': 'Manawatu (Powerco)',
+  'Marton': 'Wanganui (Powerco)',
+  'Taihape': 'Wanganui (Powerco)',
+  'Dannevirke': 'Manawatu (Powerco)',
+  'Woodville': 'Manawatu (Powerco)',
+  'Ohakune': 'Wanganui (Powerco)',
+  'Raetihi': 'Wanganui (Powerco)',
+  'Waiouru': 'Wanganui (Powerco)',
+  'Mangaweka': 'Wanganui (Powerco)',
   
-  // Wellington
-  'Masterton': 'Wellington',
-  'Carterton': 'Wellington',
-  'Greytown': 'Wellington',
-  'Featherston': 'Wellington',
-  'Martinborough': 'Wellington',
-  'Eketahuna': 'Wellington'
+  // Wairarapa (Powerco) - Region ID 18
+  'Masterton': 'Wairarapa (Powerco)',
+  'Carterton': 'Wairarapa (Powerco)',
+  'Greytown': 'Wairarapa (Powerco)',
+  'Featherston': 'Wairarapa (Powerco)',
+  'Martinborough': 'Wairarapa (Powerco)',
+  'Eketahuna': 'Wairarapa (Powerco)'
 };
 
 function getRegion(town) {
-  return TOWN_TO_REGION[town] || 'Central North Island';
+  return TOWN_TO_REGION[town] || 'Manawatu (Powerco)';
 }
 
 // Define NZTM2000 (EPSG:2193) and WGS84 (EPSG:4326) projections
@@ -76,11 +77,12 @@ export async function scrapePowerCo() {
     const attr = feature.attributes;
     const coords = nztmToWgs84(feature.geometry.x, feature.geometry.y);
     
-    const region = getRegion(attr.town);
+    // Use coordinates to determine actual region from GeoJSON boundaries
+    const region = getRegionFromCoordinates(coords.longitude, coords.latitude) || 'Manawatu (Powerco)';
     
     return {
       outageId: attr.distributor_event_number,
-      utility: { name: 'PowerCo', id: 'POWERCO_NZ' },
+      utility: { name: 'Powerco', id: region === 'Tauranga (Powerco)' ? '10' : region === 'Thames Valley (Powerco)' ? '6' : region === 'Taranaki (Powerco)' ? '19' : region === 'Wanganui (Powerco)' ? '20' : region === 'Wairarapa (Powerco)' ? '18' : '21' },
       region,
       regionCode: getRegionCode(region),
       outageStart: attr.interruption_start_date ? new Date(attr.interruption_start_date).toISOString() : null,
@@ -103,8 +105,8 @@ export async function scrapePowerCo() {
   });
 
   return {
-    utility: { name: 'PowerCo', id: 'POWERCO_NZ' },
-    region: 'Central North Island, New Zealand',
+    utility: { name: 'Powerco', id: 'POWERCO' },
+    region: 'Powerco (Multiple Regions)',
     outages
   };
 }

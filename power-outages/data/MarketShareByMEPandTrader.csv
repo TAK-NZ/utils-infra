@@ -1,0 +1,3152 @@
+Region ID,Network reporting region,Metering equipment provider code,Trader code,ICPs (Total),ICPs (Res),ICPs (Ind),ICPs (Com)
+1,Bay of Islands (Top Energy),ACCM,KEAE,3,0,3,0
+1,Bay of Islands (Top Energy),ACCM,RANU,1,0,1,0
+1,Bay of Islands (Top Energy),ACCM,MEEN,1,0,0,1
+1,Bay of Islands (Top Energy),ACCM,LODE,1,0,1,0
+1,Bay of Islands (Top Energy),ACCM,NGAG,1,0,1,0
+1,Bay of Islands (Top Energy),AMCI,CTCT,11,0,3,8
+1,Bay of Islands (Top Energy),AMCI,MERI,30,0,17,13
+1,Bay of Islands (Top Energy),AMCI,NGAG,1,0,1,0
+1,Bay of Islands (Top Energy),AMCI,PUNZ,4,0,0,4
+1,Bay of Islands (Top Energy),AMCI,ECOT,4,0,0,4
+1,Bay of Islands (Top Energy),AMCI,GENE,17,0,2,15
+1,Bay of Islands (Top Energy),AMCI,MEEN,25,0,7,18
+1,Bay of Islands (Top Energy),AMCI,TODD,3,0,0,3
+1,Bay of Islands (Top Energy),AMCI,CTCS,14,0,11,3
+1,Bay of Islands (Top Energy),BOPE,MERI,1,1,0,0
+1,Bay of Islands (Top Energy),BOPE,PUNZ,1,1,0,0
+1,Bay of Islands (Top Energy),BOPE,GENE,1,1,0,0
+1,Bay of Islands (Top Energy),BOPE,TODD,7,7,0,0
+1,Bay of Islands (Top Energy),BOPE,MEEN,2,2,0,0
+1,Bay of Islands (Top Energy),DELT,GENE,1,1,0,0
+1,Bay of Islands (Top Energy),IHUB,CTCS,20,13,2,5
+1,Bay of Islands (Top Energy),IHUB,FOGY,16,16,0,0
+1,Bay of Islands (Top Energy),IHUB,PUNZ,318,309,3,6
+1,Bay of Islands (Top Energy),IHUB,ELKI,37,36,1,0
+1,Bay of Islands (Top Energy),IHUB,MERI,326,166,82,78
+1,Bay of Islands (Top Energy),IHUB,PSNZ,300,250,7,43
+1,Bay of Islands (Top Energy),IHUB,ECOT,48,39,4,5
+1,Bay of Islands (Top Energy),IHUB,TODD,202,150,9,43
+1,Bay of Islands (Top Energy),IHUB,SWCH,65,57,1,7
+1,Bay of Islands (Top Energy),IHUB,GEOL,17,17,0,0
+1,Bay of Islands (Top Energy),IHUB,GENE,148,129,5,14
+1,Bay of Islands (Top Energy),IHUB,MEEN,1674,1520,65,89
+1,Bay of Islands (Top Energy),IHUB,TRUS,73,66,4,3
+1,Bay of Islands (Top Energy),IHUB,CTCT,823,710,34,79
+1,Bay of Islands (Top Energy),IHUB,HNET,17,12,0,5
+1,Bay of Islands (Top Energy),MNON,MEEN,3,0,2,1
+1,Bay of Islands (Top Energy),MNON,ECOT,72,0,0,72
+1,Bay of Islands (Top Energy),MNON,GENE,57,0,1,56
+1,Bay of Islands (Top Energy),MNON,MERI,14,0,7,7
+1,Bay of Islands (Top Energy),MNON,CTCS,2,0,2,0
+1,Bay of Islands (Top Energy),MNON,CTCT,4,0,2,2
+1,Bay of Islands (Top Energy),MTRX,TODD,139,86,8,45
+1,Bay of Islands (Top Energy),MTRX,CTCS,22,11,2,9
+1,Bay of Islands (Top Energy),MTRX,TRUS,421,390,15,16
+1,Bay of Islands (Top Energy),MTRX,GENE,788,657,55,76
+1,Bay of Islands (Top Energy),MTRX,MERI,568,238,167,163
+1,Bay of Islands (Top Energy),MTRX,ECOT,573,417,26,130
+1,Bay of Islands (Top Energy),MTRX,SWCH,175,156,4,15
+1,Bay of Islands (Top Energy),MTRX,MEEN,1261,1102,80,79
+1,Bay of Islands (Top Energy),MTRX,ELKI,8,8,0,0
+1,Bay of Islands (Top Energy),MTRX,PSNZ,371,274,14,83
+1,Bay of Islands (Top Energy),MTRX,PLUS,1,1,0,0
+1,Bay of Islands (Top Energy),MTRX,GIVE,3,1,0,2
+1,Bay of Islands (Top Energy),MTRX,FOGY,5,5,0,0
+1,Bay of Islands (Top Energy),MTRX,HNET,6,3,0,3
+1,Bay of Islands (Top Energy),MTRX,PUNZ,215,201,3,11
+1,Bay of Islands (Top Energy),MTRX,CTCT,1861,1487,140,234
+1,Bay of Islands (Top Energy),NGCM,GEOL,19,19,0,0
+1,Bay of Islands (Top Energy),NGCM,TODD,13,11,0,2
+1,Bay of Islands (Top Energy),NGCM,MERI,299,144,64,91
+1,Bay of Islands (Top Energy),NGCM,HNET,3,1,0,2
+1,Bay of Islands (Top Energy),NGCM,ELKI,57,52,0,5
+1,Bay of Islands (Top Energy),NGCM,ECOT,53,50,0,3
+1,Bay of Islands (Top Energy),NGCM,SWCH,41,41,0,0
+1,Bay of Islands (Top Energy),NGCM,PUNZ,113,110,0,3
+1,Bay of Islands (Top Energy),NGCM,CTCT,425,379,14,32
+1,Bay of Islands (Top Energy),NGCM,FOGY,32,29,0,3
+1,Bay of Islands (Top Energy),NGCM,MEEN,397,382,7,8
+1,Bay of Islands (Top Energy),NGCM,GENE,449,402,27,20
+1,Bay of Islands (Top Energy),NGCM,GBUG,166,166,0,0
+1,Bay of Islands (Top Energy),NGCM,PSNZ,190,163,2,25
+1,Bay of Islands (Top Energy),NGCM,TRUS,10,6,3,1
+1,Bay of Islands (Top Energy),NGCM,CTCS,6,5,0,1
+1,Bay of Islands (Top Energy),SMCO,PUNZ,950,910,16,24
+1,Bay of Islands (Top Energy),SMCO,EDGE,5,5,0,0
+1,Bay of Islands (Top Energy),SMCO,GENE,2796,2512,143,141
+1,Bay of Islands (Top Energy),SMCO,MEEN,3678,3487,92,99
+1,Bay of Islands (Top Energy),SMCO,PLUS,3,3,0,0
+1,Bay of Islands (Top Energy),SMCO,TODD,108,91,6,11
+1,Bay of Islands (Top Energy),SMCO,ELKI,381,369,3,9
+1,Bay of Islands (Top Energy),SMCO,CTCT,7850,6836,491,523
+1,Bay of Islands (Top Energy),SMCO,GIVE,2,2,0,0
+1,Bay of Islands (Top Energy),SMCO,ECOT,185,158,13,14
+1,Bay of Islands (Top Energy),SMCO,TRUS,437,409,12,16
+1,Bay of Islands (Top Energy),SMCO,FOGY,166,162,2,2
+1,Bay of Islands (Top Energy),SMCO,CTCS,54,45,4,5
+1,Bay of Islands (Top Energy),SMCO,LNRG,2,0,2,0
+1,Bay of Islands (Top Energy),SMCO,PSNZ,1967,1776,38,153
+1,Bay of Islands (Top Energy),SMCO,SWCH,457,430,3,24
+1,Bay of Islands (Top Energy),SMCO,GEOL,333,333,0,0
+1,Bay of Islands (Top Energy),SMCO,MERI,2340,1229,564,547
+1,Bay of Islands (Top Energy),SMCO,HNET,6,6,0,0
+1,Bay of Islands (Top Energy),TRUM,ECOT,1,0,0,1
+10,Tauranga (Powerco),ACCM,GENE,2,0,1,1
+10,Tauranga (Powerco),ACCM,CNIR,1,0,1,0
+10,Tauranga (Powerco),ACCM,PUNZ,1,0,1,0
+10,Tauranga (Powerco),AMCI,PSNZ,3,0,0,3
+10,Tauranga (Powerco),AMCI,ELKI,4,0,2,2
+10,Tauranga (Powerco),AMCI,TODD,8,0,0,8
+10,Tauranga (Powerco),AMCI,CTCS,134,0,62,72
+10,Tauranga (Powerco),AMCI,PUNZ,4,0,0,4
+10,Tauranga (Powerco),AMCI,LNRG,1,0,1,0
+10,Tauranga (Powerco),AMCI,MEEN,100,0,29,71
+10,Tauranga (Powerco),AMCI,CTCT,45,0,17,28
+10,Tauranga (Powerco),AMCI,GENE,37,0,3,34
+10,Tauranga (Powerco),AMCI,MERI,85,0,27,58
+10,Tauranga (Powerco),AMCI,ECOT,28,0,8,20
+10,Tauranga (Powerco),BOPE,CTCT,77,65,0,12
+10,Tauranga (Powerco),BOPE,TODD,623,413,42,168
+10,Tauranga (Powerco),BOPE,ECOT,12,6,2,4
+10,Tauranga (Powerco),BOPE,ELKI,31,31,0,0
+10,Tauranga (Powerco),BOPE,PUNZ,6,6,0,0
+10,Tauranga (Powerco),BOPE,HNET,5,4,0,1
+10,Tauranga (Powerco),BOPE,GEOL,7,7,0,0
+10,Tauranga (Powerco),BOPE,MERI,106,25,18,63
+10,Tauranga (Powerco),BOPE,OCTO,4,4,0,0
+10,Tauranga (Powerco),BOPE,GENE,72,53,3,16
+10,Tauranga (Powerco),BOPE,SWCH,22,19,1,2
+10,Tauranga (Powerco),BOPE,PSNZ,100,75,3,22
+10,Tauranga (Powerco),BOPE,MEEN,175,139,11,25
+10,Tauranga (Powerco),BOPE,CTCS,4,0,4,0
+10,Tauranga (Powerco),DELT,CTCT,1,0,1,0
+10,Tauranga (Powerco),IHUB,GENE,2689,2493,50,146
+10,Tauranga (Powerco),IHUB,CTCT,2737,2591,38,108
+10,Tauranga (Powerco),IHUB,EDGE,6,5,1,0
+10,Tauranga (Powerco),IHUB,FOGY,151,151,0,0
+10,Tauranga (Powerco),IHUB,MEEN,31689,28788,1284,1617
+10,Tauranga (Powerco),IHUB,ELKI,1254,1224,8,22
+10,Tauranga (Powerco),IHUB,PSNZ,4010,3805,34,171
+10,Tauranga (Powerco),IHUB,CTCS,298,5,24,269
+10,Tauranga (Powerco),IHUB,TRUS,96,83,0,13
+10,Tauranga (Powerco),IHUB,HNET,147,135,0,12
+10,Tauranga (Powerco),IHUB,TODD,2095,1529,99,467
+10,Tauranga (Powerco),IHUB,OCTO,265,261,0,4
+10,Tauranga (Powerco),IHUB,PUNZ,576,543,12,21
+10,Tauranga (Powerco),IHUB,ECOS,1,1,0,0
+10,Tauranga (Powerco),IHUB,GEOL,489,489,0,0
+10,Tauranga (Powerco),IHUB,SWCH,1030,991,12,27
+10,Tauranga (Powerco),IHUB,WISE,37,37,0,0
+10,Tauranga (Powerco),IHUB,ECOT,413,371,17,25
+10,Tauranga (Powerco),IHUB,MERI,2211,1479,230,502
+10,Tauranga (Powerco),IHUB,PLUS,1,1,0,0
+10,Tauranga (Powerco),MNON,GENE,7,0,0,7
+10,Tauranga (Powerco),MNON,MERI,44,0,0,44
+10,Tauranga (Powerco),MNON,ECOT,11,0,0,11
+10,Tauranga (Powerco),MNON,CTCS,51,0,0,51
+10,Tauranga (Powerco),MNON,MEEN,13,0,0,13
+10,Tauranga (Powerco),MTRX,SWCH,223,201,2,20
+10,Tauranga (Powerco),MTRX,TODD,206,101,20,85
+10,Tauranga (Powerco),MTRX,CTCT,300,216,13,71
+10,Tauranga (Powerco),MTRX,HNET,21,6,0,15
+10,Tauranga (Powerco),MTRX,EDGE,3,1,2,0
+10,Tauranga (Powerco),MTRX,CTCS,245,0,36,209
+10,Tauranga (Powerco),MTRX,FOGY,7,7,0,0
+10,Tauranga (Powerco),MTRX,ELKI,51,49,0,2
+10,Tauranga (Powerco),MTRX,ECOT,782,512,13,257
+10,Tauranga (Powerco),MTRX,OCTO,25,23,1,1
+10,Tauranga (Powerco),MTRX,MERI,638,128,85,425
+10,Tauranga (Powerco),MTRX,ECOS,2,2,0,0
+10,Tauranga (Powerco),MTRX,PSNZ,420,335,13,72
+10,Tauranga (Powerco),MTRX,PUNZ,110,100,3,7
+10,Tauranga (Powerco),MTRX,MEEN,3003,2358,260,385
+10,Tauranga (Powerco),MTRX,GENE,798,620,36,142
+10,Tauranga (Powerco),MTRX,PLUS,1,0,0,1
+10,Tauranga (Powerco),MTRX,GEOL,1,1,0,0
+10,Tauranga (Powerco),NGCM,MEEN,12768,12008,257,503
+10,Tauranga (Powerco),NGCM,CTCT,4071,3768,67,236
+10,Tauranga (Powerco),NGCM,LNRG,1,0,0,1
+10,Tauranga (Powerco),NGCM,FOGY,203,203,0,0
+10,Tauranga (Powerco),NGCM,PSNZ,4084,3769,59,256
+10,Tauranga (Powerco),NGCM,GBUG,149,149,0,0
+10,Tauranga (Powerco),NGCM,HNET,57,54,0,3
+10,Tauranga (Powerco),NGCM,GENE,5958,5451,165,342
+10,Tauranga (Powerco),NGCM,ECOT,208,162,11,35
+10,Tauranga (Powerco),NGCM,PUNZ,675,655,7,13
+10,Tauranga (Powerco),NGCM,TODD,413,358,16,39
+10,Tauranga (Powerco),NGCM,WISE,42,42,0,0
+10,Tauranga (Powerco),NGCM,SWCH,1221,1183,12,26
+10,Tauranga (Powerco),NGCM,OCTO,251,246,1,4
+10,Tauranga (Powerco),NGCM,ELKI,1623,1600,6,17
+10,Tauranga (Powerco),NGCM,MERI,2912,1639,378,895
+10,Tauranga (Powerco),NGCM,TRUS,13,13,0,0
+10,Tauranga (Powerco),NGCM,CTCS,133,3,6,124
+10,Tauranga (Powerco),NGCM,GEOL,1050,1050,0,0
+10,Tauranga (Powerco),NGCM,ECOS,1,0,1,0
+10,Tauranga (Powerco),NGCM,EDGE,4,4,0,0
+10,Tauranga (Powerco),TRUM,CTCS,3,0,0,3
+10,Tauranga (Powerco),TRUM,GENE,1,0,0,1
+11,Rotorua (Unison Networks),ACCM,MEEN,1,0,0,1
+11,Rotorua (Unison Networks),ACCM,GENE,1,0,0,1
+11,Rotorua (Unison Networks),AMCI,ECOT,14,0,5,9
+11,Rotorua (Unison Networks),AMCI,CTCS,32,0,22,10
+11,Rotorua (Unison Networks),AMCI,MEEN,57,0,3,54
+11,Rotorua (Unison Networks),AMCI,TODD,15,1,0,14
+11,Rotorua (Unison Networks),AMCI,GENE,20,0,4,16
+11,Rotorua (Unison Networks),AMCI,CTCT,15,0,0,15
+11,Rotorua (Unison Networks),AMCI,MERI,34,0,6,28
+11,Rotorua (Unison Networks),AMCI,PUNZ,2,0,0,2
+11,Rotorua (Unison Networks),AMCI,ELKI,4,0,0,4
+11,Rotorua (Unison Networks),BOPE,TODD,174,125,4,45
+11,Rotorua (Unison Networks),BOPE,GEOL,2,2,0,0
+11,Rotorua (Unison Networks),BOPE,GENE,22,14,1,7
+11,Rotorua (Unison Networks),BOPE,PSNZ,18,9,4,5
+11,Rotorua (Unison Networks),BOPE,SWCH,6,6,0,0
+11,Rotorua (Unison Networks),BOPE,TRUS,1,1,0,0
+11,Rotorua (Unison Networks),BOPE,CTCT,20,17,0,3
+11,Rotorua (Unison Networks),BOPE,PUNZ,8,8,0,0
+11,Rotorua (Unison Networks),BOPE,ELKI,6,6,0,0
+11,Rotorua (Unison Networks),BOPE,HNET,3,2,1,0
+11,Rotorua (Unison Networks),BOPE,MEEN,22,18,3,1
+11,Rotorua (Unison Networks),BOPE,MERI,16,2,6,8
+11,Rotorua (Unison Networks),DELT,CTCT,2,0,2,0
+11,Rotorua (Unison Networks),IHUB,HNET,83,75,0,8
+11,Rotorua (Unison Networks),IHUB,EDGE,1,1,0,0
+11,Rotorua (Unison Networks),IHUB,ELKI,129,128,0,1
+11,Rotorua (Unison Networks),IHUB,MEEN,2976,2604,142,230
+11,Rotorua (Unison Networks),IHUB,PUNZ,389,371,3,15
+11,Rotorua (Unison Networks),IHUB,MERI,413,223,94,96
+11,Rotorua (Unison Networks),IHUB,OCTO,1,1,0,0
+11,Rotorua (Unison Networks),IHUB,CTCT,393,349,10,34
+11,Rotorua (Unison Networks),IHUB,TRUS,175,137,15,23
+11,Rotorua (Unison Networks),IHUB,GEOL,65,65,0,0
+11,Rotorua (Unison Networks),IHUB,RERL,4,0,4,0
+11,Rotorua (Unison Networks),IHUB,FOGY,44,44,0,0
+11,Rotorua (Unison Networks),IHUB,WISE,15,15,0,0
+11,Rotorua (Unison Networks),IHUB,SWCH,129,125,0,4
+11,Rotorua (Unison Networks),IHUB,ECOT,62,57,2,3
+11,Rotorua (Unison Networks),IHUB,PSNZ,571,527,5,39
+11,Rotorua (Unison Networks),IHUB,GENE,446,404,7,35
+11,Rotorua (Unison Networks),IHUB,TODD,2090,1553,103,434
+11,Rotorua (Unison Networks),IHUB,CTCS,13,2,6,5
+11,Rotorua (Unison Networks),MNON,GENE,3,0,0,3
+11,Rotorua (Unison Networks),MNON,MEEN,10,2,0,8
+11,Rotorua (Unison Networks),MNON,MERI,21,0,0,21
+11,Rotorua (Unison Networks),MNON,ECOT,2,0,1,1
+11,Rotorua (Unison Networks),MNON,CTCT,1,0,0,1
+11,Rotorua (Unison Networks),MTRX,HNET,22,17,0,5
+11,Rotorua (Unison Networks),MTRX,MERI,288,69,91,128
+11,Rotorua (Unison Networks),MTRX,FOGY,4,4,0,0
+11,Rotorua (Unison Networks),MTRX,TODD,145,84,10,51
+11,Rotorua (Unison Networks),MTRX,CTCS,19,0,8,11
+11,Rotorua (Unison Networks),MTRX,MEEN,913,650,73,190
+11,Rotorua (Unison Networks),MTRX,EDGE,1,0,0,1
+11,Rotorua (Unison Networks),MTRX,GENE,370,293,24,53
+11,Rotorua (Unison Networks),MTRX,PUNZ,174,166,2,6
+11,Rotorua (Unison Networks),MTRX,ELKI,12,11,0,1
+11,Rotorua (Unison Networks),MTRX,CTCT,259,202,11,46
+11,Rotorua (Unison Networks),MTRX,PSNZ,195,149,11,35
+11,Rotorua (Unison Networks),MTRX,SWCH,106,88,3,15
+11,Rotorua (Unison Networks),MTRX,ECOT,328,246,14,68
+11,Rotorua (Unison Networks),MTRX,TRUS,1,0,0,1
+11,Rotorua (Unison Networks),MTRX,ECOS,1,1,0,0
+11,Rotorua (Unison Networks),MTRX,OCTO,1,1,0,0
+11,Rotorua (Unison Networks),MTRX,RERL,1,0,1,0
+11,Rotorua (Unison Networks),NGCM,GIVE,1,1,0,0
+11,Rotorua (Unison Networks),NGCM,RERL,5,0,5,0
+11,Rotorua (Unison Networks),NGCM,MEEN,3892,3520,176,196
+11,Rotorua (Unison Networks),NGCM,TODD,381,331,13,37
+11,Rotorua (Unison Networks),NGCM,PSNZ,2417,2266,32,119
+11,Rotorua (Unison Networks),NGCM,GBUG,217,217,0,0
+11,Rotorua (Unison Networks),NGCM,EDGE,7,6,0,1
+11,Rotorua (Unison Networks),NGCM,CTCS,10,3,3,4
+11,Rotorua (Unison Networks),NGCM,HNET,219,215,0,4
+11,Rotorua (Unison Networks),NGCM,ECOT,151,125,7,19
+11,Rotorua (Unison Networks),NGCM,PUNZ,1868,1821,18,29
+11,Rotorua (Unison Networks),NGCM,WISE,170,170,0,0
+11,Rotorua (Unison Networks),NGCM,ELKI,800,782,5,13
+11,Rotorua (Unison Networks),NGCM,OCTO,3,3,0,0
+11,Rotorua (Unison Networks),NGCM,SWCH,755,734,5,16
+11,Rotorua (Unison Networks),NGCM,PLUS,4,2,2,0
+11,Rotorua (Unison Networks),NGCM,GEOL,1048,1047,0,1
+11,Rotorua (Unison Networks),NGCM,GENE,4419,3968,208,243
+11,Rotorua (Unison Networks),NGCM,CTCT,3034,2833,44,157
+11,Rotorua (Unison Networks),NGCM,TRUS,4,4,0,0
+11,Rotorua (Unison Networks),NGCM,MERI,2129,1183,493,453
+11,Rotorua (Unison Networks),NGCM,FOGY,322,321,0,1
+11,Rotorua (Unison Networks),NGCM,ECOS,2,2,0,0
+12,Eastern Bay of Plenty (Horizon Energy),ACCM,MEEN,2,0,2,0
+12,Eastern Bay of Plenty (Horizon Energy),ACCM,LODE,1,0,1,0
+12,Eastern Bay of Plenty (Horizon Energy),ACCM,TODD,1,0,1,0
+12,Eastern Bay of Plenty (Horizon Energy),ACCM,PUNZ,1,0,1,0
+12,Eastern Bay of Plenty (Horizon Energy),ACCM,CTCS,1,0,1,0
+12,Eastern Bay of Plenty (Horizon Energy),AMCI,PUNZ,3,0,1,2
+12,Eastern Bay of Plenty (Horizon Energy),AMCI,GENE,5,0,3,2
+12,Eastern Bay of Plenty (Horizon Energy),AMCI,MERI,14,0,6,8
+12,Eastern Bay of Plenty (Horizon Energy),AMCI,CTCS,23,0,19,4
+12,Eastern Bay of Plenty (Horizon Energy),AMCI,ECOT,8,1,0,7
+12,Eastern Bay of Plenty (Horizon Energy),AMCI,MEEN,22,0,9,13
+12,Eastern Bay of Plenty (Horizon Energy),AMCI,CTCT,9,0,6,3
+12,Eastern Bay of Plenty (Horizon Energy),AMCI,TODD,4,0,1,3
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,TRUS,33,27,4,2
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,HNET,11,5,1,5
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,PUNZ,286,272,4,10
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,MEEN,722,703,8,11
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,SWCH,197,186,1,10
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,ECOT,33,29,1,3
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,CTCT,281,269,2,10
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,DEEP,1,1,0,0
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,GEOL,101,101,0,0
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,ELKI,157,153,1,3
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,TODD,4510,3682,365,463
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,MERI,292,104,82,106
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,PSNZ,281,266,4,11
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,GENE,640,559,33,48
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,CTCS,8,2,6,0
+12,Eastern Bay of Plenty (Horizon Energy),BOPE,EDGE,1,1,0,0
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,ELKI,208,205,1,2
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,MEEN,1550,1456,49,45
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,SWCH,133,128,1,4
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,TODD,2735,1953,393,389
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,CTCT,269,248,8,13
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,CTCS,7,1,3,3
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,PUNZ,317,306,5,6
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,TRUS,22,19,2,1
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,GEOL,55,55,0,0
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,FOGY,20,20,0,0
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,GENE,451,395,29,27
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,HNET,3,3,0,0
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,PSNZ,341,329,0,12
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,MERI,323,144,126,53
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,ECOT,47,40,5,2
+12,Eastern Bay of Plenty (Horizon Energy),IHUB,LNRG,1,0,1,0
+12,Eastern Bay of Plenty (Horizon Energy),MNON,MEEN,2,0,0,2
+12,Eastern Bay of Plenty (Horizon Energy),MNON,ECOT,36,0,0,36
+12,Eastern Bay of Plenty (Horizon Energy),MNON,MERI,6,0,0,6
+12,Eastern Bay of Plenty (Horizon Energy),MNON,GENE,21,0,0,21
+12,Eastern Bay of Plenty (Horizon Energy),MNON,PUNZ,1,0,1,0
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,EDGE,1,1,0,0
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,PSNZ,166,158,0,8
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,ELKI,147,142,3,2
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,PUNZ,230,225,1,4
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,TODD,320,224,32,64
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,CTCT,179,161,7,11
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,CTCS,18,0,17,1
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,GENE,622,572,23,27
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,FOGY,25,25,0,0
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,GEOL,66,66,0,0
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,ECOT,264,201,9,54
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,TRUS,1,1,0,0
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,MERI,170,74,42,54
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,MEEN,799,749,20,30
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,HNET,5,3,0,2
+12,Eastern Bay of Plenty (Horizon Energy),MTRX,SWCH,119,114,1,4
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,ELKI,322,308,10,4
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,GBUG,173,173,0,0
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,TRUS,17,16,1,0
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,TODD,203,174,12,17
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,GENE,2560,2151,201,208
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,HNET,4,4,0,0
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,MERI,1118,326,371,421
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,GEOL,233,233,0,0
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,CTCT,698,662,10,26
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,PUNZ,689,673,11,5
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,ECOT,40,28,1,11
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,PSNZ,615,580,8,27
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,MEEN,1118,1035,43,40
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,FOGY,55,55,0,0
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,SWCH,250,247,0,3
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,LNRG,3,1,2,0
+12,Eastern Bay of Plenty (Horizon Energy),NGCM,CTCS,2,0,2,0
+13,Taupo (Unison Networks),ACCM,CTCS,4,0,3,1
+13,Taupo (Unison Networks),ACCM,CNIR,5,0,5,0
+13,Taupo (Unison Networks),ACCM,CTCT,6,0,6,0
+13,Taupo (Unison Networks),AMCI,CTCS,13,0,9,4
+13,Taupo (Unison Networks),AMCI,CTCT,24,0,17,7
+13,Taupo (Unison Networks),AMCI,GENE,22,0,0,22
+13,Taupo (Unison Networks),AMCI,MERI,25,0,6,19
+13,Taupo (Unison Networks),AMCI,PUNZ,3,0,1,2
+13,Taupo (Unison Networks),AMCI,ECOT,4,0,2,2
+13,Taupo (Unison Networks),AMCI,TODD,5,0,1,4
+13,Taupo (Unison Networks),AMCI,MEEN,25,0,6,19
+13,Taupo (Unison Networks),BOPE,ECOT,3,3,0,0
+13,Taupo (Unison Networks),BOPE,TRUS,2,2,0,0
+13,Taupo (Unison Networks),BOPE,GENE,16,15,0,1
+13,Taupo (Unison Networks),BOPE,GEOL,2,2,0,0
+13,Taupo (Unison Networks),BOPE,SWCH,9,9,0,0
+13,Taupo (Unison Networks),BOPE,MERI,9,6,1,2
+13,Taupo (Unison Networks),BOPE,MEEN,29,26,1,2
+13,Taupo (Unison Networks),BOPE,ELKI,3,3,0,0
+13,Taupo (Unison Networks),BOPE,TODD,170,142,3,25
+13,Taupo (Unison Networks),BOPE,CTCT,24,21,0,3
+13,Taupo (Unison Networks),BOPE,PSNZ,7,5,0,2
+13,Taupo (Unison Networks),BOPE,PUNZ,5,5,0,0
+13,Taupo (Unison Networks),DELT,CTCT,2,0,2,0
+13,Taupo (Unison Networks),IHUB,ELKI,95,93,1,1
+13,Taupo (Unison Networks),IHUB,PUNZ,158,152,2,4
+13,Taupo (Unison Networks),IHUB,TRUS,264,231,20,13
+13,Taupo (Unison Networks),IHUB,SWCH,61,61,0,0
+13,Taupo (Unison Networks),IHUB,WISE,4,4,0,0
+13,Taupo (Unison Networks),IHUB,PSNZ,222,204,2,16
+13,Taupo (Unison Networks),IHUB,CTCT,573,532,17,24
+13,Taupo (Unison Networks),IHUB,HNET,5,4,0,1
+13,Taupo (Unison Networks),IHUB,GEOL,34,34,0,0
+13,Taupo (Unison Networks),IHUB,TODD,972,742,55,175
+13,Taupo (Unison Networks),IHUB,ECOT,42,38,2,2
+13,Taupo (Unison Networks),IHUB,GIVE,1,1,0,0
+13,Taupo (Unison Networks),IHUB,FOGY,8,7,0,1
+13,Taupo (Unison Networks),IHUB,GENE,446,409,9,28
+13,Taupo (Unison Networks),IHUB,MERI,254,151,32,71
+13,Taupo (Unison Networks),IHUB,MEEN,2166,1921,104,141
+13,Taupo (Unison Networks),IHUB,CTCS,137,1,7,129
+13,Taupo (Unison Networks),IHUB,ECOS,1,1,0,0
+13,Taupo (Unison Networks),MNON,ECOT,4,0,1,3
+13,Taupo (Unison Networks),MNON,GENE,2,0,0,2
+13,Taupo (Unison Networks),MNON,MERI,1,0,0,1
+13,Taupo (Unison Networks),MNON,CTCS,2,0,0,2
+13,Taupo (Unison Networks),MTRX,ELKI,5,5,0,0
+13,Taupo (Unison Networks),MTRX,HNET,1,1,0,0
+13,Taupo (Unison Networks),MTRX,PSNZ,76,58,3,15
+13,Taupo (Unison Networks),MTRX,PUNZ,47,44,0,3
+13,Taupo (Unison Networks),MTRX,MERI,201,49,73,79
+13,Taupo (Unison Networks),MTRX,GENE,196,149,17,30
+13,Taupo (Unison Networks),MTRX,CTCS,41,0,13,28
+13,Taupo (Unison Networks),MTRX,TODD,97,49,7,41
+13,Taupo (Unison Networks),MTRX,CTCT,245,189,13,43
+13,Taupo (Unison Networks),MTRX,TRUS,1,1,0,0
+13,Taupo (Unison Networks),MTRX,SWCH,44,36,2,6
+13,Taupo (Unison Networks),MTRX,ECOS,2,2,0,0
+13,Taupo (Unison Networks),MTRX,MEEN,593,464,44,85
+13,Taupo (Unison Networks),MTRX,ECOT,143,96,9,38
+13,Taupo (Unison Networks),NGCM,CTCS,20,1,5,14
+13,Taupo (Unison Networks),NGCM,TRUS,7,5,2,0
+13,Taupo (Unison Networks),NGCM,GENE,2096,1901,100,95
+13,Taupo (Unison Networks),NGCM,GEOL,362,362,0,0
+13,Taupo (Unison Networks),NGCM,MEEN,2304,2081,136,87
+13,Taupo (Unison Networks),NGCM,SWCH,212,208,1,3
+13,Taupo (Unison Networks),NGCM,GBUG,57,57,0,0
+13,Taupo (Unison Networks),NGCM,OCTO,2,2,0,0
+13,Taupo (Unison Networks),NGCM,ECOT,75,65,3,7
+13,Taupo (Unison Networks),NGCM,TODD,160,126,7,27
+13,Taupo (Unison Networks),NGCM,MERI,1145,575,328,242
+13,Taupo (Unison Networks),NGCM,PSNZ,747,681,7,59
+13,Taupo (Unison Networks),NGCM,ELKI,456,451,1,4
+13,Taupo (Unison Networks),NGCM,EDGE,3,3,0,0
+13,Taupo (Unison Networks),NGCM,WISE,15,15,0,0
+13,Taupo (Unison Networks),NGCM,FOGY,43,42,0,1
+13,Taupo (Unison Networks),NGCM,CTCT,2993,2782,56,155
+13,Taupo (Unison Networks),NGCM,PUNZ,462,447,0,15
+13,Taupo (Unison Networks),NGCM,HNET,13,13,0,0
+13,Taupo (Unison Networks),NGCM,ECOS,1,1,0,0
+13,Taupo (Unison Networks),NGCM,RERL,1,0,1,0
+13,Taupo (Unison Networks),TRUM,GENE,2,0,0,2
+13,Taupo (Unison Networks),TRUM,TRUS,1,0,0,1
+14,Tairāwhiti and Wairoa (Firstlight Network),ACCM,TAOM,8,0,8,0
+14,Tairāwhiti and Wairoa (Firstlight Network),AMCI,CTCS,9,0,4,5
+14,Tairāwhiti and Wairoa (Firstlight Network),AMCI,ECOT,4,0,3,1
+14,Tairāwhiti and Wairoa (Firstlight Network),AMCI,CTCT,13,0,5,8
+14,Tairāwhiti and Wairoa (Firstlight Network),AMCI,TODD,5,0,3,2
+14,Tairāwhiti and Wairoa (Firstlight Network),AMCI,GENE,10,0,4,6
+14,Tairāwhiti and Wairoa (Firstlight Network),AMCI,MERI,16,0,7,9
+14,Tairāwhiti and Wairoa (Firstlight Network),AMCI,MEEN,22,0,10,12
+14,Tairāwhiti and Wairoa (Firstlight Network),AMCI,PUNZ,1,0,0,1
+14,Tairāwhiti and Wairoa (Firstlight Network),BOPE,CTCT,1,0,1,0
+14,Tairāwhiti and Wairoa (Firstlight Network),BOPE,TODD,1,0,1,0
+14,Tairāwhiti and Wairoa (Firstlight Network),DELT,CTCT,1,1,0,0
+14,Tairāwhiti and Wairoa (Firstlight Network),DELT,PSNZ,1,0,0,1
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,MERI,338,173,89,76
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,SWCH,65,63,0,2
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,ECOT,46,43,1,2
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,TRUS,125,92,18,15
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,CTCT,456,373,50,33
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,PSNZ,215,190,7,18
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,CTCS,7,1,2,4
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,TODD,1458,1148,87,223
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,ELKI,61,60,0,1
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,HNET,13,7,0,6
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,GENE,209,192,5,12
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,WISE,3,3,0,0
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,FOGY,23,22,0,1
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,MEEN,1197,1049,94,54
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,PUNZ,444,407,24,13
+14,Tairāwhiti and Wairoa (Firstlight Network),IHUB,GEOL,33,33,0,0
+14,Tairāwhiti and Wairoa (Firstlight Network),MNON,GENE,14,0,0,14
+14,Tairāwhiti and Wairoa (Firstlight Network),MNON,TODD,1,0,1,0
+14,Tairāwhiti and Wairoa (Firstlight Network),MNON,MERI,6,0,0,6
+14,Tairāwhiti and Wairoa (Firstlight Network),MNON,MEEN,3,0,0,3
+14,Tairāwhiti and Wairoa (Firstlight Network),MNON,CTCS,1,0,0,1
+14,Tairāwhiti and Wairoa (Firstlight Network),MNON,ECOT,58,0,0,58
+14,Tairāwhiti and Wairoa (Firstlight Network),MNON,CTCT,2,0,0,2
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,MEEN,1130,916,115,99
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,PSNZ,235,212,9,14
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,GENE,559,447,47,65
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,TRUS,24,22,2,0
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,HNET,2,2,0,0
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,CTCT,656,514,83,59
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,PUNZ,567,534,10,23
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,TODD,370,218,52,100
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,MERI,376,137,115,124
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,ELKI,4,3,1,0
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,FOGY,2,2,0,0
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,CTCS,10,0,3,7
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,SWCH,139,130,0,9
+14,Tairāwhiti and Wairoa (Firstlight Network),MTRX,ECOT,253,170,6,77
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,ECOT,103,89,2,12
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,CTCT,5458,4492,565,401
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,TODD,284,218,25,41
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,PSNZ,979,892,20,67
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,FOGY,178,177,0,1
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,MERI,1854,877,363,614
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,SWCH,480,463,7,10
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,GIVE,4,0,0,4
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,CTCS,7,4,1,2
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,GBUG,59,59,0,0
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,PUNZ,1767,1689,43,35
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,TRUS,36,31,3,2
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,ELKI,452,440,4,8
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,GENE,3026,2671,185,170
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,PLUS,1,0,0,1
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,GEOL,361,361,0,0
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,WISE,28,28,0,0
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,MEEN,1944,1806,67,71
+14,Tairāwhiti and Wairoa (Firstlight Network),NGCM,HNET,8,7,0,1
+15,Hawke's Bay (Unison Networks),ACCM,CNIR,1,0,1,0
+15,Hawke's Bay (Unison Networks),ACCM,LMSN,1,0,1,0
+15,Hawke's Bay (Unison Networks),ACCM,GENE,1,0,0,1
+15,Hawke's Bay (Unison Networks),ACCM,MERI,2,0,0,2
+15,Hawke's Bay (Unison Networks),AMCI,TODD,21,0,8,13
+15,Hawke's Bay (Unison Networks),AMCI,CTCS,106,1,29,76
+15,Hawke's Bay (Unison Networks),AMCI,GENE,68,0,32,36
+15,Hawke's Bay (Unison Networks),AMCI,MEEN,83,0,27,56
+15,Hawke's Bay (Unison Networks),AMCI,PUNZ,4,0,0,4
+15,Hawke's Bay (Unison Networks),AMCI,CTCT,65,0,35,30
+15,Hawke's Bay (Unison Networks),AMCI,LNRG,2,0,1,1
+15,Hawke's Bay (Unison Networks),AMCI,ECOT,21,0,8,13
+15,Hawke's Bay (Unison Networks),AMCI,MERI,111,0,66,45
+15,Hawke's Bay (Unison Networks),AMCI,ELKI,7,0,5,2
+15,Hawke's Bay (Unison Networks),BOPE,MEEN,4,3,1,0
+15,Hawke's Bay (Unison Networks),BOPE,TODD,3,0,2,1
+15,Hawke's Bay (Unison Networks),BOPE,CTCT,3,2,0,1
+15,Hawke's Bay (Unison Networks),BOPE,PSNZ,2,2,0,0
+15,Hawke's Bay (Unison Networks),BOPE,ELKI,1,1,0,0
+15,Hawke's Bay (Unison Networks),BOPE,GENE,3,2,1,0
+15,Hawke's Bay (Unison Networks),CTCT,GENE,1,0,0,1
+15,Hawke's Bay (Unison Networks),DELT,CTCT,18,0,18,0
+15,Hawke's Bay (Unison Networks),IHUB,ECOT,40,28,1,11
+15,Hawke's Bay (Unison Networks),IHUB,SWCH,45,43,1,1
+15,Hawke's Bay (Unison Networks),IHUB,HNET,8,6,0,2
+15,Hawke's Bay (Unison Networks),IHUB,CTCT,598,510,31,57
+15,Hawke's Bay (Unison Networks),IHUB,GENE,145,126,5,14
+15,Hawke's Bay (Unison Networks),IHUB,TRUS,5,4,1,0
+15,Hawke's Bay (Unison Networks),IHUB,MERI,285,108,95,82
+15,Hawke's Bay (Unison Networks),IHUB,EDGE,2,2,0,0
+15,Hawke's Bay (Unison Networks),IHUB,ELKI,58,58,0,0
+15,Hawke's Bay (Unison Networks),IHUB,CTCS,9,0,3,6
+15,Hawke's Bay (Unison Networks),IHUB,GEOL,48,48,0,0
+15,Hawke's Bay (Unison Networks),IHUB,PSNZ,259,233,0,26
+15,Hawke's Bay (Unison Networks),IHUB,PUNZ,140,135,1,4
+15,Hawke's Bay (Unison Networks),IHUB,FOGY,5,5,0,0
+15,Hawke's Bay (Unison Networks),IHUB,GIVE,1,0,0,1
+15,Hawke's Bay (Unison Networks),IHUB,OCTO,3,3,0,0
+15,Hawke's Bay (Unison Networks),IHUB,TODD,1213,723,73,417
+15,Hawke's Bay (Unison Networks),IHUB,MEEN,1002,957,17,28
+15,Hawke's Bay (Unison Networks),IHUB,WISE,5,5,0,0
+15,Hawke's Bay (Unison Networks),IHUB,PLUS,1,0,0,1
+15,Hawke's Bay (Unison Networks),MNON,MEEN,4,0,1,3
+15,Hawke's Bay (Unison Networks),MNON,CTCS,6,0,0,6
+15,Hawke's Bay (Unison Networks),MNON,CTCT,19,1,5,13
+15,Hawke's Bay (Unison Networks),MNON,ECOT,52,0,0,52
+15,Hawke's Bay (Unison Networks),MNON,GENE,31,0,1,30
+15,Hawke's Bay (Unison Networks),MNON,MERI,63,0,11,52
+15,Hawke's Bay (Unison Networks),MTRX,MERI,560,120,205,235
+15,Hawke's Bay (Unison Networks),MTRX,PSNZ,321,282,3,36
+15,Hawke's Bay (Unison Networks),MTRX,ELKI,24,23,1,0
+15,Hawke's Bay (Unison Networks),MTRX,FOGY,2,2,0,0
+15,Hawke's Bay (Unison Networks),MTRX,TRUS,102,97,3,2
+15,Hawke's Bay (Unison Networks),MTRX,PUNZ,209,197,3,9
+15,Hawke's Bay (Unison Networks),MTRX,GEOL,7,7,0,0
+15,Hawke's Bay (Unison Networks),MTRX,HNET,3,3,0,0
+15,Hawke's Bay (Unison Networks),MTRX,ECOT,546,406,10,130
+15,Hawke's Bay (Unison Networks),MTRX,TODD,194,92,17,85
+15,Hawke's Bay (Unison Networks),MTRX,CTCT,1275,975,153,147
+15,Hawke's Bay (Unison Networks),MTRX,CTCS,47,2,21,24
+15,Hawke's Bay (Unison Networks),MTRX,GENE,837,668,59,110
+15,Hawke's Bay (Unison Networks),MTRX,MEEN,1029,947,39,43
+15,Hawke's Bay (Unison Networks),MTRX,SWCH,148,128,3,17
+15,Hawke's Bay (Unison Networks),MTRX,EDGE,4,4,0,0
+15,Hawke's Bay (Unison Networks),MTRX,WISE,1,1,0,0
+15,Hawke's Bay (Unison Networks),MTRX,GIVE,2,0,1,1
+15,Hawke's Bay (Unison Networks),MTRX,OCTO,2,2,0,0
+15,Hawke's Bay (Unison Networks),MTRX,PLUS,1,1,0,0
+15,Hawke's Bay (Unison Networks),MTRX,KEAE,1,0,1,0
+15,Hawke's Bay (Unison Networks),NGCM,HNET,32,31,0,1
+15,Hawke's Bay (Unison Networks),NGCM,PLUS,6,3,0,3
+15,Hawke's Bay (Unison Networks),NGCM,TODD,544,386,26,132
+15,Hawke's Bay (Unison Networks),NGCM,LNRG,3,0,2,1
+15,Hawke's Bay (Unison Networks),NGCM,PSNZ,3948,3689,56,203
+15,Hawke's Bay (Unison Networks),NGCM,ELKI,1896,1870,7,19
+15,Hawke's Bay (Unison Networks),NGCM,EDGE,12,12,0,0
+15,Hawke's Bay (Unison Networks),NGCM,CTCS,39,9,19,11
+15,Hawke's Bay (Unison Networks),NGCM,MEEN,8537,8233,108,196
+15,Hawke's Bay (Unison Networks),NGCM,SWCH,1390,1348,8,34
+15,Hawke's Bay (Unison Networks),NGCM,PUNZ,1967,1917,18,32
+15,Hawke's Bay (Unison Networks),NGCM,MERI,4710,2164,1052,1494
+15,Hawke's Bay (Unison Networks),NGCM,CTCT,17020,15198,924,898
+15,Hawke's Bay (Unison Networks),NGCM,GBUG,195,195,0,0
+15,Hawke's Bay (Unison Networks),NGCM,GEOL,6559,6554,2,3
+15,Hawke's Bay (Unison Networks),NGCM,FOGY,289,289,0,0
+15,Hawke's Bay (Unison Networks),NGCM,GENE,8813,7543,563,707
+15,Hawke's Bay (Unison Networks),NGCM,WISE,370,370,0,0
+15,Hawke's Bay (Unison Networks),NGCM,OCTO,14,13,1,0
+15,Hawke's Bay (Unison Networks),NGCM,ECOT,497,398,27,72
+15,Hawke's Bay (Unison Networks),NGCM,TRUS,1,0,0,1
+15,Hawke's Bay (Unison Networks),NGCM,GIVE,5,5,0,0
+16,Central Hawke's Bay (Centralines),AMCI,CTCS,3,0,1,2
+16,Central Hawke's Bay (Centralines),AMCI,GENE,4,0,3,1
+16,Central Hawke's Bay (Centralines),AMCI,CTCT,5,0,3,2
+16,Central Hawke's Bay (Centralines),AMCI,ECOT,1,0,1,0
+16,Central Hawke's Bay (Centralines),AMCI,MERI,7,0,5,2
+16,Central Hawke's Bay (Centralines),AMCI,TODD,1,0,1,0
+16,Central Hawke's Bay (Centralines),AMCI,MEEN,8,0,5,3
+16,Central Hawke's Bay (Centralines),ARCM,TODD,1,0,0,1
+16,Central Hawke's Bay (Centralines),ARCM,MEEN,1,0,0,1
+16,Central Hawke's Bay (Centralines),ARCM,PSNZ,1,1,0,0
+16,Central Hawke's Bay (Centralines),ARCS,TODD,11,2,1,8
+16,Central Hawke's Bay (Centralines),ARCS,PSNZ,1,1,0,0
+16,Central Hawke's Bay (Centralines),BOPE,MEEN,3,2,1,0
+16,Central Hawke's Bay (Centralines),IHUB,GENE,2,1,0,1
+16,Central Hawke's Bay (Centralines),IHUB,MERI,11,7,3,1
+16,Central Hawke's Bay (Centralines),IHUB,TODD,48,36,2,10
+16,Central Hawke's Bay (Centralines),IHUB,CTCT,6,4,0,2
+16,Central Hawke's Bay (Centralines),IHUB,ELKI,3,3,0,0
+16,Central Hawke's Bay (Centralines),IHUB,SWCH,2,2,0,0
+16,Central Hawke's Bay (Centralines),IHUB,TRUS,2,0,2,0
+16,Central Hawke's Bay (Centralines),IHUB,MEEN,26,21,5,0
+16,Central Hawke's Bay (Centralines),IHUB,GEOL,1,1,0,0
+16,Central Hawke's Bay (Centralines),IHUB,EDGE,1,1,0,0
+16,Central Hawke's Bay (Centralines),IHUB,ECOT,3,2,0,1
+16,Central Hawke's Bay (Centralines),MNON,ECOT,31,0,0,31
+16,Central Hawke's Bay (Centralines),MNON,MEEN,2,0,0,2
+16,Central Hawke's Bay (Centralines),MNON,GENE,2,0,0,2
+16,Central Hawke's Bay (Centralines),MNON,MERI,2,0,1,1
+16,Central Hawke's Bay (Centralines),MTRX,SWCH,1,1,0,0
+16,Central Hawke's Bay (Centralines),MTRX,CTCS,1,0,1,0
+16,Central Hawke's Bay (Centralines),MTRX,PUNZ,2,2,0,0
+16,Central Hawke's Bay (Centralines),MTRX,MEEN,13,10,3,0
+16,Central Hawke's Bay (Centralines),MTRX,ELKI,1,1,0,0
+16,Central Hawke's Bay (Centralines),MTRX,MERI,27,4,21,2
+16,Central Hawke's Bay (Centralines),MTRX,CTCT,6,5,0,1
+16,Central Hawke's Bay (Centralines),MTRX,GEOL,3,3,0,0
+16,Central Hawke's Bay (Centralines),MTRX,TODD,22,16,0,6
+16,Central Hawke's Bay (Centralines),MTRX,ECOT,37,30,3,4
+16,Central Hawke's Bay (Centralines),MTRX,GENE,6,5,0,1
+16,Central Hawke's Bay (Centralines),MTRX,PSNZ,1,1,0,0
+16,Central Hawke's Bay (Centralines),NGCM,ELKI,208,200,2,6
+16,Central Hawke's Bay (Centralines),NGCM,SWCH,127,120,0,7
+16,Central Hawke's Bay (Centralines),NGCM,ECOT,76,50,6,20
+16,Central Hawke's Bay (Centralines),NGCM,GENE,1683,1351,238,94
+16,Central Hawke's Bay (Centralines),NGCM,GEOL,484,482,2,0
+16,Central Hawke's Bay (Centralines),NGCM,PUNZ,117,112,2,3
+16,Central Hawke's Bay (Centralines),NGCM,MEEN,892,844,39,9
+16,Central Hawke's Bay (Centralines),NGCM,FOGY,20,20,0,0
+16,Central Hawke's Bay (Centralines),NGCM,MERI,3135,1644,1093,398
+16,Central Hawke's Bay (Centralines),NGCM,ECOS,1,1,0,0
+16,Central Hawke's Bay (Centralines),NGCM,TODD,67,47,4,16
+16,Central Hawke's Bay (Centralines),NGCM,PSNZ,407,392,6,9
+16,Central Hawke's Bay (Centralines),NGCM,CTCS,8,0,6,2
+16,Central Hawke's Bay (Centralines),NGCM,CTCT,1412,1268,75,69
+16,Central Hawke's Bay (Centralines),NGCM,GIVE,1,1,0,0
+16,Central Hawke's Bay (Centralines),NGCM,EDGE,1,1,0,0
+17,Southern Hawke's Bay (Scanpower),AMCI,LNRG,1,0,0,1
+17,Southern Hawke's Bay (Scanpower),AMCI,MERI,6,0,3,3
+17,Southern Hawke's Bay (Scanpower),AMCI,CTCT,5,0,2,3
+17,Southern Hawke's Bay (Scanpower),AMCI,CTCS,1,0,0,1
+17,Southern Hawke's Bay (Scanpower),AMCI,MEEN,2,0,2,0
+17,Southern Hawke's Bay (Scanpower),AMCI,PUNZ,1,0,0,1
+17,Southern Hawke's Bay (Scanpower),AMCI,ECOT,1,0,0,1
+17,Southern Hawke's Bay (Scanpower),AMCI,GENE,1,0,0,1
+17,Southern Hawke's Bay (Scanpower),ARCM,GENE,1,1,0,0
+17,Southern Hawke's Bay (Scanpower),ARCM,TODD,1,1,0,0
+17,Southern Hawke's Bay (Scanpower),CTCT,MEEN,3,0,0,3
+17,Southern Hawke's Bay (Scanpower),IHUB,PUNZ,3,2,0,1
+17,Southern Hawke's Bay (Scanpower),IHUB,CTCT,2,2,0,0
+17,Southern Hawke's Bay (Scanpower),IHUB,MERI,2,1,0,1
+17,Southern Hawke's Bay (Scanpower),IHUB,MEEN,13,9,1,3
+17,Southern Hawke's Bay (Scanpower),IHUB,TODD,77,43,11,23
+17,Southern Hawke's Bay (Scanpower),IHUB,GENE,3,3,0,0
+17,Southern Hawke's Bay (Scanpower),MNON,ECOT,16,0,0,16
+17,Southern Hawke's Bay (Scanpower),MNON,MERI,12,0,9,3
+17,Southern Hawke's Bay (Scanpower),MNON,GENE,3,0,2,1
+17,Southern Hawke's Bay (Scanpower),MTRX,TODD,29,11,10,8
+17,Southern Hawke's Bay (Scanpower),MTRX,ECOT,17,9,3,5
+17,Southern Hawke's Bay (Scanpower),MTRX,CTCT,8,7,0,1
+17,Southern Hawke's Bay (Scanpower),MTRX,GENE,5,2,1,2
+17,Southern Hawke's Bay (Scanpower),MTRX,PUNZ,4,3,0,1
+17,Southern Hawke's Bay (Scanpower),MTRX,MEEN,6,6,0,0
+17,Southern Hawke's Bay (Scanpower),MTRX,MERI,7,1,0,6
+17,Southern Hawke's Bay (Scanpower),MTRX,EDGE,1,1,0,0
+17,Southern Hawke's Bay (Scanpower),NGCM,CTCT,1149,995,96,58
+17,Southern Hawke's Bay (Scanpower),NGCM,ELKI,67,65,1,1
+17,Southern Hawke's Bay (Scanpower),NGCM,GENE,1363,987,304,72
+17,Southern Hawke's Bay (Scanpower),NGCM,MERI,2319,1343,686,290
+17,Southern Hawke's Bay (Scanpower),NGCM,SWCH,138,129,1,8
+17,Southern Hawke's Bay (Scanpower),NGCM,PSNZ,213,194,3,16
+17,Southern Hawke's Bay (Scanpower),NGCM,GBUG,12,12,0,0
+17,Southern Hawke's Bay (Scanpower),NGCM,GEOL,149,149,0,0
+17,Southern Hawke's Bay (Scanpower),NGCM,PUNZ,227,223,1,3
+17,Southern Hawke's Bay (Scanpower),NGCM,ECOT,26,13,3,10
+17,Southern Hawke's Bay (Scanpower),NGCM,MEEN,806,725,45,36
+17,Southern Hawke's Bay (Scanpower),NGCM,TRUS,13,12,0,1
+17,Southern Hawke's Bay (Scanpower),NGCM,CTCS,2,0,1,1
+17,Southern Hawke's Bay (Scanpower),NGCM,TODD,137,74,25,38
+18,Wairarapa (Powerco),ACCM,CTCS,1,0,1,0
+18,Wairarapa (Powerco),ACCM,CNIR,1,0,1,0
+18,Wairarapa (Powerco),AMCI,PUNZ,1,0,0,1
+18,Wairarapa (Powerco),AMCI,CTCS,10,0,5,5
+18,Wairarapa (Powerco),AMCI,GENE,11,0,2,9
+18,Wairarapa (Powerco),AMCI,MERI,28,0,7,21
+18,Wairarapa (Powerco),AMCI,MEEN,27,0,9,18
+18,Wairarapa (Powerco),AMCI,TODD,2,0,1,1
+18,Wairarapa (Powerco),AMCI,ECOT,2,1,1,0
+18,Wairarapa (Powerco),AMCI,CTCT,16,0,1,15
+18,Wairarapa (Powerco),BOPE,MEEN,1,1,0,0
+18,Wairarapa (Powerco),BOPE,TODD,1,1,0,0
+18,Wairarapa (Powerco),CTCT,MEEN,4,0,0,4
+18,Wairarapa (Powerco),IHUB,WISE,2,2,0,0
+18,Wairarapa (Powerco),IHUB,OCTO,4,4,0,0
+18,Wairarapa (Powerco),IHUB,PSNZ,133,119,1,13
+18,Wairarapa (Powerco),IHUB,CTCT,83,80,1,2
+18,Wairarapa (Powerco),IHUB,TODD,1010,813,80,117
+18,Wairarapa (Powerco),IHUB,PUNZ,22,20,0,2
+18,Wairarapa (Powerco),IHUB,MERI,104,43,24,37
+18,Wairarapa (Powerco),IHUB,ECOT,12,10,2,0
+18,Wairarapa (Powerco),IHUB,ELKI,15,14,0,1
+18,Wairarapa (Powerco),IHUB,MEEN,273,259,7,7
+18,Wairarapa (Powerco),IHUB,SUST,17,17,0,0
+18,Wairarapa (Powerco),IHUB,FOGY,3,3,0,0
+18,Wairarapa (Powerco),IHUB,GEOL,12,12,0,0
+18,Wairarapa (Powerco),IHUB,GENE,97,82,9,6
+18,Wairarapa (Powerco),IHUB,SWCH,23,22,0,1
+18,Wairarapa (Powerco),IHUB,HNET,1,1,0,0
+18,Wairarapa (Powerco),MNON,MERI,23,0,2,21
+18,Wairarapa (Powerco),MNON,GENE,19,0,3,16
+18,Wairarapa (Powerco),MNON,ECOT,91,0,0,91
+18,Wairarapa (Powerco),MTRX,PSNZ,15,12,0,3
+18,Wairarapa (Powerco),MTRX,CTCS,1,0,0,1
+18,Wairarapa (Powerco),MTRX,ECOT,199,165,2,32
+18,Wairarapa (Powerco),MTRX,GENE,14,9,1,4
+18,Wairarapa (Powerco),MTRX,MEEN,22,20,1,1
+18,Wairarapa (Powerco),MTRX,PUNZ,3,2,1,0
+18,Wairarapa (Powerco),MTRX,SWCH,5,5,0,0
+18,Wairarapa (Powerco),MTRX,OCTO,3,3,0,0
+18,Wairarapa (Powerco),MTRX,SUST,2,2,0,0
+18,Wairarapa (Powerco),MTRX,CTCT,10,9,1,0
+18,Wairarapa (Powerco),MTRX,TODD,16,13,3,0
+18,Wairarapa (Powerco),MTRX,MERI,46,6,17,23
+18,Wairarapa (Powerco),NGCM,GENE,7457,6441,616,400
+18,Wairarapa (Powerco),NGCM,HNET,2,0,0,2
+18,Wairarapa (Powerco),NGCM,CTCS,7,0,3,4
+18,Wairarapa (Powerco),NGCM,EDGE,2,2,0,0
+18,Wairarapa (Powerco),NGCM,TODD,307,240,33,34
+18,Wairarapa (Powerco),NGCM,CTCT,3534,3094,249,191
+18,Wairarapa (Powerco),NGCM,MEEN,4508,4246,169,93
+18,Wairarapa (Powerco),NGCM,MERI,2978,1316,985,677
+18,Wairarapa (Powerco),NGCM,WISE,22,22,0,0
+18,Wairarapa (Powerco),NGCM,SWCH,506,481,1,24
+18,Wairarapa (Powerco),NGCM,PUNZ,448,426,14,8
+18,Wairarapa (Powerco),NGCM,FOGY,137,137,0,0
+18,Wairarapa (Powerco),NGCM,ECOT,130,101,5,24
+18,Wairarapa (Powerco),NGCM,OCTO,141,139,0,2
+18,Wairarapa (Powerco),NGCM,ELKI,505,484,9,12
+18,Wairarapa (Powerco),NGCM,PSNZ,4065,3692,86,287
+18,Wairarapa (Powerco),NGCM,GBUG,51,51,0,0
+18,Wairarapa (Powerco),NGCM,GEOL,270,270,0,0
+18,Wairarapa (Powerco),NGCM,SUST,153,153,0,0
+19,Taranaki (Powerco),ACCM,GENE,1,0,0,1
+19,Taranaki (Powerco),ACCM,NPEL,1,0,1,0
+19,Taranaki (Powerco),ACCM,TODD,2,0,2,0
+19,Taranaki (Powerco),ACCM,ECOT,2,0,2,0
+19,Taranaki (Powerco),ACCM,CNIR,3,0,3,0
+19,Taranaki (Powerco),ACCM,ELKI,1,0,1,0
+19,Taranaki (Powerco),AMCI,NPEL,3,0,3,0
+19,Taranaki (Powerco),AMCI,TODD,18,0,7,11
+19,Taranaki (Powerco),AMCI,MERI,52,0,30,22
+19,Taranaki (Powerco),AMCI,ECOT,21,0,2,19
+19,Taranaki (Powerco),AMCI,MEEN,50,0,18,32
+19,Taranaki (Powerco),AMCI,CTCT,24,0,7,17
+19,Taranaki (Powerco),AMCI,PUNZ,4,0,0,4
+19,Taranaki (Powerco),AMCI,GENE,52,0,19,33
+19,Taranaki (Powerco),AMCI,CTCS,18,0,9,9
+19,Taranaki (Powerco),AMCI,ELKI,2,0,0,2
+19,Taranaki (Powerco),BOPE,MEEN,257,251,0,6
+19,Taranaki (Powerco),BOPE,MERI,72,32,18,22
+19,Taranaki (Powerco),BOPE,ECOT,7,6,0,1
+19,Taranaki (Powerco),BOPE,SWCH,26,22,2,2
+19,Taranaki (Powerco),BOPE,ELKI,20,19,1,0
+19,Taranaki (Powerco),BOPE,TODD,838,709,44,85
+19,Taranaki (Powerco),BOPE,CTCT,119,113,1,5
+19,Taranaki (Powerco),BOPE,HNET,1,1,0,0
+19,Taranaki (Powerco),BOPE,PSNZ,40,33,1,6
+19,Taranaki (Powerco),BOPE,PUNZ,23,21,0,2
+19,Taranaki (Powerco),BOPE,GEOL,15,15,0,0
+19,Taranaki (Powerco),BOPE,GENE,250,233,5,12
+19,Taranaki (Powerco),BOPE,OCTO,1,1,0,0
+19,Taranaki (Powerco),DELT,CTCT,3,1,2,0
+19,Taranaki (Powerco),IHUB,WISE,5,5,0,0
+19,Taranaki (Powerco),IHUB,GEOL,39,39,0,0
+19,Taranaki (Powerco),IHUB,PSNZ,168,152,1,15
+19,Taranaki (Powerco),IHUB,HNET,8,5,0,3
+19,Taranaki (Powerco),IHUB,OCTO,24,22,0,2
+19,Taranaki (Powerco),IHUB,PUNZ,95,90,0,5
+19,Taranaki (Powerco),IHUB,GENE,930,871,20,39
+19,Taranaki (Powerco),IHUB,ECOT,53,45,6,2
+19,Taranaki (Powerco),IHUB,CTCT,566,552,5,9
+19,Taranaki (Powerco),IHUB,MEEN,2412,2246,95,71
+19,Taranaki (Powerco),IHUB,FOGY,12,12,0,0
+19,Taranaki (Powerco),IHUB,EDGE,4,4,0,0
+19,Taranaki (Powerco),IHUB,ELKI,69,63,3,3
+19,Taranaki (Powerco),IHUB,CTCS,7,0,4,3
+19,Taranaki (Powerco),IHUB,MERI,451,215,136,100
+19,Taranaki (Powerco),IHUB,TODD,5559,4781,262,516
+19,Taranaki (Powerco),IHUB,SWCH,75,73,0,2
+19,Taranaki (Powerco),MNON,TODD,1,0,1,0
+19,Taranaki (Powerco),MNON,MEEN,4,0,1,3
+19,Taranaki (Powerco),MNON,GENE,42,5,11,26
+19,Taranaki (Powerco),MNON,MERI,20,0,7,13
+19,Taranaki (Powerco),MNON,ECOT,23,0,0,23
+19,Taranaki (Powerco),MTRX,OCTO,4,4,0,0
+19,Taranaki (Powerco),MTRX,ECOT,473,328,14,131
+19,Taranaki (Powerco),MTRX,SWCH,7,6,0,1
+19,Taranaki (Powerco),MTRX,PSNZ,21,12,0,9
+19,Taranaki (Powerco),MTRX,MEEN,73,60,7,6
+19,Taranaki (Powerco),MTRX,CTCS,4,0,1,3
+19,Taranaki (Powerco),MTRX,EDGE,2,1,0,1
+19,Taranaki (Powerco),MTRX,TODD,69,49,7,13
+19,Taranaki (Powerco),MTRX,GENE,75,52,4,19
+19,Taranaki (Powerco),MTRX,CTCT,32,27,2,3
+19,Taranaki (Powerco),MTRX,MERI,111,11,38,62
+19,Taranaki (Powerco),MTRX,HNET,1,0,0,1
+19,Taranaki (Powerco),MTRX,PUNZ,12,12,0,0
+19,Taranaki (Powerco),MTRX,ELKI,1,1,0,0
+19,Taranaki (Powerco),NGCM,HNET,19,13,0,6
+19,Taranaki (Powerco),NGCM,EDGE,17,15,0,2
+19,Taranaki (Powerco),NGCM,MERI,6440,2273,2888,1279
+19,Taranaki (Powerco),NGCM,FOGY,213,213,0,0
+19,Taranaki (Powerco),NGCM,GENE,18321,15279,1971,1071
+19,Taranaki (Powerco),NGCM,ELKI,709,683,12,14
+19,Taranaki (Powerco),NGCM,ADOE,1,1,0,0
+19,Taranaki (Powerco),NGCM,TODD,1610,1291,110,209
+19,Taranaki (Powerco),NGCM,CTCS,44,10,20,14
+19,Taranaki (Powerco),NGCM,SWCH,885,818,20,47
+19,Taranaki (Powerco),NGCM,PSNZ,1582,1426,24,132
+19,Taranaki (Powerco),NGCM,MEEN,10304,9601,400,303
+19,Taranaki (Powerco),NGCM,GBUG,149,149,0,0
+19,Taranaki (Powerco),NGCM,OCTO,128,126,0,2
+19,Taranaki (Powerco),NGCM,PUNZ,1027,981,16,30
+19,Taranaki (Powerco),NGCM,WISE,48,48,0,0
+19,Taranaki (Powerco),NGCM,GEOL,466,465,0,1
+19,Taranaki (Powerco),NGCM,CTCT,5585,5085,196,304
+19,Taranaki (Powerco),NGCM,ECOT,378,154,19,205
+2,Whangarei and Kaipara (Northpower),ACCM,NPGL,1,0,1,0
+2,Whangarei and Kaipara (Northpower),ACCM,CNIR,1,0,1,0
+2,Whangarei and Kaipara (Northpower),ACCM,CTCS,1,0,1,0
+2,Whangarei and Kaipara (Northpower),ACCM,NPEL,1,0,1,0
+2,Whangarei and Kaipara (Northpower),ACCM,MEEN,1,0,0,1
+2,Whangarei and Kaipara (Northpower),AMCI,GENE,14,0,2,12
+2,Whangarei and Kaipara (Northpower),AMCI,MEEN,38,0,15,23
+2,Whangarei and Kaipara (Northpower),AMCI,ECOT,8,0,3,5
+2,Whangarei and Kaipara (Northpower),AMCI,TODD,4,0,0,4
+2,Whangarei and Kaipara (Northpower),AMCI,MERI,49,0,17,32
+2,Whangarei and Kaipara (Northpower),AMCI,PUNZ,2,0,0,2
+2,Whangarei and Kaipara (Northpower),AMCI,CTCS,13,0,9,4
+2,Whangarei and Kaipara (Northpower),AMCI,CTCT,14,0,5,9
+2,Whangarei and Kaipara (Northpower),AMCI,ELKI,2,0,2,0
+2,Whangarei and Kaipara (Northpower),ARCM,GENE,2,0,0,2
+2,Whangarei and Kaipara (Northpower),DELT,CTCT,10,0,10,0
+2,Whangarei and Kaipara (Northpower),IHUB,PLUS,2,2,0,0
+2,Whangarei and Kaipara (Northpower),IHUB,GENE,441,325,82,34
+2,Whangarei and Kaipara (Northpower),IHUB,PSNZ,355,323,6,26
+2,Whangarei and Kaipara (Northpower),IHUB,ELKI,141,133,3,5
+2,Whangarei and Kaipara (Northpower),IHUB,TODD,1093,848,108,137
+2,Whangarei and Kaipara (Northpower),IHUB,PUNZ,318,298,11,9
+2,Whangarei and Kaipara (Northpower),IHUB,HNET,301,299,0,2
+2,Whangarei and Kaipara (Northpower),IHUB,SWCH,84,79,1,4
+2,Whangarei and Kaipara (Northpower),IHUB,TRUS,8,4,1,3
+2,Whangarei and Kaipara (Northpower),IHUB,GEOL,26,26,0,0
+2,Whangarei and Kaipara (Northpower),IHUB,CTCS,11,3,4,4
+2,Whangarei and Kaipara (Northpower),IHUB,PLTM,1,1,0,0
+2,Whangarei and Kaipara (Northpower),IHUB,FOGY,33,33,0,0
+2,Whangarei and Kaipara (Northpower),IHUB,MEEN,1410,1189,146,75
+2,Whangarei and Kaipara (Northpower),IHUB,ECOT,89,77,3,9
+2,Whangarei and Kaipara (Northpower),IHUB,EDGE,2,2,0,0
+2,Whangarei and Kaipara (Northpower),IHUB,CTCT,369,319,27,23
+2,Whangarei and Kaipara (Northpower),IHUB,MERI,943,506,270,167
+2,Whangarei and Kaipara (Northpower),IHUB,WISE,14,14,0,0
+2,Whangarei and Kaipara (Northpower),MERI,GENE,1,0,0,1
+2,Whangarei and Kaipara (Northpower),MNON,CTCT,1,0,0,1
+2,Whangarei and Kaipara (Northpower),MNON,ECOT,94,0,0,94
+2,Whangarei and Kaipara (Northpower),MNON,MERI,24,1,2,21
+2,Whangarei and Kaipara (Northpower),MNON,GENE,38,0,1,37
+2,Whangarei and Kaipara (Northpower),MTRX,CTCS,45,8,19,18
+2,Whangarei and Kaipara (Northpower),MTRX,FOGY,87,85,0,2
+2,Whangarei and Kaipara (Northpower),MTRX,GEOL,118,118,0,0
+2,Whangarei and Kaipara (Northpower),MTRX,PLUS,18,12,0,6
+2,Whangarei and Kaipara (Northpower),MTRX,RERL,3,0,3,0
+2,Whangarei and Kaipara (Northpower),MTRX,TODD,468,327,67,74
+2,Whangarei and Kaipara (Northpower),MTRX,GENE,2048,1508,353,187
+2,Whangarei and Kaipara (Northpower),MTRX,CTCT,1431,1226,94,111
+2,Whangarei and Kaipara (Northpower),MTRX,TRUS,39,36,2,1
+2,Whangarei and Kaipara (Northpower),MTRX,PSNZ,1104,989,20,95
+2,Whangarei and Kaipara (Northpower),MTRX,HNET,188,183,0,5
+2,Whangarei and Kaipara (Northpower),MTRX,WISE,23,23,0,0
+2,Whangarei and Kaipara (Northpower),MTRX,SWCH,255,235,5,15
+2,Whangarei and Kaipara (Northpower),MTRX,PUNZ,556,527,19,10
+2,Whangarei and Kaipara (Northpower),MTRX,ECOT,963,747,40,176
+2,Whangarei and Kaipara (Northpower),MTRX,PLTM,9,4,4,1
+2,Whangarei and Kaipara (Northpower),MTRX,EDGE,11,11,0,0
+2,Whangarei and Kaipara (Northpower),MTRX,MEEN,4585,3965,318,302
+2,Whangarei and Kaipara (Northpower),MTRX,ELKI,485,452,20,13
+2,Whangarei and Kaipara (Northpower),MTRX,MERI,2686,1265,804,617
+2,Whangarei and Kaipara (Northpower),MTRX,NPGL,1,0,1,0
+2,Whangarei and Kaipara (Northpower),NGCM,MERI,9311,6682,1184,1445
+2,Whangarei and Kaipara (Northpower),NGCM,FOGY,513,504,0,9
+2,Whangarei and Kaipara (Northpower),NGCM,HNET,486,475,0,11
+2,Whangarei and Kaipara (Northpower),NGCM,TODD,267,212,20,35
+2,Whangarei and Kaipara (Northpower),NGCM,ELKI,2022,1905,42,75
+2,Whangarei and Kaipara (Northpower),NGCM,WISE,219,219,0,0
+2,Whangarei and Kaipara (Northpower),NGCM,GEOL,483,481,1,1
+2,Whangarei and Kaipara (Northpower),NGCM,PUNZ,2006,1916,42,48
+2,Whangarei and Kaipara (Northpower),NGCM,GBUG,139,139,0,0
+2,Whangarei and Kaipara (Northpower),NGCM,EDGE,6,6,0,0
+2,Whangarei and Kaipara (Northpower),NGCM,SWCH,994,930,22,42
+2,Whangarei and Kaipara (Northpower),NGCM,GENE,10444,9128,654,662
+2,Whangarei and Kaipara (Northpower),NGCM,PSNZ,3696,3477,64,155
+2,Whangarei and Kaipara (Northpower),NGCM,TRUS,8,8,0,0
+2,Whangarei and Kaipara (Northpower),NGCM,CTCS,60,36,14,10
+2,Whangarei and Kaipara (Northpower),NGCM,CTCT,6745,6021,328,396
+2,Whangarei and Kaipara (Northpower),NGCM,MEEN,4770,4530,105,135
+2,Whangarei and Kaipara (Northpower),NGCM,PLUS,23,16,4,3
+2,Whangarei and Kaipara (Northpower),NGCM,ECOT,328,261,24,43
+2,Whangarei and Kaipara (Northpower),NGCM,PLTM,12,10,1,1
+2,Whangarei and Kaipara (Northpower),NGCM,LNRG,1,1,0,0
+2,Whangarei and Kaipara (Northpower),STRM,GENE,1,0,1,0
+2,Whangarei and Kaipara (Northpower),TRUM,GENE,1,0,0,1
+20,Wanganui (Powerco),ACCM,CTCS,1,0,1,0
+20,Wanganui (Powerco),ACCM,ECOT,1,0,0,1
+20,Wanganui (Powerco),AMCI,TODD,6,0,2,4
+20,Wanganui (Powerco),AMCI,CTCS,13,0,10,3
+20,Wanganui (Powerco),AMCI,MERI,51,0,23,28
+20,Wanganui (Powerco),AMCI,MEEN,40,0,29,11
+20,Wanganui (Powerco),AMCI,ECOT,3,0,1,2
+20,Wanganui (Powerco),AMCI,GENE,33,0,15,18
+20,Wanganui (Powerco),AMCI,CTCT,18,0,3,15
+20,Wanganui (Powerco),AMCI,PUNZ,1,0,0,1
+20,Wanganui (Powerco),AMCI,ELKI,1,0,0,1
+20,Wanganui (Powerco),BOPE,TODD,1,0,1,0
+20,Wanganui (Powerco),BOPE,GENE,2,0,0,2
+20,Wanganui (Powerco),BOPE,CTCT,1,1,0,0
+20,Wanganui (Powerco),DELT,CTCT,2,0,2,0
+20,Wanganui (Powerco),DELT,MEEN,1,1,0,0
+20,Wanganui (Powerco),IHUB,CTCT,191,185,2,4
+20,Wanganui (Powerco),IHUB,TODD,966,633,86,247
+20,Wanganui (Powerco),IHUB,MEEN,1404,1293,49,62
+20,Wanganui (Powerco),IHUB,ECOT,17,15,0,2
+20,Wanganui (Powerco),IHUB,FOGY,8,8,0,0
+20,Wanganui (Powerco),IHUB,PSNZ,55,49,1,5
+20,Wanganui (Powerco),IHUB,PUNZ,215,211,1,3
+20,Wanganui (Powerco),IHUB,GEOL,11,11,0,0
+20,Wanganui (Powerco),IHUB,WISE,1,1,0,0
+20,Wanganui (Powerco),IHUB,OCTO,7,7,0,0
+20,Wanganui (Powerco),IHUB,SWCH,39,39,0,0
+20,Wanganui (Powerco),IHUB,MERI,144,69,22,53
+20,Wanganui (Powerco),IHUB,EDGE,2,2,0,0
+20,Wanganui (Powerco),IHUB,ELKI,25,25,0,0
+20,Wanganui (Powerco),IHUB,GENE,358,346,3,9
+20,Wanganui (Powerco),IHUB,GIVE,2,2,0,0
+20,Wanganui (Powerco),MNON,ECOT,64,0,0,64
+20,Wanganui (Powerco),MNON,MERI,29,0,0,29
+20,Wanganui (Powerco),MNON,GENE,38,2,8,28
+20,Wanganui (Powerco),MTRX,PUNZ,14,12,1,1
+20,Wanganui (Powerco),MTRX,TODD,20,15,2,3
+20,Wanganui (Powerco),MTRX,MERI,55,4,19,32
+20,Wanganui (Powerco),MTRX,MEEN,30,24,1,5
+20,Wanganui (Powerco),MTRX,ECOT,314,221,11,82
+20,Wanganui (Powerco),MTRX,GENE,28,18,1,9
+20,Wanganui (Powerco),MTRX,CTCT,11,9,1,1
+20,Wanganui (Powerco),MTRX,GIVE,7,3,0,4
+20,Wanganui (Powerco),MTRX,SWCH,2,2,0,0
+20,Wanganui (Powerco),MTRX,FOGY,1,1,0,0
+20,Wanganui (Powerco),MTRX,PSNZ,9,8,1,0
+20,Wanganui (Powerco),MTRX,HNET,1,1,0,0
+20,Wanganui (Powerco),MTRX,CTCS,1,0,0,1
+20,Wanganui (Powerco),MTRX,ELKI,1,0,1,0
+20,Wanganui (Powerco),NGCM,GENE,12506,10742,1006,758
+20,Wanganui (Powerco),NGCM,GIVE,17,16,0,1
+20,Wanganui (Powerco),NGCM,MEEN,6593,5966,321,306
+20,Wanganui (Powerco),NGCM,GEOL,296,295,1,0
+20,Wanganui (Powerco),NGCM,PUNZ,1780,1722,24,34
+20,Wanganui (Powerco),NGCM,SWCH,790,761,4,25
+20,Wanganui (Powerco),NGCM,WISE,39,39,0,0
+20,Wanganui (Powerco),NGCM,OCTO,69,68,1,0
+20,Wanganui (Powerco),NGCM,TODD,676,477,66,133
+20,Wanganui (Powerco),NGCM,MERI,4148,1519,1272,1357
+20,Wanganui (Powerco),NGCM,EDGE,3,3,0,0
+20,Wanganui (Powerco),NGCM,CTCT,4148,3758,191,199
+20,Wanganui (Powerco),NGCM,FOGY,157,157,0,0
+20,Wanganui (Powerco),NGCM,HNET,11,11,0,0
+20,Wanganui (Powerco),NGCM,PSNZ,1383,1230,46,107
+20,Wanganui (Powerco),NGCM,CTCS,9,3,2,4
+20,Wanganui (Powerco),NGCM,ELKI,556,540,6,10
+20,Wanganui (Powerco),NGCM,GBUG,180,180,0,0
+20,Wanganui (Powerco),NGCM,ECOT,180,89,3,88
+21,Manawatu (Powerco),ACCM,CTCT,2,0,0,2
+21,Manawatu (Powerco),ACCM,GENE,2,0,1,1
+21,Manawatu (Powerco),ACCM,CTCS,2,0,0,2
+21,Manawatu (Powerco),AMCI,CTCS,23,0,9,14
+21,Manawatu (Powerco),AMCI,ECOT,9,0,2,7
+21,Manawatu (Powerco),AMCI,MEEN,81,0,16,65
+21,Manawatu (Powerco),AMCI,CTCT,25,0,8,17
+21,Manawatu (Powerco),AMCI,GENE,34,0,9,25
+21,Manawatu (Powerco),AMCI,LNRG,3,0,0,3
+21,Manawatu (Powerco),AMCI,MERI,68,0,30,38
+21,Manawatu (Powerco),AMCI,TODD,11,0,1,10
+21,Manawatu (Powerco),AMCI,ELKI,5,0,1,4
+21,Manawatu (Powerco),AMCI,PUNZ,2,0,0,2
+21,Manawatu (Powerco),BOPE,PSNZ,6,6,0,0
+21,Manawatu (Powerco),BOPE,SWCH,15,15,0,0
+21,Manawatu (Powerco),BOPE,PUNZ,39,39,0,0
+21,Manawatu (Powerco),BOPE,CTCT,54,54,0,0
+21,Manawatu (Powerco),BOPE,MEEN,82,82,0,0
+21,Manawatu (Powerco),BOPE,GENE,73,73,0,0
+21,Manawatu (Powerco),BOPE,MERI,9,7,1,1
+21,Manawatu (Powerco),BOPE,TODD,255,236,2,17
+21,Manawatu (Powerco),BOPE,ELKI,10,10,0,0
+21,Manawatu (Powerco),BOPE,HNET,2,2,0,0
+21,Manawatu (Powerco),CTCT,MEEN,3,0,0,3
+21,Manawatu (Powerco),DELT,MERI,1,1,0,0
+21,Manawatu (Powerco),DELT,GENE,1,0,0,1
+21,Manawatu (Powerco),DELT,CTCT,1,0,1,0
+21,Manawatu (Powerco),IHUB,SWCH,73,73,0,0
+21,Manawatu (Powerco),IHUB,PUNZ,423,417,0,6
+21,Manawatu (Powerco),IHUB,TODD,2543,2114,97,332
+21,Manawatu (Powerco),IHUB,MEEN,1700,1639,24,37
+21,Manawatu (Powerco),IHUB,GENE,478,453,5,20
+21,Manawatu (Powerco),IHUB,MERI,255,137,40,78
+21,Manawatu (Powerco),IHUB,CTCT,482,467,2,13
+21,Manawatu (Powerco),IHUB,PSNZ,141,129,2,10
+21,Manawatu (Powerco),IHUB,GEOL,46,46,0,0
+21,Manawatu (Powerco),IHUB,WISE,7,7,0,0
+21,Manawatu (Powerco),IHUB,HNET,10,9,0,1
+21,Manawatu (Powerco),IHUB,ECOT,28,27,1,0
+21,Manawatu (Powerco),IHUB,FOGY,13,13,0,0
+21,Manawatu (Powerco),IHUB,ELKI,55,50,0,5
+21,Manawatu (Powerco),IHUB,OCTO,10,10,0,0
+21,Manawatu (Powerco),IHUB,CTCS,4,1,1,2
+21,Manawatu (Powerco),IHUB,EDGE,1,1,0,0
+21,Manawatu (Powerco),MNON,MEEN,1,1,0,0
+21,Manawatu (Powerco),MNON,MERI,20,0,4,16
+21,Manawatu (Powerco),MNON,ECOT,15,0,0,15
+21,Manawatu (Powerco),MNON,GENE,32,3,5,24
+21,Manawatu (Powerco),MRPL,CNIR,2,0,2,0
+21,Manawatu (Powerco),MTRX,TODD,41,32,1,8
+21,Manawatu (Powerco),MTRX,GIVE,4,2,1,1
+21,Manawatu (Powerco),MTRX,OCTO,8,8,0,0
+21,Manawatu (Powerco),MTRX,GENE,37,26,0,11
+21,Manawatu (Powerco),MTRX,ELKI,1,1,0,0
+21,Manawatu (Powerco),MTRX,CTCT,18,14,4,0
+21,Manawatu (Powerco),MTRX,SWCH,5,5,0,0
+21,Manawatu (Powerco),MTRX,PUNZ,19,18,0,1
+21,Manawatu (Powerco),MTRX,MEEN,49,42,2,5
+21,Manawatu (Powerco),MTRX,MERI,72,18,19,35
+21,Manawatu (Powerco),MTRX,ECOT,348,287,8,53
+21,Manawatu (Powerco),MTRX,PSNZ,19,14,0,5
+21,Manawatu (Powerco),MTRX,FOGY,2,2,0,0
+21,Manawatu (Powerco),MTRX,ECOS,1,1,0,0
+21,Manawatu (Powerco),NGCM,GBUG,165,165,0,0
+21,Manawatu (Powerco),NGCM,FOGY,163,163,0,0
+21,Manawatu (Powerco),NGCM,PUNZ,1857,1792,27,38
+21,Manawatu (Powerco),NGCM,PLUS,4,3,1,0
+21,Manawatu (Powerco),NGCM,GEOL,490,489,0,1
+21,Manawatu (Powerco),NGCM,LNRG,1,0,0,1
+21,Manawatu (Powerco),NGCM,EDGE,10,10,0,0
+21,Manawatu (Powerco),NGCM,WISE,57,57,0,0
+21,Manawatu (Powerco),NGCM,ELKI,847,818,9,20
+21,Manawatu (Powerco),NGCM,MEEN,10645,10056,297,292
+21,Manawatu (Powerco),NGCM,GENE,14173,12423,869,881
+21,Manawatu (Powerco),NGCM,CTCT,8029,7369,294,366
+21,Manawatu (Powerco),NGCM,PSNZ,2350,2130,49,171
+21,Manawatu (Powerco),NGCM,CTCS,16,2,7,7
+21,Manawatu (Powerco),NGCM,SWCH,1049,983,14,52
+21,Manawatu (Powerco),NGCM,HNET,38,30,0,8
+21,Manawatu (Powerco),NGCM,TODD,1895,1508,91,296
+21,Manawatu (Powerco),NGCM,MERI,5342,2385,1264,1693
+21,Manawatu (Powerco),NGCM,OCTO,148,145,3,0
+21,Manawatu (Powerco),NGCM,ECOT,186,122,7,57
+21,Manawatu (Powerco),NGCM,GIVE,3,3,0,0
+21,Manawatu (Powerco),NGCM,PRME,1,0,0,1
+21,Manawatu (Powerco),NGCM,ECOS,1,1,0,0
+22,Kapiti and Horowhenua (Electra),ACCM,MEEN,1,0,0,1
+22,Kapiti and Horowhenua (Electra),ACCM,GENE,1,0,0,1
+22,Kapiti and Horowhenua (Electra),AMCI,MERI,35,0,2,33
+22,Kapiti and Horowhenua (Electra),AMCI,ECOT,2,0,1,1
+22,Kapiti and Horowhenua (Electra),AMCI,PUNZ,2,0,0,2
+22,Kapiti and Horowhenua (Electra),AMCI,CTCT,24,0,6,18
+22,Kapiti and Horowhenua (Electra),AMCI,GENE,36,0,16,20
+22,Kapiti and Horowhenua (Electra),AMCI,CTCS,16,0,13,3
+22,Kapiti and Horowhenua (Electra),AMCI,MEEN,28,0,9,19
+22,Kapiti and Horowhenua (Electra),AMCI,TODD,4,0,2,2
+22,Kapiti and Horowhenua (Electra),AMCI,ELKI,1,0,0,1
+22,Kapiti and Horowhenua (Electra),ARCS,TODD,1,0,0,1
+22,Kapiti and Horowhenua (Electra),BOPE,MERI,1,0,0,1
+22,Kapiti and Horowhenua (Electra),BOPE,CTCT,5,4,1,0
+22,Kapiti and Horowhenua (Electra),BOPE,MEEN,2,2,0,0
+22,Kapiti and Horowhenua (Electra),BOPE,TODD,3,2,0,1
+22,Kapiti and Horowhenua (Electra),BOPE,PSNZ,1,1,0,0
+22,Kapiti and Horowhenua (Electra),BOPE,PUNZ,1,1,0,0
+22,Kapiti and Horowhenua (Electra),CTCT,MERI,1,0,0,1
+22,Kapiti and Horowhenua (Electra),CTCT,GENE,1,0,0,1
+22,Kapiti and Horowhenua (Electra),DELT,MEEN,5,4,1,0
+22,Kapiti and Horowhenua (Electra),DELT,GENE,6,6,0,0
+22,Kapiti and Horowhenua (Electra),DELT,PSNZ,1,0,1,0
+22,Kapiti and Horowhenua (Electra),DELT,CTCT,22,0,22,0
+22,Kapiti and Horowhenua (Electra),IHUB,CTCT,492,449,18,25
+22,Kapiti and Horowhenua (Electra),IHUB,SUST,24,24,0,0
+22,Kapiti and Horowhenua (Electra),IHUB,GEOL,19,19,0,0
+22,Kapiti and Horowhenua (Electra),IHUB,PUNZ,191,187,2,2
+22,Kapiti and Horowhenua (Electra),IHUB,OCTO,16,15,0,1
+22,Kapiti and Horowhenua (Electra),IHUB,GENE,174,167,0,7
+22,Kapiti and Horowhenua (Electra),IHUB,ELKI,35,34,0,1
+22,Kapiti and Horowhenua (Electra),IHUB,HNET,6,6,0,0
+22,Kapiti and Horowhenua (Electra),IHUB,PSNZ,134,128,3,3
+22,Kapiti and Horowhenua (Electra),IHUB,MEEN,668,653,3,12
+22,Kapiti and Horowhenua (Electra),IHUB,MERI,140,72,21,47
+22,Kapiti and Horowhenua (Electra),IHUB,CTCS,2,1,0,1
+22,Kapiti and Horowhenua (Electra),IHUB,ECOT,37,35,0,2
+22,Kapiti and Horowhenua (Electra),IHUB,SWCH,36,34,0,2
+22,Kapiti and Horowhenua (Electra),IHUB,TODD,970,684,64,222
+22,Kapiti and Horowhenua (Electra),IHUB,WISE,2,2,0,0
+22,Kapiti and Horowhenua (Electra),LMGL,CTCT,3,3,0,0
+22,Kapiti and Horowhenua (Electra),MNON,MERI,33,0,3,30
+22,Kapiti and Horowhenua (Electra),MNON,GENE,24,0,0,24
+22,Kapiti and Horowhenua (Electra),MNON,ECOT,8,0,0,8
+22,Kapiti and Horowhenua (Electra),MNON,CTCT,4,0,2,2
+22,Kapiti and Horowhenua (Electra),MNON,PSNZ,2,0,0,2
+22,Kapiti and Horowhenua (Electra),MTRX,PUNZ,226,213,3,10
+22,Kapiti and Horowhenua (Electra),MTRX,CTCT,1293,995,157,141
+22,Kapiti and Horowhenua (Electra),MTRX,PLUS,1,1,0,0
+22,Kapiti and Horowhenua (Electra),MTRX,GEOL,2,2,0,0
+22,Kapiti and Horowhenua (Electra),MTRX,HNET,3,1,0,2
+22,Kapiti and Horowhenua (Electra),MTRX,ECOT,386,285,9,92
+22,Kapiti and Horowhenua (Electra),MTRX,ELKI,16,16,0,0
+22,Kapiti and Horowhenua (Electra),MTRX,OCTO,24,24,0,0
+22,Kapiti and Horowhenua (Electra),MTRX,MEEN,568,547,10,11
+22,Kapiti and Horowhenua (Electra),MTRX,GENE,1038,872,41,125
+22,Kapiti and Horowhenua (Electra),MTRX,SUST,22,22,0,0
+22,Kapiti and Horowhenua (Electra),MTRX,TRUS,20,20,0,0
+22,Kapiti and Horowhenua (Electra),MTRX,PSNZ,328,257,10,61
+22,Kapiti and Horowhenua (Electra),MTRX,TODD,209,107,27,75
+22,Kapiti and Horowhenua (Electra),MTRX,CTCS,9,0,5,4
+22,Kapiti and Horowhenua (Electra),MTRX,MERI,517,176,92,249
+22,Kapiti and Horowhenua (Electra),MTRX,SWCH,107,99,1,7
+22,Kapiti and Horowhenua (Electra),MTRX,EDGE,1,1,0,0
+22,Kapiti and Horowhenua (Electra),NGCM,GEOL,2824,2822,1,1
+22,Kapiti and Horowhenua (Electra),NGCM,EDGE,3,3,0,0
+22,Kapiti and Horowhenua (Electra),NGCM,HNET,18,14,0,4
+22,Kapiti and Horowhenua (Electra),NGCM,MEEN,6243,6116,58,69
+22,Kapiti and Horowhenua (Electra),NGCM,SWCH,722,695,6,21
+22,Kapiti and Horowhenua (Electra),NGCM,ELKI,992,975,7,10
+22,Kapiti and Horowhenua (Electra),NGCM,TODD,356,250,18,88
+22,Kapiti and Horowhenua (Electra),NGCM,PSNZ,2555,2382,30,143
+22,Kapiti and Horowhenua (Electra),NGCM,CTCT,11101,10168,452,481
+22,Kapiti and Horowhenua (Electra),NGCM,MERI,2690,1424,324,942
+22,Kapiti and Horowhenua (Electra),NGCM,GBUG,55,55,0,0
+22,Kapiti and Horowhenua (Electra),NGCM,CTCS,9,0,5,4
+22,Kapiti and Horowhenua (Electra),NGCM,PLUS,2,1,0,1
+22,Kapiti and Horowhenua (Electra),NGCM,GENE,8993,8387,240,366
+22,Kapiti and Horowhenua (Electra),NGCM,WISE,12,12,0,0
+22,Kapiti and Horowhenua (Electra),NGCM,SUST,447,444,1,2
+22,Kapiti and Horowhenua (Electra),NGCM,OCTO,292,288,0,4
+22,Kapiti and Horowhenua (Electra),NGCM,ECOT,208,191,3,14
+22,Kapiti and Horowhenua (Electra),NGCM,PUNZ,2240,2160,30,50
+22,Kapiti and Horowhenua (Electra),NGCM,TRUS,1,1,0,0
+23,Wellington (Wellington Electricity),ACCM,ECOT,1,0,0,1
+23,Wellington (Wellington Electricity),ACCM,GENE,5,0,0,5
+23,Wellington (Wellington Electricity),ACCM,LMSN,1,0,1,0
+23,Wellington (Wellington Electricity),ACCM,CTCT,1,0,0,1
+23,Wellington (Wellington Electricity),ACCM,CTCS,1,0,1,0
+23,Wellington (Wellington Electricity),ACCM,TODD,1,0,1,0
+23,Wellington (Wellington Electricity),AMCI,TODD,24,0,3,21
+23,Wellington (Wellington Electricity),AMCI,GENE,144,0,25,119
+23,Wellington (Wellington Electricity),AMCI,ELKI,12,0,4,8
+23,Wellington (Wellington Electricity),AMCI,MERI,339,0,44,295
+23,Wellington (Wellington Electricity),AMCI,ECOT,53,1,21,31
+23,Wellington (Wellington Electricity),AMCI,SWCH,6,0,1,5
+23,Wellington (Wellington Electricity),AMCI,PUNZ,13,0,0,13
+23,Wellington (Wellington Electricity),AMCI,CTCS,95,0,62,33
+23,Wellington (Wellington Electricity),AMCI,CTCT,62,0,7,55
+23,Wellington (Wellington Electricity),AMCI,MEEN,215,0,33,182
+23,Wellington (Wellington Electricity),BLUC,GIVE,174,174,0,0
+23,Wellington (Wellington Electricity),BOPE,GEOL,3,3,0,0
+23,Wellington (Wellington Electricity),BOPE,PSNZ,39,34,0,5
+23,Wellington (Wellington Electricity),BOPE,GENE,174,162,0,12
+23,Wellington (Wellington Electricity),BOPE,MEEN,170,168,1,1
+23,Wellington (Wellington Electricity),BOPE,SWCH,21,15,1,5
+23,Wellington (Wellington Electricity),BOPE,ECOT,2,1,0,1
+23,Wellington (Wellington Electricity),BOPE,MERI,66,22,9,35
+23,Wellington (Wellington Electricity),BOPE,SUST,19,16,0,3
+23,Wellington (Wellington Electricity),BOPE,PUNZ,8,8,0,0
+23,Wellington (Wellington Electricity),BOPE,TODD,474,379,12,83
+23,Wellington (Wellington Electricity),BOPE,ELKI,17,16,0,1
+23,Wellington (Wellington Electricity),BOPE,TRUS,12,12,0,0
+23,Wellington (Wellington Electricity),BOPE,CTCS,2,0,2,0
+23,Wellington (Wellington Electricity),BOPE,CTCT,119,111,0,8
+23,Wellington (Wellington Electricity),BOPE,HNET,1,1,0,0
+23,Wellington (Wellington Electricity),BOPE,OCTO,1,1,0,0
+23,Wellington (Wellington Electricity),CTCT,MEEN,4,0,0,4
+23,Wellington (Wellington Electricity),CTCT,MERI,10,0,0,10
+23,Wellington (Wellington Electricity),CTCT,GENE,3,0,0,3
+23,Wellington (Wellington Electricity),DELT,CTCT,9,0,9,0
+23,Wellington (Wellington Electricity),IHUB,OCTO,30,30,0,0
+23,Wellington (Wellington Electricity),IHUB,MERI,670,433,16,221
+23,Wellington (Wellington Electricity),IHUB,PSNZ,521,481,4,36
+23,Wellington (Wellington Electricity),IHUB,SWCH,142,132,3,7
+23,Wellington (Wellington Electricity),IHUB,TRUS,49,42,3,4
+23,Wellington (Wellington Electricity),IHUB,PUNZ,89,88,0,1
+23,Wellington (Wellington Electricity),IHUB,FOGY,12,12,0,0
+23,Wellington (Wellington Electricity),IHUB,GENE,1026,967,7,52
+23,Wellington (Wellington Electricity),IHUB,SUST,77,74,0,3
+23,Wellington (Wellington Electricity),IHUB,ECOT,39,36,0,3
+23,Wellington (Wellington Electricity),IHUB,GEOL,32,32,0,0
+23,Wellington (Wellington Electricity),IHUB,HNET,39,29,0,10
+23,Wellington (Wellington Electricity),IHUB,ELKI,129,123,0,6
+23,Wellington (Wellington Electricity),IHUB,CTCS,12,0,11,1
+23,Wellington (Wellington Electricity),IHUB,CTCT,793,747,4,42
+23,Wellington (Wellington Electricity),IHUB,MEEN,3036,2926,24,86
+23,Wellington (Wellington Electricity),IHUB,WISE,8,8,0,0
+23,Wellington (Wellington Electricity),IHUB,TODD,3766,2910,78,778
+23,Wellington (Wellington Electricity),IHUB,GIVE,1,1,0,0
+23,Wellington (Wellington Electricity),IHUB,EDGE,3,3,0,0
+23,Wellington (Wellington Electricity),MERG,MERI,1,0,1,0
+23,Wellington (Wellington Electricity),MNON,MEEN,4,1,2,1
+23,Wellington (Wellington Electricity),MNON,CTCS,1,0,1,0
+23,Wellington (Wellington Electricity),MNON,ECOT,2,0,1,1
+23,Wellington (Wellington Electricity),MNON,MERI,234,2,25,207
+23,Wellington (Wellington Electricity),MNON,GENE,81,18,1,62
+23,Wellington (Wellington Electricity),MNON,CTCT,6,2,0,4
+23,Wellington (Wellington Electricity),MNON,TODD,1,0,0,1
+23,Wellington (Wellington Electricity),MTRX,FOGY,19,19,0,0
+23,Wellington (Wellington Electricity),MTRX,TRUS,34,31,2,1
+23,Wellington (Wellington Electricity),MTRX,GEOL,73,73,0,0
+23,Wellington (Wellington Electricity),MTRX,WISE,9,9,0,0
+23,Wellington (Wellington Electricity),MTRX,PUNZ,118,117,0,1
+23,Wellington (Wellington Electricity),MTRX,SWCH,295,285,4,6
+23,Wellington (Wellington Electricity),MTRX,PSNZ,1001,931,4,66
+23,Wellington (Wellington Electricity),MTRX,TODD,550,399,18,133
+23,Wellington (Wellington Electricity),MTRX,CTCT,1706,1574,28,104
+23,Wellington (Wellington Electricity),MTRX,SUST,129,123,0,6
+23,Wellington (Wellington Electricity),MTRX,HNET,17,15,0,2
+23,Wellington (Wellington Electricity),MTRX,CTCS,75,0,15,60
+23,Wellington (Wellington Electricity),MTRX,MERI,2033,980,63,990
+23,Wellington (Wellington Electricity),MTRX,MEEN,3726,3505,64,157
+23,Wellington (Wellington Electricity),MTRX,GENE,1862,1662,9,191
+23,Wellington (Wellington Electricity),MTRX,OCTO,85,83,2,0
+23,Wellington (Wellington Electricity),MTRX,ELKI,370,360,0,10
+23,Wellington (Wellington Electricity),MTRX,ECOT,851,643,41,167
+23,Wellington (Wellington Electricity),MTRX,GIVE,2,2,0,0
+23,Wellington (Wellington Electricity),MTRX,EDGE,1,1,0,0
+23,Wellington (Wellington Electricity),NGCM,FOGY,391,391,0,0
+23,Wellington (Wellington Electricity),NGCM,PUNZ,2226,2163,8,55
+23,Wellington (Wellington Electricity),NGCM,OCTO,707,706,1,0
+23,Wellington (Wellington Electricity),NGCM,HNET,187,167,1,19
+23,Wellington (Wellington Electricity),NGCM,ECOT,542,339,26,177
+23,Wellington (Wellington Electricity),NGCM,PSNZ,11698,10884,57,757
+23,Wellington (Wellington Electricity),NGCM,EDGE,9,9,0,0
+23,Wellington (Wellington Electricity),NGCM,GENE,55323,51186,764,3373
+23,Wellington (Wellington Electricity),NGCM,MERI,17671,11342,535,5794
+23,Wellington (Wellington Electricity),NGCM,CTCT,27081,25137,520,1424
+23,Wellington (Wellington Electricity),NGCM,SUST,1534,1506,4,24
+23,Wellington (Wellington Electricity),NGCM,SWCH,4019,3846,29,144
+23,Wellington (Wellington Electricity),NGCM,MEEN,26349,25635,133,581
+23,Wellington (Wellington Electricity),NGCM,TODD,2247,1667,63,517
+23,Wellington (Wellington Electricity),NGCM,GBUG,809,809,0,0
+23,Wellington (Wellington Electricity),NGCM,GIVE,118,116,0,2
+23,Wellington (Wellington Electricity),NGCM,ELKI,4327,4228,9,90
+23,Wellington (Wellington Electricity),NGCM,GEOL,1259,1255,0,4
+23,Wellington (Wellington Electricity),NGCM,PLUS,5,5,0,0
+23,Wellington (Wellington Electricity),NGCM,WISE,271,271,0,0
+23,Wellington (Wellington Electricity),NGCM,CTCS,62,3,21,38
+23,Wellington (Wellington Electricity),NGCM,TRUS,690,666,7,17
+23,Wellington (Wellington Electricity),NGCM,LNRG,1,0,0,1
+24,Nelson (Nelson Electricity),ACCM,GENE,1,0,0,1
+24,Nelson (Nelson Electricity),AMCI,MEEN,9,0,0,9
+24,Nelson (Nelson Electricity),AMCI,ELKI,1,0,0,1
+24,Nelson (Nelson Electricity),AMCI,PUNZ,1,0,0,1
+24,Nelson (Nelson Electricity),AMCI,MERI,54,0,3,51
+24,Nelson (Nelson Electricity),AMCI,CTCT,2,0,0,2
+24,Nelson (Nelson Electricity),AMCI,CTCS,20,0,0,20
+24,Nelson (Nelson Electricity),AMCI,GENE,9,0,0,9
+24,Nelson (Nelson Electricity),AMCI,ECOT,3,0,0,3
+24,Nelson (Nelson Electricity),AMCI,TODD,1,0,0,1
+24,Nelson (Nelson Electricity),BOPE,CTCS,1,0,0,1
+24,Nelson (Nelson Electricity),IHUB,ECOT,46,28,5,13
+24,Nelson (Nelson Electricity),IHUB,PUNZ,245,237,2,6
+24,Nelson (Nelson Electricity),IHUB,CTCT,140,125,7,8
+24,Nelson (Nelson Electricity),IHUB,GEOL,20,20,0,0
+24,Nelson (Nelson Electricity),IHUB,CTCS,3,0,0,3
+24,Nelson (Nelson Electricity),IHUB,GENE,47,41,0,6
+24,Nelson (Nelson Electricity),IHUB,TRUS,205,174,1,30
+24,Nelson (Nelson Electricity),IHUB,SWCH,36,35,0,1
+24,Nelson (Nelson Electricity),IHUB,MERI,233,151,12,70
+24,Nelson (Nelson Electricity),IHUB,MEEN,595,508,12,75
+24,Nelson (Nelson Electricity),IHUB,PSNZ,231,217,2,12
+24,Nelson (Nelson Electricity),IHUB,TODD,222,194,3,25
+24,Nelson (Nelson Electricity),IHUB,ELKI,55,55,0,0
+24,Nelson (Nelson Electricity),MNON,GENE,19,0,0,19
+24,Nelson (Nelson Electricity),MNON,MERI,3,0,0,3
+24,Nelson (Nelson Electricity),MNON,ECOT,2,0,0,2
+24,Nelson (Nelson Electricity),MTRX,CTCT,77,56,3,18
+24,Nelson (Nelson Electricity),MTRX,MEEN,263,203,7,53
+24,Nelson (Nelson Electricity),MTRX,MERI,111,54,8,49
+24,Nelson (Nelson Electricity),MTRX,ELKI,10,10,0,0
+24,Nelson (Nelson Electricity),MTRX,CTCS,8,0,0,8
+24,Nelson (Nelson Electricity),MTRX,TODD,19,16,0,3
+24,Nelson (Nelson Electricity),MTRX,SWCH,33,29,0,4
+24,Nelson (Nelson Electricity),MTRX,PUNZ,162,161,0,1
+24,Nelson (Nelson Electricity),MTRX,PSNZ,71,58,0,13
+24,Nelson (Nelson Electricity),MTRX,GENE,36,24,0,12
+24,Nelson (Nelson Electricity),MTRX,ECOT,190,157,5,28
+24,Nelson (Nelson Electricity),NGCM,CTCS,5,0,3,2
+24,Nelson (Nelson Electricity),NGCM,ELKI,313,302,1,10
+24,Nelson (Nelson Electricity),NGCM,GEOL,225,225,0,0
+24,Nelson (Nelson Electricity),NGCM,PUNZ,920,900,3,17
+24,Nelson (Nelson Electricity),NGCM,SWCH,177,162,0,15
+24,Nelson (Nelson Electricity),NGCM,MERI,1055,636,35,384
+24,Nelson (Nelson Electricity),NGCM,CTCT,1279,1096,37,146
+24,Nelson (Nelson Electricity),NGCM,GBUG,26,26,0,0
+24,Nelson (Nelson Electricity),NGCM,PSNZ,906,842,2,62
+24,Nelson (Nelson Electricity),NGCM,GENE,409,355,3,51
+24,Nelson (Nelson Electricity),NGCM,MEEN,558,520,4,34
+24,Nelson (Nelson Electricity),NGCM,TRUS,16,12,0,4
+24,Nelson (Nelson Electricity),NGCM,TODD,29,26,1,2
+24,Nelson (Nelson Electricity),NGCM,ECOT,147,127,0,20
+24,Nelson (Nelson Electricity),SMCO,ECOT,1,1,0,0
+24,Nelson (Nelson Electricity),SMCO,MERI,55,0,7,48
+24,Nelson (Nelson Electricity),SMCO,PSNZ,1,0,0,1
+24,Nelson (Nelson Electricity),SMCO,CTCT,1,1,0,0
+25,Tasman (Network Tasman),ACCM,CTCS,1,0,1,0
+25,Tasman (Network Tasman),ACCM,ETRN,3,0,3,0
+25,Tasman (Network Tasman),ACCM,CNIR,1,0,1,0
+25,Tasman (Network Tasman),AMCI,MERI,138,0,67,71
+25,Tasman (Network Tasman),AMCI,CTCT,15,0,5,10
+25,Tasman (Network Tasman),AMCI,GENE,14,0,4,10
+25,Tasman (Network Tasman),AMCI,ECOT,6,0,3,3
+25,Tasman (Network Tasman),AMCI,ETRN,2,0,1,1
+25,Tasman (Network Tasman),AMCI,ELKI,5,0,3,2
+25,Tasman (Network Tasman),AMCI,CTCS,38,0,21,17
+25,Tasman (Network Tasman),AMCI,OCTO,2,0,1,1
+25,Tasman (Network Tasman),AMCI,MEEN,30,0,13,17
+25,Tasman (Network Tasman),AMCI,PUNZ,4,0,1,3
+25,Tasman (Network Tasman),CTCT,MERI,5,0,0,5
+25,Tasman (Network Tasman),DELT,MEEN,1,1,0,0
+25,Tasman (Network Tasman),DELT,MERI,1,0,1,0
+25,Tasman (Network Tasman),IHUB,OCTO,54,54,0,0
+25,Tasman (Network Tasman),IHUB,SWCH,88,87,0,1
+25,Tasman (Network Tasman),IHUB,GENE,143,135,1,7
+25,Tasman (Network Tasman),IHUB,PUNZ,372,352,6,14
+25,Tasman (Network Tasman),IHUB,TODD,449,376,27,46
+25,Tasman (Network Tasman),IHUB,MEEN,1798,1659,84,55
+25,Tasman (Network Tasman),IHUB,GEOL,95,95,0,0
+25,Tasman (Network Tasman),IHUB,ELKI,138,134,0,4
+25,Tasman (Network Tasman),IHUB,MERI,393,284,36,73
+25,Tasman (Network Tasman),IHUB,FOGY,4,4,0,0
+25,Tasman (Network Tasman),IHUB,ECOT,144,129,10,5
+25,Tasman (Network Tasman),IHUB,TRUS,132,119,6,7
+25,Tasman (Network Tasman),IHUB,CTCS,4,0,2,2
+25,Tasman (Network Tasman),IHUB,PSNZ,610,575,24,11
+25,Tasman (Network Tasman),IHUB,CTCT,931,849,44,38
+25,Tasman (Network Tasman),MNON,GENE,25,0,0,25
+25,Tasman (Network Tasman),MNON,MERI,16,0,3,13
+25,Tasman (Network Tasman),MNON,CTCT,2,0,1,1
+25,Tasman (Network Tasman),MNON,ECOT,35,0,0,35
+25,Tasman (Network Tasman),MNON,TRUS,1,0,0,1
+25,Tasman (Network Tasman),MTRX,TRUS,86,81,3,2
+25,Tasman (Network Tasman),MTRX,ELKI,27,26,0,1
+25,Tasman (Network Tasman),MTRX,CTCS,6,0,5,1
+25,Tasman (Network Tasman),MTRX,CTCT,1191,990,122,79
+25,Tasman (Network Tasman),MTRX,PSNZ,284,235,11,38
+25,Tasman (Network Tasman),MTRX,TODD,49,35,8,6
+25,Tasman (Network Tasman),MTRX,GENE,201,137,11,53
+25,Tasman (Network Tasman),MTRX,PUNZ,222,207,2,13
+25,Tasman (Network Tasman),MTRX,ECOT,883,700,34,149
+25,Tasman (Network Tasman),MTRX,MERI,610,281,144,185
+25,Tasman (Network Tasman),MTRX,OCTO,27,27,0,0
+25,Tasman (Network Tasman),MTRX,SWCH,62,54,3,5
+25,Tasman (Network Tasman),MTRX,MEEN,603,540,26,37
+25,Tasman (Network Tasman),MTRX,GEOL,1,1,0,0
+25,Tasman (Network Tasman),NGCM,GENE,144,135,2,7
+25,Tasman (Network Tasman),NGCM,CTCS,3,0,3,0
+25,Tasman (Network Tasman),NGCM,ELKI,42,41,1,0
+25,Tasman (Network Tasman),NGCM,PSNZ,141,127,8,6
+25,Tasman (Network Tasman),NGCM,GEOL,25,25,0,0
+25,Tasman (Network Tasman),NGCM,SWCH,24,23,0,1
+25,Tasman (Network Tasman),NGCM,OCTO,74,74,0,0
+25,Tasman (Network Tasman),NGCM,CTCT,324,306,13,5
+25,Tasman (Network Tasman),NGCM,TODD,7,4,0,3
+25,Tasman (Network Tasman),NGCM,ECOT,92,87,3,2
+25,Tasman (Network Tasman),NGCM,PUNZ,102,96,2,4
+25,Tasman (Network Tasman),NGCM,MEEN,165,155,4,6
+25,Tasman (Network Tasman),NGCM,MERI,328,197,64,67
+25,Tasman (Network Tasman),NGCM,GBUG,41,41,0,0
+25,Tasman (Network Tasman),NGCM,TRUS,4,4,0,0
+25,Tasman (Network Tasman),SMCO,CTCT,11331,10030,735,566
+25,Tasman (Network Tasman),SMCO,PUNZ,3067,2928,61,78
+25,Tasman (Network Tasman),SMCO,ELKI,1072,1048,8,16
+25,Tasman (Network Tasman),SMCO,SWCH,574,551,7,16
+25,Tasman (Network Tasman),SMCO,ECOT,487,383,52,52
+25,Tasman (Network Tasman),SMCO,GEOL,982,981,1,0
+25,Tasman (Network Tasman),SMCO,PSNZ,3883,3633,78,172
+25,Tasman (Network Tasman),SMCO,FOGY,18,18,0,0
+25,Tasman (Network Tasman),SMCO,MEEN,2987,2767,117,103
+25,Tasman (Network Tasman),SMCO,CTCS,19,1,14,4
+25,Tasman (Network Tasman),SMCO,OCTO,332,326,3,3
+25,Tasman (Network Tasman),SMCO,TODD,173,143,13,17
+25,Tasman (Network Tasman),SMCO,GENE,1570,1372,71,127
+25,Tasman (Network Tasman),SMCO,TRUS,1037,997,24,16
+25,Tasman (Network Tasman),SMCO,EDGE,3,3,0,0
+25,Tasman (Network Tasman),SMCO,MERI,4986,2619,1191,1176
+26,Marlborough (Marlborough Lines),ACCM,MERI,2,0,2,0
+26,Marlborough (Marlborough Lines),ACCM,PUNZ,4,0,4,0
+26,Marlborough (Marlborough Lines),ACCM,CNIR,1,0,1,0
+26,Marlborough (Marlborough Lines),AMCI,PUNZ,3,0,1,2
+26,Marlborough (Marlborough Lines),AMCI,MEEN,52,0,10,42
+26,Marlborough (Marlborough Lines),AMCI,ECOT,4,0,2,2
+26,Marlborough (Marlborough Lines),AMCI,GENE,10,0,3,7
+26,Marlborough (Marlborough Lines),AMCI,MERI,111,0,65,46
+26,Marlborough (Marlborough Lines),AMCI,CTCS,51,0,40,11
+26,Marlborough (Marlborough Lines),CTCT,MERI,1,0,0,1
+26,Marlborough (Marlborough Lines),CTCT,MEEN,2,0,0,2
+26,Marlborough (Marlborough Lines),DELT,MERI,2,1,0,1
+26,Marlborough (Marlborough Lines),DELT,MEEN,1,1,0,0
+26,Marlborough (Marlborough Lines),DELT,PUNZ,1,1,0,0
+26,Marlborough (Marlborough Lines),IHUB,ECOT,123,110,8,5
+26,Marlborough (Marlborough Lines),IHUB,CTCS,71,0,68,3
+26,Marlborough (Marlborough Lines),IHUB,EDGE,1,1,0,0
+26,Marlborough (Marlborough Lines),IHUB,FOGY,4,4,0,0
+26,Marlborough (Marlborough Lines),IHUB,SWCH,73,69,1,3
+26,Marlborough (Marlborough Lines),IHUB,HNET,2,2,0,0
+26,Marlborough (Marlborough Lines),IHUB,CTCT,447,418,9,20
+26,Marlborough (Marlborough Lines),IHUB,GEOL,112,112,0,0
+26,Marlborough (Marlborough Lines),IHUB,PUNZ,452,437,6,9
+26,Marlborough (Marlborough Lines),IHUB,ELKI,177,175,0,2
+26,Marlborough (Marlborough Lines),IHUB,MEEN,3969,3400,376,193
+26,Marlborough (Marlborough Lines),IHUB,WISE,11,11,0,0
+26,Marlborough (Marlborough Lines),IHUB,TODD,415,320,18,77
+26,Marlborough (Marlborough Lines),IHUB,PSNZ,952,850,32,70
+26,Marlborough (Marlborough Lines),IHUB,MERI,784,435,187,162
+26,Marlborough (Marlborough Lines),IHUB,GENE,325,295,8,22
+26,Marlborough (Marlborough Lines),IHUB,OCTO,37,37,0,0
+26,Marlborough (Marlborough Lines),MNON,MERI,16,1,1,14
+26,Marlborough (Marlborough Lines),MNON,ECOT,16,0,0,16
+26,Marlborough (Marlborough Lines),MNON,GENE,1,0,0,1
+26,Marlborough (Marlborough Lines),MTRX,CTCS,42,0,35,7
+26,Marlborough (Marlborough Lines),MTRX,ELKI,19,19,0,0
+26,Marlborough (Marlborough Lines),MTRX,PUNZ,225,211,8,6
+26,Marlborough (Marlborough Lines),MTRX,SWCH,72,59,2,11
+26,Marlborough (Marlborough Lines),MTRX,ECOT,401,264,10,127
+26,Marlborough (Marlborough Lines),MTRX,PSNZ,419,364,19,36
+26,Marlborough (Marlborough Lines),MTRX,MERI,669,272,224,173
+26,Marlborough (Marlborough Lines),MTRX,KEAE,3,0,3,0
+26,Marlborough (Marlborough Lines),MTRX,TODD,32,18,3,11
+26,Marlborough (Marlborough Lines),MTRX,EDGE,1,1,0,0
+26,Marlborough (Marlborough Lines),MTRX,MEEN,1368,1186,102,80
+26,Marlborough (Marlborough Lines),MTRX,OCTO,5,5,0,0
+26,Marlborough (Marlborough Lines),MTRX,GENE,310,257,20,33
+26,Marlborough (Marlborough Lines),MTRX,CTCT,566,495,25,46
+26,Marlborough (Marlborough Lines),MTRX,HNET,1,1,0,0
+26,Marlborough (Marlborough Lines),NGCM,OCTO,57,57,0,0
+26,Marlborough (Marlborough Lines),NGCM,CTCT,2477,2252,81,144
+26,Marlborough (Marlborough Lines),NGCM,GBUG,36,36,0,0
+26,Marlborough (Marlborough Lines),NGCM,TODD,68,57,2,9
+26,Marlborough (Marlborough Lines),NGCM,GEOL,357,357,0,0
+26,Marlborough (Marlborough Lines),NGCM,FOGY,16,16,0,0
+26,Marlborough (Marlborough Lines),NGCM,MERI,2914,1665,598,651
+26,Marlborough (Marlborough Lines),NGCM,PUNZ,1737,1701,20,16
+26,Marlborough (Marlborough Lines),NGCM,CTCS,12,0,9,3
+26,Marlborough (Marlborough Lines),NGCM,EDGE,1,1,0,0
+26,Marlborough (Marlborough Lines),NGCM,MEEN,2049,1979,35,35
+26,Marlborough (Marlborough Lines),NGCM,SWCH,283,271,0,12
+26,Marlborough (Marlborough Lines),NGCM,WISE,15,15,0,0
+26,Marlborough (Marlborough Lines),NGCM,ECOT,130,107,11,12
+26,Marlborough (Marlborough Lines),NGCM,GENE,1527,1397,48,82
+26,Marlborough (Marlborough Lines),NGCM,HNET,2,2,0,0
+26,Marlborough (Marlborough Lines),NGCM,ELKI,503,493,2,8
+26,Marlborough (Marlborough Lines),NGCM,PSNZ,2323,2112,74,137
+26,Marlborough (Marlborough Lines),TRUM,MERI,5,0,5,0
+27,Buller (Buller Electricity),AMCI,PUNZ,4,0,1,3
+27,Buller (Buller Electricity),AMCI,MERI,5,0,1,4
+27,Buller (Buller Electricity),AMCI,CTCS,2,0,1,1
+27,Buller (Buller Electricity),AMCI,MEEN,1,0,1,0
+27,Buller (Buller Electricity),DELT,PUNZ,1,0,0,1
+27,Buller (Buller Electricity),DELT,MERI,1,1,0,0
+27,Buller (Buller Electricity),IHUB,PSNZ,52,52,0,0
+27,Buller (Buller Electricity),IHUB,SWCH,11,11,0,0
+27,Buller (Buller Electricity),IHUB,TRUS,167,148,8,11
+27,Buller (Buller Electricity),IHUB,GENE,23,21,1,1
+27,Buller (Buller Electricity),IHUB,PUNZ,404,370,14,20
+27,Buller (Buller Electricity),IHUB,CTCT,63,62,1,0
+27,Buller (Buller Electricity),IHUB,ECOT,4,4,0,0
+27,Buller (Buller Electricity),IHUB,TODD,33,26,1,6
+27,Buller (Buller Electricity),IHUB,MERI,43,31,6,6
+27,Buller (Buller Electricity),IHUB,GEOL,8,8,0,0
+27,Buller (Buller Electricity),IHUB,ELKI,3,3,0,0
+27,Buller (Buller Electricity),IHUB,MEEN,353,329,9,15
+27,Buller (Buller Electricity),MNON,GENE,4,0,0,4
+27,Buller (Buller Electricity),MNON,ECOT,8,0,0,8
+27,Buller (Buller Electricity),MNON,MERI,2,0,0,2
+27,Buller (Buller Electricity),MTRX,ECOT,24,6,2,16
+27,Buller (Buller Electricity),MTRX,PSNZ,55,52,0,3
+27,Buller (Buller Electricity),MTRX,CTCT,125,106,7,12
+27,Buller (Buller Electricity),MTRX,SWCH,34,31,0,3
+27,Buller (Buller Electricity),MTRX,TODD,5,4,1,0
+27,Buller (Buller Electricity),MTRX,GENE,38,32,1,5
+27,Buller (Buller Electricity),MTRX,MERI,157,76,29,52
+27,Buller (Buller Electricity),MTRX,MEEN,232,210,8,14
+27,Buller (Buller Electricity),MTRX,ELKI,3,3,0,0
+27,Buller (Buller Electricity),MTRX,PUNZ,194,163,6,25
+27,Buller (Buller Electricity),NGCM,GENE,257,243,5,9
+27,Buller (Buller Electricity),NGCM,TODD,8,8,0,0
+27,Buller (Buller Electricity),NGCM,ELKI,38,36,0,2
+27,Buller (Buller Electricity),NGCM,PSNZ,182,179,1,2
+27,Buller (Buller Electricity),NGCM,MEEN,195,182,7,6
+27,Buller (Buller Electricity),NGCM,ECOT,13,10,0,3
+27,Buller (Buller Electricity),NGCM,PUNZ,939,878,12,49
+27,Buller (Buller Electricity),NGCM,GBUG,14,14,0,0
+27,Buller (Buller Electricity),NGCM,MERI,536,281,72,183
+27,Buller (Buller Electricity),NGCM,CTCT,626,567,25,34
+27,Buller (Buller Electricity),NGCM,GEOL,44,44,0,0
+27,Buller (Buller Electricity),NGCM,TRUS,11,9,1,1
+27,Buller (Buller Electricity),NGCM,SWCH,66,63,1,2
+28,West Coast (Westpower),ACCM,MEEN,1,0,1,0
+28,West Coast (Westpower),ACCM,PUNZ,1,0,1,0
+28,West Coast (Westpower),ACCM,MERI,3,0,3,0
+28,West Coast (Westpower),ACCM,CNIR,7,0,7,0
+28,West Coast (Westpower),ACCM,ETRN,1,0,1,0
+28,West Coast (Westpower),AMCI,MEEN,9,0,5,4
+28,West Coast (Westpower),AMCI,GENE,2,0,0,2
+28,West Coast (Westpower),AMCI,MERI,26,0,10,16
+28,West Coast (Westpower),AMCI,TODD,1,0,0,1
+28,West Coast (Westpower),AMCI,CTCS,18,0,11,7
+28,West Coast (Westpower),AMCI,ECOT,6,0,0,6
+28,West Coast (Westpower),AMCI,ELKI,2,0,2,0
+28,West Coast (Westpower),AMCI,PUNZ,2,0,0,2
+28,West Coast (Westpower),DELT,CTCT,6,0,6,0
+28,West Coast (Westpower),IHUB,TODD,174,136,5,33
+28,West Coast (Westpower),IHUB,TRUS,1171,1064,36,71
+28,West Coast (Westpower),IHUB,PUNZ,445,422,8,15
+28,West Coast (Westpower),IHUB,GENE,133,124,3,6
+28,West Coast (Westpower),IHUB,PSNZ,355,341,1,13
+28,West Coast (Westpower),IHUB,MERI,362,193,91,78
+28,West Coast (Westpower),IHUB,ECOT,45,44,0,1
+28,West Coast (Westpower),IHUB,GEOL,60,60,0,0
+28,West Coast (Westpower),IHUB,CTCS,2,0,2,0
+28,West Coast (Westpower),IHUB,SWCH,42,41,0,1
+28,West Coast (Westpower),IHUB,MEEN,1636,1490,71,75
+28,West Coast (Westpower),IHUB,CTCT,362,341,7,14
+28,West Coast (Westpower),IHUB,ELKI,67,66,0,1
+28,West Coast (Westpower),MNON,GENE,22,0,0,22
+28,West Coast (Westpower),MNON,ECOT,23,0,0,23
+28,West Coast (Westpower),MNON,MERI,21,0,0,21
+28,West Coast (Westpower),MNON,TRUS,1,1,0,0
+28,West Coast (Westpower),MTRX,MEEN,1614,1335,114,165
+28,West Coast (Westpower),MTRX,PUNZ,203,189,2,12
+28,West Coast (Westpower),MTRX,ELKI,5,5,0,0
+28,West Coast (Westpower),MTRX,TODD,31,24,1,6
+28,West Coast (Westpower),MTRX,TRUS,1,1,0,0
+28,West Coast (Westpower),MTRX,PSNZ,255,217,10,28
+28,West Coast (Westpower),MTRX,CTCT,456,365,46,45
+28,West Coast (Westpower),MTRX,SWCH,82,71,1,10
+28,West Coast (Westpower),MTRX,ECOT,130,42,6,82
+28,West Coast (Westpower),MTRX,MERI,578,183,215,180
+28,West Coast (Westpower),MTRX,CTCS,25,0,21,4
+28,West Coast (Westpower),MTRX,GENE,178,127,18,33
+28,West Coast (Westpower),NGCM,MEEN,857,785,34,38
+28,West Coast (Westpower),NGCM,GEOL,140,140,0,0
+28,West Coast (Westpower),NGCM,GENE,672,567,40,65
+28,West Coast (Westpower),NGCM,PUNZ,548,526,8,14
+28,West Coast (Westpower),NGCM,PSNZ,623,543,8,72
+28,West Coast (Westpower),NGCM,ELKI,88,87,0,1
+28,West Coast (Westpower),NGCM,GBUG,12,12,0,0
+28,West Coast (Westpower),NGCM,SWCH,123,113,2,8
+28,West Coast (Westpower),NGCM,ECOT,64,51,3,10
+28,West Coast (Westpower),NGCM,CTCT,1637,1400,117,120
+28,West Coast (Westpower),NGCM,CTCS,3,0,3,0
+28,West Coast (Westpower),NGCM,MERI,1259,426,332,501
+28,West Coast (Westpower),NGCM,TRUS,22,18,2,2
+28,West Coast (Westpower),NGCM,TODD,27,24,0,3
+29,North Canterbury (MainPower NZ),ACCM,CTCS,1,0,1,0
+29,North Canterbury (MainPower NZ),AMCI,ECOT,4,0,2,2
+29,North Canterbury (MainPower NZ),AMCI,GENE,6,0,3,3
+29,North Canterbury (MainPower NZ),AMCI,MEEN,21,0,11,10
+29,North Canterbury (MainPower NZ),AMCI,CTCS,7,0,2,5
+29,North Canterbury (MainPower NZ),AMCI,TODD,2,0,1,1
+29,North Canterbury (MainPower NZ),AMCI,ELKI,4,0,3,1
+29,North Canterbury (MainPower NZ),AMCI,MERI,64,0,30,34
+29,North Canterbury (MainPower NZ),AMCI,CTCT,6,0,3,3
+29,North Canterbury (MainPower NZ),AMCI,PUNZ,1,0,0,1
+29,North Canterbury (MainPower NZ),BOPE,MEEN,13,13,0,0
+29,North Canterbury (MainPower NZ),BOPE,MERI,2,1,0,1
+29,North Canterbury (MainPower NZ),BOPE,ELKI,5,5,0,0
+29,North Canterbury (MainPower NZ),BOPE,GENE,10,10,0,0
+29,North Canterbury (MainPower NZ),BOPE,CTCT,10,10,0,0
+29,North Canterbury (MainPower NZ),BOPE,GEOL,3,3,0,0
+29,North Canterbury (MainPower NZ),BOPE,PSNZ,2,2,0,0
+29,North Canterbury (MainPower NZ),BOPE,SWCH,1,1,0,0
+29,North Canterbury (MainPower NZ),BOPE,OCTO,1,1,0,0
+29,North Canterbury (MainPower NZ),BOPE,PUNZ,3,3,0,0
+29,North Canterbury (MainPower NZ),CTCT,MERI,15,0,0,15
+29,North Canterbury (MainPower NZ),CTCT,MEEN,1,0,0,1
+29,North Canterbury (MainPower NZ),CTCT,CTCT,2,0,0,2
+29,North Canterbury (MainPower NZ),DELT,MERI,2,0,0,2
+29,North Canterbury (MainPower NZ),DELT,MEEN,1,1,0,0
+29,North Canterbury (MainPower NZ),IHUB,PUNZ,311,303,3,5
+29,North Canterbury (MainPower NZ),IHUB,GENE,369,356,8,5
+29,North Canterbury (MainPower NZ),IHUB,PSNZ,303,270,14,19
+29,North Canterbury (MainPower NZ),IHUB,TRUS,10,4,4,2
+29,North Canterbury (MainPower NZ),IHUB,TODD,270,224,12,34
+29,North Canterbury (MainPower NZ),IHUB,EDGE,4,4,0,0
+29,North Canterbury (MainPower NZ),IHUB,ECOT,35,33,2,0
+29,North Canterbury (MainPower NZ),IHUB,SWCH,68,68,0,0
+29,North Canterbury (MainPower NZ),IHUB,GEOL,71,71,0,0
+29,North Canterbury (MainPower NZ),IHUB,OCTO,40,40,0,0
+29,North Canterbury (MainPower NZ),IHUB,MEEN,1435,1349,65,21
+29,North Canterbury (MainPower NZ),IHUB,CTCS,5,1,3,1
+29,North Canterbury (MainPower NZ),IHUB,MERI,694,353,233,108
+29,North Canterbury (MainPower NZ),IHUB,CTCT,1147,973,108,66
+29,North Canterbury (MainPower NZ),IHUB,ELKI,153,150,0,3
+29,North Canterbury (MainPower NZ),LMGL,MERI,1,0,1,0
+29,North Canterbury (MainPower NZ),MNON,GENE,14,0,0,14
+29,North Canterbury (MainPower NZ),MNON,MERI,18,0,12,6
+29,North Canterbury (MainPower NZ),MNON,CTCT,2,0,0,2
+29,North Canterbury (MainPower NZ),MNON,ECOT,47,0,0,47
+29,North Canterbury (MainPower NZ),MTRX,MERI,851,243,368,240
+29,North Canterbury (MainPower NZ),MTRX,CTCT,1353,928,286,139
+29,North Canterbury (MainPower NZ),MTRX,PUNZ,104,100,3,1
+29,North Canterbury (MainPower NZ),MTRX,ECOT,523,393,18,112
+29,North Canterbury (MainPower NZ),MTRX,PSNZ,177,129,18,30
+29,North Canterbury (MainPower NZ),MTRX,MEEN,618,540,51,27
+29,North Canterbury (MainPower NZ),MTRX,ELKI,48,48,0,0
+29,North Canterbury (MainPower NZ),MTRX,PLUS,7,2,3,2
+29,North Canterbury (MainPower NZ),MTRX,CTCS,20,0,16,4
+29,North Canterbury (MainPower NZ),MTRX,OCTO,29,29,0,0
+29,North Canterbury (MainPower NZ),MTRX,TRUS,14,6,4,4
+29,North Canterbury (MainPower NZ),MTRX,GEOL,9,9,0,0
+29,North Canterbury (MainPower NZ),MTRX,SWCH,80,70,2,8
+29,North Canterbury (MainPower NZ),MTRX,EDGE,2,2,0,0
+29,North Canterbury (MainPower NZ),MTRX,GENE,332,279,16,37
+29,North Canterbury (MainPower NZ),MTRX,TODD,38,29,4,5
+29,North Canterbury (MainPower NZ),MTRX,KEAE,2,0,1,1
+29,North Canterbury (MainPower NZ),NGCM,TODD,7,7,0,0
+29,North Canterbury (MainPower NZ),NGCM,MEEN,353,342,7,4
+29,North Canterbury (MainPower NZ),NGCM,PUNZ,138,138,0,0
+29,North Canterbury (MainPower NZ),NGCM,GEOL,46,46,0,0
+29,North Canterbury (MainPower NZ),NGCM,SWCH,52,52,0,0
+29,North Canterbury (MainPower NZ),NGCM,CTCS,1,0,1,0
+29,North Canterbury (MainPower NZ),NGCM,CTCT,1025,943,50,32
+29,North Canterbury (MainPower NZ),NGCM,EDGE,1,1,0,0
+29,North Canterbury (MainPower NZ),NGCM,GBUG,70,70,0,0
+29,North Canterbury (MainPower NZ),NGCM,ECOT,69,68,1,0
+29,North Canterbury (MainPower NZ),NGCM,GENE,690,659,11,20
+29,North Canterbury (MainPower NZ),NGCM,TRUS,4,2,0,2
+29,North Canterbury (MainPower NZ),NGCM,OCTO,63,63,0,0
+29,North Canterbury (MainPower NZ),NGCM,PSNZ,237,230,1,6
+29,North Canterbury (MainPower NZ),NGCM,MERI,750,472,194,84
+29,North Canterbury (MainPower NZ),NGCM,ELKI,155,154,1,0
+29,North Canterbury (MainPower NZ),NGCM,PLUS,1,1,0,0
+29,North Canterbury (MainPower NZ),SMCO,CTCS,32,6,23,3
+29,North Canterbury (MainPower NZ),SMCO,SWCH,502,475,9,18
+29,North Canterbury (MainPower NZ),SMCO,PUNZ,1212,1177,21,14
+29,North Canterbury (MainPower NZ),SMCO,PSNZ,2282,2102,53,127
+29,North Canterbury (MainPower NZ),SMCO,MERI,6150,3143,2027,980
+29,North Canterbury (MainPower NZ),SMCO,ELKI,1297,1278,11,8
+29,North Canterbury (MainPower NZ),SMCO,MEEN,2604,2474,85,45
+29,North Canterbury (MainPower NZ),SMCO,EDGE,7,7,0,0
+29,North Canterbury (MainPower NZ),SMCO,OCTO,277,276,1,0
+29,North Canterbury (MainPower NZ),SMCO,TRUS,137,116,9,12
+29,North Canterbury (MainPower NZ),SMCO,ECOT,153,135,9,9
+29,North Canterbury (MainPower NZ),SMCO,TODD,94,84,4,6
+29,North Canterbury (MainPower NZ),SMCO,CTCT,12038,10572,987,479
+29,North Canterbury (MainPower NZ),SMCO,GENE,5256,4633,270,353
+29,North Canterbury (MainPower NZ),SMCO,GEOL,525,523,2,0
+29,North Canterbury (MainPower NZ),SMCO,PLUS,1,0,0,1
+3,Waitemata (Vector),ACCM,GENE,6,0,1,5
+3,Waitemata (Vector),ACCM,CTCS,2,0,1,1
+3,Waitemata (Vector),ACCM,MERI,2,0,0,2
+3,Waitemata (Vector),AMCI,HNET,2,0,0,2
+3,Waitemata (Vector),AMCI,ECOT,146,0,55,91
+3,Waitemata (Vector),AMCI,CTCS,115,0,14,101
+3,Waitemata (Vector),AMCI,SWCH,6,0,0,6
+3,Waitemata (Vector),AMCI,ELKI,22,0,3,19
+3,Waitemata (Vector),AMCI,CTCT,96,1,11,84
+3,Waitemata (Vector),AMCI,MEEN,216,2,49,165
+3,Waitemata (Vector),AMCI,HANE,1,0,1,0
+3,Waitemata (Vector),AMCI,TODD,28,0,3,25
+3,Waitemata (Vector),AMCI,MERI,234,0,45,189
+3,Waitemata (Vector),AMCI,GENE,164,0,36,128
+3,Waitemata (Vector),AMCI,PUNZ,19,0,1,18
+3,Waitemata (Vector),AMCI,PSNZ,1,0,0,1
+3,Waitemata (Vector),AMCI,TRUS,1,0,0,1
+3,Waitemata (Vector),BASI,MEEN,1,1,0,0
+3,Waitemata (Vector),BOPE,HNET,18,13,0,5
+3,Waitemata (Vector),BOPE,PUNZ,10,10,0,0
+3,Waitemata (Vector),BOPE,TODD,203,130,13,60
+3,Waitemata (Vector),BOPE,TRUS,4,4,0,0
+3,Waitemata (Vector),BOPE,ECOT,5,4,1,0
+3,Waitemata (Vector),BOPE,GEOL,21,21,0,0
+3,Waitemata (Vector),BOPE,SWCH,32,30,1,1
+3,Waitemata (Vector),BOPE,CTCT,199,180,5,14
+3,Waitemata (Vector),BOPE,CTCS,2,1,0,1
+3,Waitemata (Vector),BOPE,GENE,164,141,6,17
+3,Waitemata (Vector),BOPE,OCTO,2,2,0,0
+3,Waitemata (Vector),BOPE,MERI,103,48,6,49
+3,Waitemata (Vector),BOPE,PSNZ,62,58,0,4
+3,Waitemata (Vector),BOPE,MEEN,265,242,7,16
+3,Waitemata (Vector),BOPE,ELKI,30,30,0,0
+3,Waitemata (Vector),BOPE,HANE,2,2,0,0
+3,Waitemata (Vector),CTCT,MERI,16,0,0,16
+3,Waitemata (Vector),DELT,CTCT,30,0,30,0
+3,Waitemata (Vector),DELT,PLUS,1,0,1,0
+3,Waitemata (Vector),IHUB,CTCS,19,5,4,10
+3,Waitemata (Vector),IHUB,MEEN,8521,7975,254,292
+3,Waitemata (Vector),IHUB,PUNZ,427,413,6,8
+3,Waitemata (Vector),IHUB,WISE,78,78,0,0
+3,Waitemata (Vector),IHUB,ELKI,706,693,1,12
+3,Waitemata (Vector),IHUB,SWCH,769,742,8,19
+3,Waitemata (Vector),IHUB,FOGY,63,63,0,0
+3,Waitemata (Vector),IHUB,ECOT,157,125,8,24
+3,Waitemata (Vector),IHUB,PSNZ,1617,1504,16,97
+3,Waitemata (Vector),IHUB,STAK,2,2,0,0
+3,Waitemata (Vector),IHUB,GEOL,95,95,0,0
+3,Waitemata (Vector),IHUB,TTTL,1,0,0,1
+3,Waitemata (Vector),IHUB,MERI,1887,1353,116,418
+3,Waitemata (Vector),IHUB,CTCT,3366,3223,42,101
+3,Waitemata (Vector),IHUB,PLUS,41,36,5,0
+3,Waitemata (Vector),IHUB,HANE,37,34,0,3
+3,Waitemata (Vector),IHUB,TODD,1424,933,82,409
+3,Waitemata (Vector),IHUB,GENE,1744,1509,50,185
+3,Waitemata (Vector),IHUB,OCTO,72,71,0,1
+3,Waitemata (Vector),IHUB,EDGE,5,5,0,0
+3,Waitemata (Vector),IHUB,HNET,817,686,11,120
+3,Waitemata (Vector),MNON,CTCT,4,0,2,2
+3,Waitemata (Vector),MNON,GENE,93,15,10,68
+3,Waitemata (Vector),MNON,PUNZ,1,0,0,1
+3,Waitemata (Vector),MNON,MEEN,16,1,2,13
+3,Waitemata (Vector),MNON,MERI,18,0,0,18
+3,Waitemata (Vector),MNON,ELKI,2,0,1,1
+3,Waitemata (Vector),MNON,ECOT,84,0,5,79
+3,Waitemata (Vector),MNON,TODD,1,0,0,1
+3,Waitemata (Vector),MTRX,ELKI,2859,2779,8,72
+3,Waitemata (Vector),MTRX,CTCS,73,19,10,44
+3,Waitemata (Vector),MTRX,GEOL,1824,1822,1,1
+3,Waitemata (Vector),MTRX,OCTO,260,255,1,4
+3,Waitemata (Vector),MTRX,FOGY,205,205,0,0
+3,Waitemata (Vector),MTRX,PSNZ,6559,6180,51,328
+3,Waitemata (Vector),MTRX,DEEP,5,5,0,0
+3,Waitemata (Vector),MTRX,PUNZ,1479,1403,15,61
+3,Waitemata (Vector),MTRX,GBUG,868,868,0,0
+3,Waitemata (Vector),MTRX,SWCH,2789,2704,18,67
+3,Waitemata (Vector),MTRX,GENE,10994,10476,85,433
+3,Waitemata (Vector),MTRX,EDGE,11,10,0,1
+3,Waitemata (Vector),MTRX,ECOT,2012,1582,39,391
+3,Waitemata (Vector),MTRX,TLNT,3,3,0,0
+3,Waitemata (Vector),MTRX,MEEN,30108,28583,460,1065
+3,Waitemata (Vector),MTRX,CTCT,16760,16101,167,492
+3,Waitemata (Vector),MTRX,TODD,1355,1088,40,227
+3,Waitemata (Vector),MTRX,TRUS,78,74,3,1
+3,Waitemata (Vector),MTRX,HNET,1314,1197,1,116
+3,Waitemata (Vector),MTRX,SPEL,1,1,0,0
+3,Waitemata (Vector),MTRX,GIVE,3,3,0,0
+3,Waitemata (Vector),MTRX,WISE,216,216,0,0
+3,Waitemata (Vector),MTRX,RERL,5,0,5,0
+3,Waitemata (Vector),MTRX,MERI,7395,5012,415,1968
+3,Waitemata (Vector),MTRX,PLUS,194,161,24,9
+3,Waitemata (Vector),MTRX,HANE,35,34,1,0
+3,Waitemata (Vector),MTRX,STAK,5,2,1,2
+3,Waitemata (Vector),MTRX,ECOS,2,2,0,0
+3,Waitemata (Vector),MTRX,ADOE,2,2,0,0
+3,Waitemata (Vector),NGCM,TLNT,3,1,0,2
+3,Waitemata (Vector),NGCM,DEEP,24,23,1,0
+3,Waitemata (Vector),NGCM,GBUG,678,678,0,0
+3,Waitemata (Vector),NGCM,GENE,45521,40315,1675,3531
+3,Waitemata (Vector),NGCM,EDGE,23,23,0,0
+3,Waitemata (Vector),NGCM,GIVE,3,2,0,1
+3,Waitemata (Vector),NGCM,PLUS,42,29,6,7
+3,Waitemata (Vector),NGCM,WISE,312,311,0,1
+3,Waitemata (Vector),NGCM,MERI,12109,7595,1034,3480
+3,Waitemata (Vector),NGCM,ELKI,4641,4527,19,95
+3,Waitemata (Vector),NGCM,STAK,11,10,0,1
+3,Waitemata (Vector),NGCM,HNET,1146,1027,5,114
+3,Waitemata (Vector),NGCM,PSNZ,10545,9760,129,656
+3,Waitemata (Vector),NGCM,ADOE,2,1,0,1
+3,Waitemata (Vector),NGCM,GEOL,3546,3540,4,2
+3,Waitemata (Vector),NGCM,FOGY,342,342,0,0
+3,Waitemata (Vector),NGCM,ECOT,965,400,103,462
+3,Waitemata (Vector),NGCM,SWCH,4392,4136,52,204
+3,Waitemata (Vector),NGCM,OCTO,447,432,1,14
+3,Waitemata (Vector),NGCM,CTCS,45,17,9,19
+3,Waitemata (Vector),NGCM,PUNZ,2136,2036,17,83
+3,Waitemata (Vector),NGCM,ORSL,1,1,0,0
+3,Waitemata (Vector),NGCM,ECOS,2,2,0,0
+3,Waitemata (Vector),NGCM,LNRG,1,0,0,1
+3,Waitemata (Vector),NGCM,HANE,916,741,166,9
+3,Waitemata (Vector),NGCM,TODD,841,682,23,136
+3,Waitemata (Vector),NGCM,MEEN,31442,29950,570,922
+3,Waitemata (Vector),NGCM,CTCT,34267,31646,911,1710
+3,Waitemata (Vector),NGCM,TRUS,68,61,2,5
+3,Waitemata (Vector),NGCM,TTTL,2,0,0,2
+30,Central Canterbury (Orion New Zealand),ACCM,CTCS,6,0,6,0
+30,Central Canterbury (Orion New Zealand),ACCM,GENE,7,0,0,7
+30,Central Canterbury (Orion New Zealand),AMCI,ELKI,21,0,5,16
+30,Central Canterbury (Orion New Zealand),AMCI,PSNZ,3,0,0,3
+30,Central Canterbury (Orion New Zealand),AMCI,MEEN,160,0,41,119
+30,Central Canterbury (Orion New Zealand),AMCI,PUNZ,12,0,0,12
+30,Central Canterbury (Orion New Zealand),AMCI,GENE,127,0,31,96
+30,Central Canterbury (Orion New Zealand),AMCI,TODD,7,0,0,7
+30,Central Canterbury (Orion New Zealand),AMCI,LNRG,1,0,0,1
+30,Central Canterbury (Orion New Zealand),AMCI,CTCT,73,0,26,47
+30,Central Canterbury (Orion New Zealand),AMCI,HNET,2,0,0,2
+30,Central Canterbury (Orion New Zealand),AMCI,SWCH,2,0,0,2
+30,Central Canterbury (Orion New Zealand),AMCI,CTCS,144,0,98,46
+30,Central Canterbury (Orion New Zealand),AMCI,ECOT,41,1,13,27
+30,Central Canterbury (Orion New Zealand),AMCI,MERI,650,1,285,364
+30,Central Canterbury (Orion New Zealand),ARCM,TODD,1,1,0,0
+30,Central Canterbury (Orion New Zealand),ARCS,TODD,8,3,2,3
+30,Central Canterbury (Orion New Zealand),BOPE,HNET,5,5,0,0
+30,Central Canterbury (Orion New Zealand),BOPE,MERI,192,135,4,53
+30,Central Canterbury (Orion New Zealand),BOPE,OCTO,4,4,0,0
+30,Central Canterbury (Orion New Zealand),BOPE,GENE,148,143,0,5
+30,Central Canterbury (Orion New Zealand),BOPE,TODD,345,329,5,11
+30,Central Canterbury (Orion New Zealand),BOPE,CTCS,2,0,0,2
+30,Central Canterbury (Orion New Zealand),BOPE,CTCT,327,319,1,7
+30,Central Canterbury (Orion New Zealand),BOPE,MEEN,285,284,0,1
+30,Central Canterbury (Orion New Zealand),BOPE,ELKI,72,71,0,1
+30,Central Canterbury (Orion New Zealand),BOPE,SWCH,58,56,0,2
+30,Central Canterbury (Orion New Zealand),BOPE,GEOL,41,41,0,0
+30,Central Canterbury (Orion New Zealand),BOPE,PSNZ,138,134,0,4
+30,Central Canterbury (Orion New Zealand),BOPE,SUST,2,2,0,0
+30,Central Canterbury (Orion New Zealand),BOPE,ECOT,2,2,0,0
+30,Central Canterbury (Orion New Zealand),BOPE,PUNZ,86,85,0,1
+30,Central Canterbury (Orion New Zealand),CTCT,MERI,3,0,0,3
+30,Central Canterbury (Orion New Zealand),CTCT,CTCT,1,0,0,1
+30,Central Canterbury (Orion New Zealand),DELT,MEEN,1,0,0,1
+30,Central Canterbury (Orion New Zealand),DELT,MERI,5,0,4,1
+30,Central Canterbury (Orion New Zealand),DELT,PSNZ,3,2,1,0
+30,Central Canterbury (Orion New Zealand),DELT,CTCT,42,2,38,2
+30,Central Canterbury (Orion New Zealand),DELT,GENE,1,1,0,0
+30,Central Canterbury (Orion New Zealand),DELT,CTCS,1,0,0,1
+30,Central Canterbury (Orion New Zealand),FCLM,GENE,1,0,0,1
+30,Central Canterbury (Orion New Zealand),IHUB,PUNZ,303,299,2,2
+30,Central Canterbury (Orion New Zealand),IHUB,PSNZ,595,552,5,38
+30,Central Canterbury (Orion New Zealand),IHUB,GEOL,127,127,0,0
+30,Central Canterbury (Orion New Zealand),IHUB,ECOT,67,63,0,4
+30,Central Canterbury (Orion New Zealand),IHUB,CTCS,20,1,9,10
+30,Central Canterbury (Orion New Zealand),IHUB,WISE,10,10,0,0
+30,Central Canterbury (Orion New Zealand),IHUB,MERI,1647,1088,163,396
+30,Central Canterbury (Orion New Zealand),IHUB,TODD,1779,1453,61,265
+30,Central Canterbury (Orion New Zealand),IHUB,MEEN,2869,2746,42,81
+30,Central Canterbury (Orion New Zealand),IHUB,FOGY,6,6,0,0
+30,Central Canterbury (Orion New Zealand),IHUB,PLUS,2,2,0,0
+30,Central Canterbury (Orion New Zealand),IHUB,CTCT,985,925,14,46
+30,Central Canterbury (Orion New Zealand),IHUB,GENE,636,582,6,48
+30,Central Canterbury (Orion New Zealand),IHUB,SWCH,262,249,0,13
+30,Central Canterbury (Orion New Zealand),IHUB,HNET,263,251,0,12
+30,Central Canterbury (Orion New Zealand),IHUB,ELKI,237,229,2,6
+30,Central Canterbury (Orion New Zealand),IHUB,OCTO,32,32,0,0
+30,Central Canterbury (Orion New Zealand),IHUB,SUST,29,29,0,0
+30,Central Canterbury (Orion New Zealand),MNON,PSNZ,5,0,0,5
+30,Central Canterbury (Orion New Zealand),MNON,CTCT,10,4,2,4
+30,Central Canterbury (Orion New Zealand),MNON,TRUS,2,0,0,2
+30,Central Canterbury (Orion New Zealand),MNON,GENE,73,5,0,68
+30,Central Canterbury (Orion New Zealand),MNON,MERI,1046,109,180,757
+30,Central Canterbury (Orion New Zealand),MNON,CTCS,2,0,0,2
+30,Central Canterbury (Orion New Zealand),MNON,MEEN,19,3,0,16
+30,Central Canterbury (Orion New Zealand),MNON,ECOT,28,0,1,27
+30,Central Canterbury (Orion New Zealand),MTRX,MERI,887,296,83,508
+30,Central Canterbury (Orion New Zealand),MTRX,SWCH,64,56,2,6
+30,Central Canterbury (Orion New Zealand),MTRX,PSNZ,210,177,2,31
+30,Central Canterbury (Orion New Zealand),MTRX,CTCT,514,436,27,51
+30,Central Canterbury (Orion New Zealand),MTRX,ELKI,77,76,0,1
+30,Central Canterbury (Orion New Zealand),MTRX,GENE,378,241,7,130
+30,Central Canterbury (Orion New Zealand),MTRX,MEEN,586,446,27,113
+30,Central Canterbury (Orion New Zealand),MTRX,TODD,165,116,13,36
+30,Central Canterbury (Orion New Zealand),MTRX,KEAE,39,0,23,16
+30,Central Canterbury (Orion New Zealand),MTRX,OCTO,84,83,0,1
+30,Central Canterbury (Orion New Zealand),MTRX,HNET,11,6,0,5
+30,Central Canterbury (Orion New Zealand),MTRX,PUNZ,64,59,1,4
+30,Central Canterbury (Orion New Zealand),MTRX,SUST,1,1,0,0
+30,Central Canterbury (Orion New Zealand),MTRX,GBUG,1,1,0,0
+30,Central Canterbury (Orion New Zealand),MTRX,WISE,1,1,0,0
+30,Central Canterbury (Orion New Zealand),MTRX,CTCS,57,3,15,39
+30,Central Canterbury (Orion New Zealand),MTRX,GEOL,33,33,0,0
+30,Central Canterbury (Orion New Zealand),MTRX,FOGY,4,4,0,0
+30,Central Canterbury (Orion New Zealand),MTRX,EDGE,5,5,0,0
+30,Central Canterbury (Orion New Zealand),MTRX,ECOT,1847,1475,33,339
+30,Central Canterbury (Orion New Zealand),MTRX,PLUS,1,1,0,0
+30,Central Canterbury (Orion New Zealand),NGCM,CTCS,157,20,70,67
+30,Central Canterbury (Orion New Zealand),NGCM,HNET,229,195,0,34
+30,Central Canterbury (Orion New Zealand),NGCM,PSNZ,17775,16545,205,1025
+30,Central Canterbury (Orion New Zealand),NGCM,SUST,417,413,0,4
+30,Central Canterbury (Orion New Zealand),NGCM,MERI,57900,42010,6405,9485
+30,Central Canterbury (Orion New Zealand),NGCM,GENE,30655,28534,572,1549
+30,Central Canterbury (Orion New Zealand),NGCM,PLUS,8,7,0,1
+30,Central Canterbury (Orion New Zealand),NGCM,GEOL,3137,3136,0,1
+30,Central Canterbury (Orion New Zealand),NGCM,ECOT,1237,979,61,197
+30,Central Canterbury (Orion New Zealand),NGCM,OCTO,1112,1098,3,11
+30,Central Canterbury (Orion New Zealand),NGCM,KEAE,3,1,2,0
+30,Central Canterbury (Orion New Zealand),NGCM,SWCH,6021,5637,88,296
+30,Central Canterbury (Orion New Zealand),NGCM,ELKI,8398,8111,39,248
+30,Central Canterbury (Orion New Zealand),NGCM,PUNZ,4076,3874,54,148
+30,Central Canterbury (Orion New Zealand),NGCM,MEEN,30024,28907,432,685
+30,Central Canterbury (Orion New Zealand),NGCM,GBUG,1569,1568,0,1
+30,Central Canterbury (Orion New Zealand),NGCM,CTCT,48260,44829,1442,1989
+30,Central Canterbury (Orion New Zealand),NGCM,EDGE,9,9,0,0
+30,Central Canterbury (Orion New Zealand),NGCM,WISE,286,286,0,0
+30,Central Canterbury (Orion New Zealand),NGCM,TODD,1010,878,23,109
+30,Central Canterbury (Orion New Zealand),NGCM,PRME,2,0,0,2
+30,Central Canterbury (Orion New Zealand),NGCM,FOGY,218,218,0,0
+30,Central Canterbury (Orion New Zealand),NGCM,TRUS,8,6,0,2
+30,Central Canterbury (Orion New Zealand),NGCM,YESJ,1,1,0,0
+31,Ashburton (Electricity Ashburton),ACCM,MERI,1,0,1,0
+31,Ashburton (Electricity Ashburton),ACCM,CNIR,3,0,3,0
+31,Ashburton (Electricity Ashburton),ACCM,ECOT,2,0,2,0
+31,Ashburton (Electricity Ashburton),ACCM,ETRN,1,0,1,0
+31,Ashburton (Electricity Ashburton),ACCM,CTCS,1,0,1,0
+31,Ashburton (Electricity Ashburton),ACCM,GENE,1,0,1,0
+31,Ashburton (Electricity Ashburton),AMCI,ECOT,1,0,0,1
+31,Ashburton (Electricity Ashburton),AMCI,GENE,7,0,4,3
+31,Ashburton (Electricity Ashburton),AMCI,PUNZ,1,0,0,1
+31,Ashburton (Electricity Ashburton),AMCI,MERI,76,0,48,28
+31,Ashburton (Electricity Ashburton),AMCI,MEEN,9,0,4,5
+31,Ashburton (Electricity Ashburton),AMCI,CTCS,31,0,27,4
+31,Ashburton (Electricity Ashburton),AMCI,CTCT,9,0,6,3
+31,Ashburton (Electricity Ashburton),DELT,MEEN,1,1,0,0
+31,Ashburton (Electricity Ashburton),DELT,CTCT,6,0,6,0
+31,Ashburton (Electricity Ashburton),IHUB,MERI,1005,533,281,191
+31,Ashburton (Electricity Ashburton),IHUB,ELKI,97,94,0,3
+31,Ashburton (Electricity Ashburton),IHUB,CTCS,115,72,32,11
+31,Ashburton (Electricity Ashburton),IHUB,GEOL,64,64,0,0
+31,Ashburton (Electricity Ashburton),IHUB,TRUS,824,694,69,61
+31,Ashburton (Electricity Ashburton),IHUB,TODD,296,269,8,19
+31,Ashburton (Electricity Ashburton),IHUB,PSNZ,353,341,1,11
+31,Ashburton (Electricity Ashburton),IHUB,ECOT,23,22,1,0
+31,Ashburton (Electricity Ashburton),IHUB,PUNZ,711,682,10,19
+31,Ashburton (Electricity Ashburton),IHUB,GENE,234,208,4,22
+31,Ashburton (Electricity Ashburton),IHUB,SWCH,46,44,1,1
+31,Ashburton (Electricity Ashburton),IHUB,CTCT,436,375,24,37
+31,Ashburton (Electricity Ashburton),IHUB,MEEN,1279,1130,84,65
+31,Ashburton (Electricity Ashburton),IHUB,OCTO,3,3,0,0
+31,Ashburton (Electricity Ashburton),MNON,GENE,2,0,0,2
+31,Ashburton (Electricity Ashburton),MNON,ECOT,22,0,0,22
+31,Ashburton (Electricity Ashburton),MNON,MERI,15,0,5,10
+31,Ashburton (Electricity Ashburton),MTRX,PSNZ,64,57,0,7
+31,Ashburton (Electricity Ashburton),MTRX,ELKI,8,8,0,0
+31,Ashburton (Electricity Ashburton),MTRX,TODD,13,11,2,0
+31,Ashburton (Electricity Ashburton),MTRX,KEAE,1,0,1,0
+31,Ashburton (Electricity Ashburton),MTRX,PUNZ,128,122,2,4
+31,Ashburton (Electricity Ashburton),MTRX,MEEN,250,199,27,24
+31,Ashburton (Electricity Ashburton),MTRX,GENE,112,82,5,25
+31,Ashburton (Electricity Ashburton),MTRX,CTCS,292,146,100,46
+31,Ashburton (Electricity Ashburton),MTRX,MERI,283,102,99,82
+31,Ashburton (Electricity Ashburton),MTRX,ECOT,122,81,3,38
+31,Ashburton (Electricity Ashburton),MTRX,TRUS,2,2,0,0
+31,Ashburton (Electricity Ashburton),MTRX,CTCT,112,90,10,12
+31,Ashburton (Electricity Ashburton),MTRX,SWCH,17,15,0,2
+31,Ashburton (Electricity Ashburton),MTRX,OCTO,1,1,0,0
+31,Ashburton (Electricity Ashburton),MTRX,EDGE,1,1,0,0
+31,Ashburton (Electricity Ashburton),NGCM,OCTO,9,9,0,0
+31,Ashburton (Electricity Ashburton),NGCM,TODD,45,42,2,1
+31,Ashburton (Electricity Ashburton),NGCM,PUNZ,1441,1397,14,30
+31,Ashburton (Electricity Ashburton),NGCM,CTCT,1706,1322,249,135
+31,Ashburton (Electricity Ashburton),NGCM,MEEN,1026,956,55,15
+31,Ashburton (Electricity Ashburton),NGCM,PSNZ,802,755,17,30
+31,Ashburton (Electricity Ashburton),NGCM,MERI,6998,2184,4264,550
+31,Ashburton (Electricity Ashburton),NGCM,GEOL,208,207,1,0
+31,Ashburton (Electricity Ashburton),NGCM,EDGE,2,2,0,0
+31,Ashburton (Electricity Ashburton),NGCM,SWCH,175,156,5,14
+31,Ashburton (Electricity Ashburton),NGCM,GBUG,24,24,0,0
+31,Ashburton (Electricity Ashburton),NGCM,CTCS,319,90,214,15
+31,Ashburton (Electricity Ashburton),NGCM,ECOT,41,32,7,2
+31,Ashburton (Electricity Ashburton),NGCM,ELKI,287,268,13,6
+31,Ashburton (Electricity Ashburton),NGCM,GENE,1204,953,142,109
+31,Ashburton (Electricity Ashburton),NGCM,TRUS,14,11,2,1
+32,South Canterbury (Alpine Energy),ACCM,CTCS,1,0,1,0
+32,South Canterbury (Alpine Energy),ACCM,MERI,4,0,4,0
+32,South Canterbury (Alpine Energy),ACCM,GENE,1,0,0,1
+32,South Canterbury (Alpine Energy),AMCI,GENE,23,0,4,19
+32,South Canterbury (Alpine Energy),AMCI,MEEN,25,0,8,17
+32,South Canterbury (Alpine Energy),AMCI,PUNZ,2,0,0,2
+32,South Canterbury (Alpine Energy),AMCI,MERI,98,0,58,40
+32,South Canterbury (Alpine Energy),AMCI,CTCS,23,0,16,7
+32,South Canterbury (Alpine Energy),AMCI,CTCT,24,0,12,12
+32,South Canterbury (Alpine Energy),AMCI,TODD,1,0,0,1
+32,South Canterbury (Alpine Energy),AMCI,ELKI,1,0,1,0
+32,South Canterbury (Alpine Energy),BOPE,TODD,2,0,1,1
+32,South Canterbury (Alpine Energy),CTCT,GENE,2,0,1,1
+32,South Canterbury (Alpine Energy),CTCT,CTCS,2,0,0,2
+32,South Canterbury (Alpine Energy),DELT,MERI,1,1,0,0
+32,South Canterbury (Alpine Energy),DELT,MEEN,1,1,0,0
+32,South Canterbury (Alpine Energy),IHUB,TODD,60,51,2,7
+32,South Canterbury (Alpine Energy),IHUB,ELKI,39,37,1,1
+32,South Canterbury (Alpine Energy),IHUB,GEOL,12,12,0,0
+32,South Canterbury (Alpine Energy),IHUB,PSNZ,87,84,0,3
+32,South Canterbury (Alpine Energy),IHUB,CTCS,3,0,3,0
+32,South Canterbury (Alpine Energy),IHUB,MEEN,1253,1206,17,30
+32,South Canterbury (Alpine Energy),IHUB,GENE,272,269,0,3
+32,South Canterbury (Alpine Energy),IHUB,MERI,149,97,22,30
+32,South Canterbury (Alpine Energy),IHUB,SWCH,24,24,0,0
+32,South Canterbury (Alpine Energy),IHUB,PUNZ,146,146,0,0
+32,South Canterbury (Alpine Energy),IHUB,CTCT,264,257,0,7
+32,South Canterbury (Alpine Energy),IHUB,ECOT,11,11,0,0
+32,South Canterbury (Alpine Energy),IHUB,TRUS,85,80,1,4
+32,South Canterbury (Alpine Energy),LMGL,TODD,1,0,1,0
+32,South Canterbury (Alpine Energy),MNON,GENE,20,0,2,18
+32,South Canterbury (Alpine Energy),MNON,MERI,26,1,6,19
+32,South Canterbury (Alpine Energy),MNON,CTCS,4,0,0,4
+32,South Canterbury (Alpine Energy),MNON,CTCT,9,0,9,0
+32,South Canterbury (Alpine Energy),MNON,ECOT,31,0,0,31
+32,South Canterbury (Alpine Energy),MTRX,MEEN,597,554,5,38
+32,South Canterbury (Alpine Energy),MTRX,SWCH,39,38,0,1
+32,South Canterbury (Alpine Energy),MTRX,TODD,31,27,1,3
+32,South Canterbury (Alpine Energy),MTRX,ECOT,167,106,5,56
+32,South Canterbury (Alpine Energy),MTRX,GENE,296,253,8,35
+32,South Canterbury (Alpine Energy),MTRX,ELKI,3,3,0,0
+32,South Canterbury (Alpine Energy),MTRX,CTCT,628,519,49,60
+32,South Canterbury (Alpine Energy),MTRX,PUNZ,127,125,0,2
+32,South Canterbury (Alpine Energy),MTRX,MERI,340,114,104,122
+32,South Canterbury (Alpine Energy),MTRX,PSNZ,82,75,1,6
+32,South Canterbury (Alpine Energy),MTRX,CTCS,12,1,6,5
+32,South Canterbury (Alpine Energy),NGCM,ELKI,14,14,0,0
+32,South Canterbury (Alpine Energy),NGCM,PUNZ,34,33,0,1
+32,South Canterbury (Alpine Energy),NGCM,ECOT,29,29,0,0
+32,South Canterbury (Alpine Energy),NGCM,PSNZ,47,41,1,5
+32,South Canterbury (Alpine Energy),NGCM,MEEN,96,94,1,1
+32,South Canterbury (Alpine Energy),NGCM,MERI,150,77,48,25
+32,South Canterbury (Alpine Energy),NGCM,TODD,9,5,4,0
+32,South Canterbury (Alpine Energy),NGCM,SWCH,25,23,0,2
+32,South Canterbury (Alpine Energy),NGCM,GEOL,11,11,0,0
+32,South Canterbury (Alpine Energy),NGCM,CTCT,161,148,3,10
+32,South Canterbury (Alpine Energy),NGCM,GENE,209,196,7,6
+32,South Canterbury (Alpine Energy),NGCM,CTCS,4,1,3,0
+32,South Canterbury (Alpine Energy),NGCM,GBUG,65,65,0,0
+32,South Canterbury (Alpine Energy),NGCM,OCTO,1,1,0,0
+32,South Canterbury (Alpine Energy),SMCO,CTCT,10160,8847,655,658
+32,South Canterbury (Alpine Energy),SMCO,TODD,337,247,45,45
+32,South Canterbury (Alpine Energy),SMCO,CTCS,50,7,33,10
+32,South Canterbury (Alpine Energy),SMCO,GENE,4737,4315,168,254
+32,South Canterbury (Alpine Energy),SMCO,PUNZ,1433,1393,21,19
+32,South Canterbury (Alpine Energy),SMCO,MERI,5828,2020,2666,1142
+32,South Canterbury (Alpine Energy),SMCO,OCTO,17,16,0,1
+32,South Canterbury (Alpine Energy),SMCO,EDGE,6,6,0,0
+32,South Canterbury (Alpine Energy),SMCO,SWCH,349,340,1,8
+32,South Canterbury (Alpine Energy),SMCO,MEEN,2836,2735,42,59
+32,South Canterbury (Alpine Energy),SMCO,TRUS,871,848,13,10
+32,South Canterbury (Alpine Energy),SMCO,ECOT,103,60,16,27
+32,South Canterbury (Alpine Energy),SMCO,ELKI,485,474,5,6
+32,South Canterbury (Alpine Energy),SMCO,PSNZ,1064,993,17,54
+32,South Canterbury (Alpine Energy),SMCO,GEOL,340,339,1,0
+33,Waitaki (Network Waitaki),AMCI,CTCS,7,0,5,2
+33,Waitaki (Network Waitaki),AMCI,CTCT,3,0,2,1
+33,Waitaki (Network Waitaki),AMCI,PUNZ,1,0,0,1
+33,Waitaki (Network Waitaki),AMCI,GENE,12,0,1,11
+33,Waitaki (Network Waitaki),AMCI,MERI,62,0,46,16
+33,Waitaki (Network Waitaki),AMCI,ECOT,2,0,1,1
+33,Waitaki (Network Waitaki),BOPE,MERI,2,1,0,1
+33,Waitaki (Network Waitaki),CTCT,MERI,3,0,3,0
+33,Waitaki (Network Waitaki),DELT,CTCT,1,1,0,0
+33,Waitaki (Network Waitaki),IHUB,GEOL,7,7,0,0
+33,Waitaki (Network Waitaki),IHUB,ECOT,4,4,0,0
+33,Waitaki (Network Waitaki),IHUB,PSNZ,17,15,0,2
+33,Waitaki (Network Waitaki),IHUB,MEEN,157,150,2,5
+33,Waitaki (Network Waitaki),IHUB,TODD,41,30,0,11
+33,Waitaki (Network Waitaki),IHUB,ELKI,6,6,0,0
+33,Waitaki (Network Waitaki),IHUB,SWCH,7,7,0,0
+33,Waitaki (Network Waitaki),IHUB,PUNZ,20,18,0,2
+33,Waitaki (Network Waitaki),IHUB,CTCS,1,0,0,1
+33,Waitaki (Network Waitaki),IHUB,CTCT,60,60,0,0
+33,Waitaki (Network Waitaki),IHUB,GENE,28,23,4,1
+33,Waitaki (Network Waitaki),IHUB,MERI,43,31,6,6
+33,Waitaki (Network Waitaki),IHUB,TRUS,69,64,1,4
+33,Waitaki (Network Waitaki),MNON,GENE,3,0,0,3
+33,Waitaki (Network Waitaki),MNON,ECOT,41,0,0,41
+33,Waitaki (Network Waitaki),MNON,MERI,2,0,0,2
+33,Waitaki (Network Waitaki),MNON,CTCS,1,0,0,1
+33,Waitaki (Network Waitaki),MTRX,ECOT,76,44,1,31
+33,Waitaki (Network Waitaki),MTRX,MERI,1292,875,189,228
+33,Waitaki (Network Waitaki),MTRX,GENE,269,245,4,20
+33,Waitaki (Network Waitaki),MTRX,PLUS,1,1,0,0
+33,Waitaki (Network Waitaki),MTRX,CTCS,7,0,5,2
+33,Waitaki (Network Waitaki),MTRX,TODD,20,12,0,8
+33,Waitaki (Network Waitaki),MTRX,SWCH,83,80,1,2
+33,Waitaki (Network Waitaki),MTRX,PUNZ,159,154,0,5
+33,Waitaki (Network Waitaki),MTRX,CTCT,525,477,17,31
+33,Waitaki (Network Waitaki),MTRX,PSNZ,131,125,1,5
+33,Waitaki (Network Waitaki),MTRX,MEEN,805,787,6,12
+33,Waitaki (Network Waitaki),MTRX,ELKI,2,2,0,0
+33,Waitaki (Network Waitaki),NGCM,GENE,1089,994,35,60
+33,Waitaki (Network Waitaki),NGCM,PSNZ,301,281,4,16
+33,Waitaki (Network Waitaki),NGCM,TRUS,45,44,1,0
+33,Waitaki (Network Waitaki),NGCM,ELKI,122,119,2,1
+33,Waitaki (Network Waitaki),NGCM,PUNZ,335,316,8,11
+33,Waitaki (Network Waitaki),NGCM,EDGE,2,2,0,0
+33,Waitaki (Network Waitaki),NGCM,MERI,4863,2817,1499,547
+33,Waitaki (Network Waitaki),NGCM,CTCS,28,2,23,3
+33,Waitaki (Network Waitaki),NGCM,MEEN,1183,1143,17,23
+33,Waitaki (Network Waitaki),NGCM,TODD,21,17,1,3
+33,Waitaki (Network Waitaki),NGCM,ECOT,29,27,1,1
+33,Waitaki (Network Waitaki),NGCM,SWCH,158,143,6,9
+33,Waitaki (Network Waitaki),NGCM,CTCT,1268,1127,69,72
+33,Waitaki (Network Waitaki),NGCM,GEOL,135,135,0,0
+33,Waitaki (Network Waitaki),WATA,MERI,1,0,1,0
+34,Queenstown (Aurora Energy),AMCI,MEEN,8,0,1,7
+34,Queenstown (Aurora Energy),AMCI,ECOT,7,0,1,6
+34,Queenstown (Aurora Energy),AMCI,CTCS,24,0,7,17
+34,Queenstown (Aurora Energy),AMCI,MERI,38,0,3,35
+34,Queenstown (Aurora Energy),AMCI,PUNZ,4,0,3,1
+34,Queenstown (Aurora Energy),AMCI,GENE,11,0,1,10
+34,Queenstown (Aurora Energy),AMCI,CTCT,8,1,1,6
+34,Queenstown (Aurora Energy),AMCI,TODD,1,0,0,1
+34,Queenstown (Aurora Energy),BOPE,TODD,1,0,0,1
+34,Queenstown (Aurora Energy),CTCT,GENE,1,0,0,1
+34,Queenstown (Aurora Energy),DELT,MEEN,1,1,0,0
+34,Queenstown (Aurora Energy),DELT,MERI,2,0,0,2
+34,Queenstown (Aurora Energy),DELT,CTCT,31,2,29,0
+34,Queenstown (Aurora Energy),DELT,GENE,1,1,0,0
+34,Queenstown (Aurora Energy),DELT,PSNZ,1,1,0,0
+34,Queenstown (Aurora Energy),IHUB,MERI,497,247,48,202
+34,Queenstown (Aurora Energy),IHUB,CTCT,502,473,10,19
+34,Queenstown (Aurora Energy),IHUB,ELKI,66,65,0,1
+34,Queenstown (Aurora Energy),IHUB,PUNZ,95,89,0,6
+34,Queenstown (Aurora Energy),IHUB,PSNZ,258,189,2,67
+34,Queenstown (Aurora Energy),IHUB,GENE,172,144,3,25
+34,Queenstown (Aurora Energy),IHUB,ECOT,22,22,0,0
+34,Queenstown (Aurora Energy),IHUB,TRUS,613,583,19,11
+34,Queenstown (Aurora Energy),IHUB,SWCH,24,21,1,2
+34,Queenstown (Aurora Energy),IHUB,OCTO,33,33,0,0
+34,Queenstown (Aurora Energy),IHUB,TODD,142,76,6,60
+34,Queenstown (Aurora Energy),IHUB,GEOL,15,15,0,0
+34,Queenstown (Aurora Energy),IHUB,EDGE,1,1,0,0
+34,Queenstown (Aurora Energy),IHUB,MEEN,1110,860,152,98
+34,Queenstown (Aurora Energy),IHUB,CTCS,4,0,0,4
+34,Queenstown (Aurora Energy),MNON,TRUS,6,0,1,5
+34,Queenstown (Aurora Energy),MNON,MEEN,2,0,2,0
+34,Queenstown (Aurora Energy),MNON,MERI,32,0,2,30
+34,Queenstown (Aurora Energy),MNON,ECOT,17,0,0,17
+34,Queenstown (Aurora Energy),MNON,GENE,12,0,0,12
+34,Queenstown (Aurora Energy),MNON,PUNZ,1,0,1,0
+34,Queenstown (Aurora Energy),MNON,CTCT,2,0,1,1
+34,Queenstown (Aurora Energy),MTRX,MERI,339,74,26,239
+34,Queenstown (Aurora Energy),MTRX,TODD,33,14,1,18
+34,Queenstown (Aurora Energy),MTRX,CTCS,19,0,2,17
+34,Queenstown (Aurora Energy),MTRX,ECOT,128,65,10,53
+34,Queenstown (Aurora Energy),MTRX,SWCH,30,21,0,9
+34,Queenstown (Aurora Energy),MTRX,MEEN,395,272,32,91
+34,Queenstown (Aurora Energy),MTRX,GENE,184,119,8,57
+34,Queenstown (Aurora Energy),MTRX,CTCT,470,345,45,80
+34,Queenstown (Aurora Energy),MTRX,OCTO,5,5,0,0
+34,Queenstown (Aurora Energy),MTRX,PSNZ,132,62,4,66
+34,Queenstown (Aurora Energy),MTRX,ELKI,11,11,0,0
+34,Queenstown (Aurora Energy),MTRX,PUNZ,96,68,3,25
+34,Queenstown (Aurora Energy),MTRX,PLUS,1,0,0,1
+34,Queenstown (Aurora Energy),NGCM,PLUS,1,1,0,0
+34,Queenstown (Aurora Energy),NGCM,TODD,21,11,2,8
+34,Queenstown (Aurora Energy),NGCM,PSNZ,921,736,14,171
+34,Queenstown (Aurora Energy),NGCM,MERI,1895,975,132,788
+34,Queenstown (Aurora Energy),NGCM,GBUG,1,1,0,0
+34,Queenstown (Aurora Energy),NGCM,MEEN,735,665,14,56
+34,Queenstown (Aurora Energy),NGCM,ELKI,358,351,1,6
+34,Queenstown (Aurora Energy),NGCM,GENE,1369,1144,72,153
+34,Queenstown (Aurora Energy),NGCM,SWCH,111,94,3,14
+34,Queenstown (Aurora Energy),NGCM,OCTO,90,85,0,5
+34,Queenstown (Aurora Energy),NGCM,CTCS,2,0,0,2
+34,Queenstown (Aurora Energy),NGCM,ECOT,97,62,7,28
+34,Queenstown (Aurora Energy),NGCM,TRUS,14,13,1,0
+34,Queenstown (Aurora Energy),NGCM,GEOL,123,122,1,0
+34,Queenstown (Aurora Energy),NGCM,PUNZ,415,386,13,16
+34,Queenstown (Aurora Energy),NGCM,CTCT,3973,3534,156,283
+34,Queenstown (Aurora Energy),NGCM,EDGE,1,1,0,0
+34,Queenstown (Aurora Energy),SMCO,GENE,1,1,0,0
+34,Queenstown (Aurora Energy),SMCO,MERI,10,2,3,5
+34,Queenstown (Aurora Energy),SMCO,MEEN,4,4,0,0
+34,Queenstown (Aurora Energy),SMCO,PSNZ,3,3,0,0
+34,Queenstown (Aurora Energy),SMCO,ELKI,3,3,0,0
+34,Queenstown (Aurora Energy),SMCO,GEOL,4,4,0,0
+34,Queenstown (Aurora Energy),SMCO,CTCT,3,3,0,0
+35,Central Otago (Aurora Energy),ACCM,CTCS,1,0,1,0
+35,Central Otago (Aurora Energy),AMCI,ECOT,8,0,6,2
+35,Central Otago (Aurora Energy),AMCI,GENE,20,0,10,10
+35,Central Otago (Aurora Energy),AMCI,CTCT,5,0,2,3
+35,Central Otago (Aurora Energy),AMCI,TODD,2,0,1,1
+35,Central Otago (Aurora Energy),AMCI,MEEN,12,0,12,0
+35,Central Otago (Aurora Energy),AMCI,MERI,52,0,33,19
+35,Central Otago (Aurora Energy),AMCI,PUNZ,19,0,17,2
+35,Central Otago (Aurora Energy),AMCI,CTCS,15,0,8,7
+35,Central Otago (Aurora Energy),BOPE,MEEN,1,1,0,0
+35,Central Otago (Aurora Energy),CTCT,GENE,4,0,0,4
+35,Central Otago (Aurora Energy),DELT,MEEN,3,1,1,1
+35,Central Otago (Aurora Energy),DELT,CTCT,27,0,27,0
+35,Central Otago (Aurora Energy),DELT,GENE,2,1,0,1
+35,Central Otago (Aurora Energy),DELT,MERI,1,0,0,1
+35,Central Otago (Aurora Energy),DELT,PUNZ,1,1,0,0
+35,Central Otago (Aurora Energy),IHUB,CTCT,871,800,35,36
+35,Central Otago (Aurora Energy),IHUB,MEEN,2079,1591,341,147
+35,Central Otago (Aurora Energy),IHUB,ECOT,131,117,5,9
+35,Central Otago (Aurora Energy),IHUB,SWCH,52,50,0,2
+35,Central Otago (Aurora Energy),IHUB,ELKI,162,161,0,1
+35,Central Otago (Aurora Energy),IHUB,GENE,411,385,9,17
+35,Central Otago (Aurora Energy),IHUB,MERI,750,502,152,96
+35,Central Otago (Aurora Energy),IHUB,TODD,175,125,13,37
+35,Central Otago (Aurora Energy),IHUB,GEOL,70,70,0,0
+35,Central Otago (Aurora Energy),IHUB,OCTO,65,64,0,1
+35,Central Otago (Aurora Energy),IHUB,TRUS,1265,1189,50,26
+35,Central Otago (Aurora Energy),IHUB,CTCS,10,0,5,5
+35,Central Otago (Aurora Energy),IHUB,PSNZ,340,317,7,16
+35,Central Otago (Aurora Energy),IHUB,PUNZ,519,461,37,21
+35,Central Otago (Aurora Energy),MNON,ECOT,46,0,0,46
+35,Central Otago (Aurora Energy),MNON,GENE,15,0,0,15
+35,Central Otago (Aurora Energy),MNON,MERI,11,0,1,10
+35,Central Otago (Aurora Energy),MNON,PUNZ,3,0,3,0
+35,Central Otago (Aurora Energy),MNON,CTCS,8,0,0,8
+35,Central Otago (Aurora Energy),MNON,MEEN,2,0,2,0
+35,Central Otago (Aurora Energy),MNON,TRUS,1,0,1,0
+35,Central Otago (Aurora Energy),MTRX,CTCT,349,225,58,66
+35,Central Otago (Aurora Energy),MTRX,CTCS,86,1,3,82
+35,Central Otago (Aurora Energy),MTRX,GEOL,1,1,0,0
+35,Central Otago (Aurora Energy),MTRX,ELKI,13,12,0,1
+35,Central Otago (Aurora Energy),MTRX,SWCH,27,12,3,12
+35,Central Otago (Aurora Energy),MTRX,ECOT,387,300,24,63
+35,Central Otago (Aurora Energy),MTRX,MEEN,445,287,115,43
+35,Central Otago (Aurora Energy),MTRX,PUNZ,341,201,79,61
+35,Central Otago (Aurora Energy),MTRX,TODD,9,4,2,3
+35,Central Otago (Aurora Energy),MTRX,MERI,406,159,126,121
+35,Central Otago (Aurora Energy),MTRX,OCTO,24,24,0,0
+35,Central Otago (Aurora Energy),MTRX,GENE,230,162,15,53
+35,Central Otago (Aurora Energy),MTRX,PSNZ,83,55,11,17
+35,Central Otago (Aurora Energy),NGCM,CTCS,52,0,10,42
+35,Central Otago (Aurora Energy),NGCM,PSNZ,1035,910,31,94
+35,Central Otago (Aurora Energy),NGCM,PUNZ,1377,1236,71,70
+35,Central Otago (Aurora Energy),NGCM,GEOL,234,234,0,0
+35,Central Otago (Aurora Energy),NGCM,MEEN,1350,1221,55,74
+35,Central Otago (Aurora Energy),NGCM,ECOT,214,184,21,9
+35,Central Otago (Aurora Energy),NGCM,GBUG,8,8,0,0
+35,Central Otago (Aurora Energy),NGCM,CTCT,5059,4495,274,290
+35,Central Otago (Aurora Energy),NGCM,ELKI,370,362,6,2
+35,Central Otago (Aurora Energy),NGCM,TRUS,33,31,2,0
+35,Central Otago (Aurora Energy),NGCM,TODD,35,26,3,6
+35,Central Otago (Aurora Energy),NGCM,SWCH,170,140,9,21
+35,Central Otago (Aurora Energy),NGCM,GENE,2669,2290,176,203
+35,Central Otago (Aurora Energy),NGCM,OCTO,232,232,0,0
+35,Central Otago (Aurora Energy),NGCM,MERI,3133,1730,729,674
+35,Central Otago (Aurora Energy),NGCM,KEAE,1,0,0,1
+35,Central Otago (Aurora Energy),NGCM,EDGE,1,1,0,0
+35,Central Otago (Aurora Energy),SMCO,OCTO,4,4,0,0
+35,Central Otago (Aurora Energy),SMCO,ELKI,11,11,0,0
+35,Central Otago (Aurora Energy),SMCO,MEEN,39,39,0,0
+35,Central Otago (Aurora Energy),SMCO,CTCT,207,197,8,2
+35,Central Otago (Aurora Energy),SMCO,MERI,61,36,15,10
+35,Central Otago (Aurora Energy),SMCO,GENE,103,96,4,3
+35,Central Otago (Aurora Energy),SMCO,TRUS,4,4,0,0
+35,Central Otago (Aurora Energy),SMCO,PUNZ,17,15,1,1
+35,Central Otago (Aurora Energy),SMCO,TODD,2,2,0,0
+35,Central Otago (Aurora Energy),SMCO,PSNZ,42,41,1,0
+35,Central Otago (Aurora Energy),SMCO,GEOL,8,8,0,0
+35,Central Otago (Aurora Energy),SMCO,ECOT,8,8,0,0
+35,Central Otago (Aurora Energy),SMCO,CTCS,1,0,0,1
+36,Otago (OtagoNet JV),ACCM,CNIR,1,0,1,0
+36,Otago (OtagoNet JV),AMCI,CTCT,4,0,2,2
+36,Otago (OtagoNet JV),AMCI,GENE,10,0,9,1
+36,Otago (OtagoNet JV),AMCI,CTCS,17,0,14,3
+36,Otago (OtagoNet JV),AMCI,ECOT,5,0,5,0
+36,Otago (OtagoNet JV),AMCI,MEEN,6,0,3,3
+36,Otago (OtagoNet JV),AMCI,PUNZ,3,0,2,1
+36,Otago (OtagoNet JV),AMCI,TODD,2,0,0,2
+36,Otago (OtagoNet JV),AMCI,MERI,68,0,64,4
+36,Otago (OtagoNet JV),AMCI,OCTO,1,0,1,0
+36,Otago (OtagoNet JV),AMCI,ELKI,2,0,1,1
+36,Otago (OtagoNet JV),BOPE,TRUS,1,1,0,0
+36,Otago (OtagoNet JV),BOPE,MERI,1,1,0,0
+36,Otago (OtagoNet JV),CTCT,MEEN,2,0,0,2
+36,Otago (OtagoNet JV),CTCT,GENE,1,0,0,1
+36,Otago (OtagoNet JV),CTCT,MERI,2,0,1,1
+36,Otago (OtagoNet JV),DELT,PSNZ,1,1,0,0
+36,Otago (OtagoNet JV),DELT,CTCT,3,2,1,0
+36,Otago (OtagoNet JV),DELT,MERI,10,1,7,2
+36,Otago (OtagoNet JV),DELT,GENE,5,3,0,2
+36,Otago (OtagoNet JV),DELT,MEEN,3,3,0,0
+36,Otago (OtagoNet JV),DELT,TRUS,1,1,0,0
+36,Otago (OtagoNet JV),DELT,SWCH,1,0,0,1
+36,Otago (OtagoNet JV),IHUB,TRUS,885,715,107,63
+36,Otago (OtagoNet JV),IHUB,CTCT,197,186,8,3
+36,Otago (OtagoNet JV),IHUB,PSNZ,261,248,2,11
+36,Otago (OtagoNet JV),IHUB,ECOT,24,22,0,2
+36,Otago (OtagoNet JV),IHUB,EDGE,1,1,0,0
+36,Otago (OtagoNet JV),IHUB,GENE,164,142,7,15
+36,Otago (OtagoNet JV),IHUB,CTCS,5,0,4,1
+36,Otago (OtagoNet JV),IHUB,OCTO,2,0,2,0
+36,Otago (OtagoNet JV),IHUB,SWCH,23,22,0,1
+36,Otago (OtagoNet JV),IHUB,MEEN,1389,1096,208,85
+36,Otago (OtagoNet JV),IHUB,TODD,322,249,31,42
+36,Otago (OtagoNet JV),IHUB,GEOL,25,25,0,0
+36,Otago (OtagoNet JV),IHUB,PUNZ,399,358,26,15
+36,Otago (OtagoNet JV),IHUB,ELKI,44,43,1,0
+36,Otago (OtagoNet JV),IHUB,MERI,475,248,172,55
+36,Otago (OtagoNet JV),MNON,TRUS,1,0,1,0
+36,Otago (OtagoNet JV),MNON,CTCS,2,0,1,1
+36,Otago (OtagoNet JV),MNON,CTCT,1,0,1,0
+36,Otago (OtagoNet JV),MNON,MERI,10,0,3,7
+36,Otago (OtagoNet JV),MNON,ECOT,49,0,0,49
+36,Otago (OtagoNet JV),MNON,GENE,1,0,0,1
+36,Otago (OtagoNet JV),MTRX,SWCH,47,41,1,5
+36,Otago (OtagoNet JV),MTRX,MEEN,600,445,104,51
+36,Otago (OtagoNet JV),MTRX,ELKI,5,5,0,0
+36,Otago (OtagoNet JV),MTRX,GENE,186,152,7,27
+36,Otago (OtagoNet JV),MTRX,CTCS,32,0,8,24
+36,Otago (OtagoNet JV),MTRX,PSNZ,119,108,3,8
+36,Otago (OtagoNet JV),MTRX,TODD,37,22,4,11
+36,Otago (OtagoNet JV),MTRX,PUNZ,174,147,13,14
+36,Otago (OtagoNet JV),MTRX,MERI,348,121,157,70
+36,Otago (OtagoNet JV),MTRX,ECOT,114,41,9,64
+36,Otago (OtagoNet JV),MTRX,CTCT,297,226,42,29
+36,Otago (OtagoNet JV),MTRX,EDGE,1,1,0,0
+36,Otago (OtagoNet JV),MTRX,TRUS,1,1,0,0
+36,Otago (OtagoNet JV),NGCM,PSNZ,900,840,8,52
+36,Otago (OtagoNet JV),NGCM,GBUG,16,16,0,0
+36,Otago (OtagoNet JV),NGCM,OCTO,6,2,4,0
+36,Otago (OtagoNet JV),NGCM,TODD,24,20,1,3
+36,Otago (OtagoNet JV),NGCM,ELKI,172,167,4,1
+36,Otago (OtagoNet JV),NGCM,PUNZ,979,922,34,23
+36,Otago (OtagoNet JV),NGCM,MERI,2433,977,1135,321
+36,Otago (OtagoNet JV),NGCM,CTCS,17,2,11,4
+36,Otago (OtagoNet JV),NGCM,GEOL,116,116,0,0
+36,Otago (OtagoNet JV),NGCM,CTCT,1822,1556,160,106
+36,Otago (OtagoNet JV),NGCM,EDGE,3,3,0,0
+36,Otago (OtagoNet JV),NGCM,GENE,1646,1458,123,65
+36,Otago (OtagoNet JV),NGCM,TRUS,26,19,7,0
+36,Otago (OtagoNet JV),NGCM,SWCH,135,126,3,6
+36,Otago (OtagoNet JV),NGCM,MEEN,862,788,58,16
+36,Otago (OtagoNet JV),NGCM,ECOT,127,111,8,8
+37,Dunedin (Aurora Energy),ACCM,GENE,1,0,0,1
+37,Dunedin (Aurora Energy),ACCM,CNIR,1,0,1,0
+37,Dunedin (Aurora Energy),AMCI,ELKI,4,0,0,4
+37,Dunedin (Aurora Energy),AMCI,GENE,18,0,3,15
+37,Dunedin (Aurora Energy),AMCI,CTCS,23,0,10,13
+37,Dunedin (Aurora Energy),AMCI,PUNZ,2,0,1,1
+37,Dunedin (Aurora Energy),AMCI,ECOT,12,0,0,12
+37,Dunedin (Aurora Energy),AMCI,CTCT,9,0,1,8
+37,Dunedin (Aurora Energy),AMCI,LNRG,1,0,0,1
+37,Dunedin (Aurora Energy),AMCI,MERI,130,0,24,106
+37,Dunedin (Aurora Energy),AMCI,MEEN,71,0,4,67
+37,Dunedin (Aurora Energy),BOPE,ECOT,1,1,0,0
+37,Dunedin (Aurora Energy),BOPE,CTCT,11,10,0,1
+37,Dunedin (Aurora Energy),BOPE,ELKI,6,6,0,0
+37,Dunedin (Aurora Energy),BOPE,PUNZ,5,5,0,0
+37,Dunedin (Aurora Energy),BOPE,MERI,6,4,0,2
+37,Dunedin (Aurora Energy),BOPE,GENE,4,4,0,0
+37,Dunedin (Aurora Energy),BOPE,MEEN,12,11,1,0
+37,Dunedin (Aurora Energy),BOPE,GEOL,1,1,0,0
+37,Dunedin (Aurora Energy),BOPE,PSNZ,5,5,0,0
+37,Dunedin (Aurora Energy),CTCT,MEEN,2,0,0,2
+37,Dunedin (Aurora Energy),CTCT,MERI,1,0,1,0
+37,Dunedin (Aurora Energy),DELT,SWCH,21,14,1,6
+37,Dunedin (Aurora Energy),DELT,PSNZ,77,56,4,17
+37,Dunedin (Aurora Energy),DELT,TODD,7,2,0,5
+37,Dunedin (Aurora Energy),DELT,MERI,81,27,4,50
+37,Dunedin (Aurora Energy),DELT,ECOT,22,0,0,22
+37,Dunedin (Aurora Energy),DELT,GENE,67,42,2,23
+37,Dunedin (Aurora Energy),DELT,TRUS,9,9,0,0
+37,Dunedin (Aurora Energy),DELT,PUNZ,71,65,1,5
+37,Dunedin (Aurora Energy),DELT,CTCS,2,0,1,1
+37,Dunedin (Aurora Energy),DELT,CTCT,198,147,18,33
+37,Dunedin (Aurora Energy),DELT,MEEN,193,172,2,19
+37,Dunedin (Aurora Energy),IHUB,TRUS,95,84,8,3
+37,Dunedin (Aurora Energy),IHUB,TODD,269,127,24,118
+37,Dunedin (Aurora Energy),IHUB,CTCS,5,0,5,0
+37,Dunedin (Aurora Energy),IHUB,GENE,318,284,4,30
+37,Dunedin (Aurora Energy),IHUB,GEOL,45,45,0,0
+37,Dunedin (Aurora Energy),IHUB,PUNZ,595,559,10,26
+37,Dunedin (Aurora Energy),IHUB,MEEN,2620,2440,39,141
+37,Dunedin (Aurora Energy),IHUB,OCTO,26,26,0,0
+37,Dunedin (Aurora Energy),IHUB,ECOT,13,11,1,1
+37,Dunedin (Aurora Energy),IHUB,MERI,440,300,32,108
+37,Dunedin (Aurora Energy),IHUB,CTCT,963,920,8,35
+37,Dunedin (Aurora Energy),IHUB,PSNZ,508,469,3,36
+37,Dunedin (Aurora Energy),IHUB,ELKI,193,188,0,5
+37,Dunedin (Aurora Energy),IHUB,SWCH,94,92,0,2
+37,Dunedin (Aurora Energy),MNON,MERI,15,0,1,14
+37,Dunedin (Aurora Energy),MNON,MEEN,1,0,1,0
+37,Dunedin (Aurora Energy),MNON,ECOT,13,0,0,13
+37,Dunedin (Aurora Energy),MNON,CTCT,4,0,1,3
+37,Dunedin (Aurora Energy),MNON,CTCS,1,0,1,0
+37,Dunedin (Aurora Energy),MNON,GENE,41,1,0,40
+37,Dunedin (Aurora Energy),MTRX,GBUG,50,50,0,0
+37,Dunedin (Aurora Energy),MTRX,SWCH,281,262,1,18
+37,Dunedin (Aurora Energy),MTRX,CTCT,2540,2367,45,128
+37,Dunedin (Aurora Energy),MTRX,PUNZ,969,941,3,25
+37,Dunedin (Aurora Energy),MTRX,GENE,1280,1203,5,72
+37,Dunedin (Aurora Energy),MTRX,ELKI,549,542,1,6
+37,Dunedin (Aurora Energy),MTRX,CTCS,11,0,5,6
+37,Dunedin (Aurora Energy),MTRX,MERI,851,600,53,198
+37,Dunedin (Aurora Energy),MTRX,PSNZ,1231,1146,3,82
+37,Dunedin (Aurora Energy),MTRX,PLUS,1,1,0,0
+37,Dunedin (Aurora Energy),MTRX,MEEN,2837,2710,29,98
+37,Dunedin (Aurora Energy),MTRX,ECOT,137,79,8,50
+37,Dunedin (Aurora Energy),MTRX,GEOL,171,171,0,0
+37,Dunedin (Aurora Energy),MTRX,TRUS,17,16,0,1
+37,Dunedin (Aurora Energy),MTRX,TODD,64,41,4,19
+37,Dunedin (Aurora Energy),MTRX,OCTO,73,73,0,0
+37,Dunedin (Aurora Energy),NGCM,CTCS,16,4,3,9
+37,Dunedin (Aurora Energy),NGCM,OCTO,193,192,0,1
+37,Dunedin (Aurora Energy),NGCM,PUNZ,3393,3258,24,111
+37,Dunedin (Aurora Energy),NGCM,GEOL,546,543,3,0
+37,Dunedin (Aurora Energy),NGCM,PSNZ,3533,3196,17,320
+37,Dunedin (Aurora Energy),NGCM,TRUS,52,48,3,1
+37,Dunedin (Aurora Energy),NGCM,SWCH,840,770,10,60
+37,Dunedin (Aurora Energy),NGCM,CTCT,13470,12187,398,885
+37,Dunedin (Aurora Energy),NGCM,ECOT,125,85,3,37
+37,Dunedin (Aurora Energy),NGCM,EDGE,2,2,0,0
+37,Dunedin (Aurora Energy),NGCM,TODD,113,82,4,27
+37,Dunedin (Aurora Energy),NGCM,MERI,5142,3034,365,1743
+37,Dunedin (Aurora Energy),NGCM,GENE,6550,5892,132,526
+37,Dunedin (Aurora Energy),NGCM,MEEN,3060,2863,40,157
+37,Dunedin (Aurora Energy),NGCM,GBUG,135,135,0,0
+37,Dunedin (Aurora Energy),NGCM,ELKI,1878,1831,5,42
+38,Southland (The Power Company),ACCM,MERI,2,0,2,0
+38,Southland (The Power Company),ACCM,CTCS,1,0,0,1
+38,Southland (The Power Company),AMCI,ELKI,8,0,6,2
+38,Southland (The Power Company),AMCI,CTCT,17,0,12,5
+38,Southland (The Power Company),AMCI,MERI,125,0,87,38
+38,Southland (The Power Company),AMCI,CTCS,36,0,30,6
+38,Southland (The Power Company),AMCI,MEEN,29,0,10,19
+38,Southland (The Power Company),AMCI,PUNZ,3,0,2,1
+38,Southland (The Power Company),AMCI,ECOT,5,0,1,4
+38,Southland (The Power Company),AMCI,GENE,12,0,7,5
+38,Southland (The Power Company),AMCI,TODD,3,0,2,1
+38,Southland (The Power Company),CTCT,MEEN,6,0,0,6
+38,Southland (The Power Company),CTCT,MERI,2,0,2,0
+38,Southland (The Power Company),CTCT,GENE,1,0,0,1
+38,Southland (The Power Company),DELT,CTCT,3,3,0,0
+38,Southland (The Power Company),IHUB,PSNZ,66,64,1,1
+38,Southland (The Power Company),IHUB,MERI,152,70,60,22
+38,Southland (The Power Company),IHUB,PUNZ,38,38,0,0
+38,Southland (The Power Company),IHUB,GEOL,10,10,0,0
+38,Southland (The Power Company),IHUB,ELKI,12,12,0,0
+38,Southland (The Power Company),IHUB,MEEN,319,294,15,10
+38,Southland (The Power Company),IHUB,CTCT,87,83,1,3
+38,Southland (The Power Company),IHUB,ECOT,2,1,0,1
+38,Southland (The Power Company),IHUB,TODD,225,169,16,40
+38,Southland (The Power Company),IHUB,TRUS,20,20,0,0
+38,Southland (The Power Company),IHUB,GENE,46,44,0,2
+38,Southland (The Power Company),IHUB,SWCH,4,2,0,2
+38,Southland (The Power Company),MERG,MERI,1,0,1,0
+38,Southland (The Power Company),MNON,MEEN,1,0,0,1
+38,Southland (The Power Company),MNON,CTCT,6,0,3,3
+38,Southland (The Power Company),MNON,ECOT,61,0,0,61
+38,Southland (The Power Company),MNON,GENE,7,0,0,7
+38,Southland (The Power Company),MNON,MERI,37,0,4,33
+38,Southland (The Power Company),MRPL,MEEN,1,0,1,0
+38,Southland (The Power Company),MTRX,ECOT,69,18,11,40
+38,Southland (The Power Company),MTRX,TODD,5,4,0,1
+38,Southland (The Power Company),MTRX,ELKI,2,1,1,0
+38,Southland (The Power Company),MTRX,GENE,13,13,0,0
+38,Southland (The Power Company),MTRX,MERI,27,12,8,7
+38,Southland (The Power Company),MTRX,SWCH,7,7,0,0
+38,Southland (The Power Company),MTRX,MEEN,26,23,2,1
+38,Southland (The Power Company),MTRX,PUNZ,6,5,1,0
+38,Southland (The Power Company),MTRX,CTCT,45,44,1,0
+38,Southland (The Power Company),MTRX,PSNZ,11,10,0,1
+38,Southland (The Power Company),MTRX,CTCS,1,0,1,0
+38,Southland (The Power Company),NGCM,PSNZ,69,63,2,4
+38,Southland (The Power Company),NGCM,GEOL,8,8,0,0
+38,Southland (The Power Company),NGCM,TODD,3,1,0,2
+38,Southland (The Power Company),NGCM,SWCH,12,12,0,0
+38,Southland (The Power Company),NGCM,ECOT,10,9,1,0
+38,Southland (The Power Company),NGCM,ELKI,20,20,0,0
+38,Southland (The Power Company),NGCM,TRUS,3,3,0,0
+38,Southland (The Power Company),NGCM,GBUG,49,49,0,0
+38,Southland (The Power Company),NGCM,CTCT,182,159,10,13
+38,Southland (The Power Company),NGCM,MERI,284,126,131,27
+38,Southland (The Power Company),NGCM,PUNZ,38,37,1,0
+38,Southland (The Power Company),NGCM,GENE,163,150,9,4
+38,Southland (The Power Company),NGCM,MEEN,103,91,9,3
+38,Southland (The Power Company),SMCO,ELKI,483,463,12,8
+38,Southland (The Power Company),SMCO,SWCH,493,401,56,36
+38,Southland (The Power Company),SMCO,PSNZ,1891,1680,72,139
+38,Southland (The Power Company),SMCO,MEEN,3471,2983,372,116
+38,Southland (The Power Company),SMCO,ECOT,189,98,11,80
+38,Southland (The Power Company),SMCO,GEOL,409,409,0,0
+38,Southland (The Power Company),SMCO,EDGE,1,1,0,0
+38,Southland (The Power Company),SMCO,MERI,9144,3397,4571,1176
+38,Southland (The Power Company),SMCO,CTCT,11515,9342,1431,742
+38,Southland (The Power Company),SMCO,PUNZ,1545,1445,59,41
+38,Southland (The Power Company),SMCO,TRUS,2720,2547,111,62
+38,Southland (The Power Company),SMCO,TODD,158,121,12,25
+38,Southland (The Power Company),SMCO,GENE,3143,2596,365,182
+38,Southland (The Power Company),SMCO,CTCS,25,0,19,6
+38,Southland (The Power Company),SMCO,TLNT,1,0,0,1
+38,Southland (The Power Company),TPCO,GENE,40,35,3,2
+38,Southland (The Power Company),TPCO,CTCT,220,155,42,23
+38,Southland (The Power Company),TPCO,TODD,6,5,0,1
+38,Southland (The Power Company),TPCO,PSNZ,17,16,0,1
+38,Southland (The Power Company),TPCO,MERI,133,57,48,28
+38,Southland (The Power Company),TPCO,TLNT,1,0,0,1
+38,Southland (The Power Company),TPCO,SWCH,13,8,3,2
+38,Southland (The Power Company),TPCO,TRUS,64,61,2,1
+38,Southland (The Power Company),TPCO,PUNZ,20,16,2,2
+38,Southland (The Power Company),TPCO,MEEN,65,54,7,4
+39,Invercargill (Electricity Invercargill),ACCM,GENE,1,0,0,1
+39,Invercargill (Electricity Invercargill),AMCI,ELKI,5,0,3,2
+39,Invercargill (Electricity Invercargill),AMCI,ECOT,2,0,2,0
+39,Invercargill (Electricity Invercargill),AMCI,MERI,74,0,12,62
+39,Invercargill (Electricity Invercargill),AMCI,GENE,12,0,3,9
+39,Invercargill (Electricity Invercargill),AMCI,CTCT,8,0,1,7
+39,Invercargill (Electricity Invercargill),AMCI,PUNZ,3,0,0,3
+39,Invercargill (Electricity Invercargill),AMCI,CTCS,11,0,5,6
+39,Invercargill (Electricity Invercargill),AMCI,MEEN,33,0,4,29
+39,Invercargill (Electricity Invercargill),DELT,MEEN,2,2,0,0
+39,Invercargill (Electricity Invercargill),ELIN,PUNZ,18,18,0,0
+39,Invercargill (Electricity Invercargill),ELIN,MERI,25,12,1,12
+39,Invercargill (Electricity Invercargill),ELIN,CTCS,1,0,1,0
+39,Invercargill (Electricity Invercargill),ELIN,GENE,19,17,0,2
+39,Invercargill (Electricity Invercargill),ELIN,TODD,2,2,0,0
+39,Invercargill (Electricity Invercargill),ELIN,PSNZ,10,9,1,0
+39,Invercargill (Electricity Invercargill),ELIN,TRUS,60,56,0,4
+39,Invercargill (Electricity Invercargill),ELIN,CTCT,107,91,3,13
+39,Invercargill (Electricity Invercargill),ELIN,SWCH,8,6,0,2
+39,Invercargill (Electricity Invercargill),ELIN,MEEN,31,27,1,3
+39,Invercargill (Electricity Invercargill),IHUB,SWCH,22,22,0,0
+39,Invercargill (Electricity Invercargill),IHUB,PSNZ,61,57,0,4
+39,Invercargill (Electricity Invercargill),IHUB,ELKI,8,8,0,0
+39,Invercargill (Electricity Invercargill),IHUB,MERI,92,52,4,36
+39,Invercargill (Electricity Invercargill),IHUB,CTCT,113,104,3,6
+39,Invercargill (Electricity Invercargill),IHUB,ECOT,1,0,0,1
+39,Invercargill (Electricity Invercargill),IHUB,PUNZ,27,27,0,0
+39,Invercargill (Electricity Invercargill),IHUB,GEOL,14,14,0,0
+39,Invercargill (Electricity Invercargill),IHUB,TRUS,12,11,0,1
+39,Invercargill (Electricity Invercargill),IHUB,MEEN,320,298,0,22
+39,Invercargill (Electricity Invercargill),IHUB,TODD,261,209,4,48
+39,Invercargill (Electricity Invercargill),IHUB,GENE,41,37,1,3
+39,Invercargill (Electricity Invercargill),MNON,ECOT,1,0,0,1
+39,Invercargill (Electricity Invercargill),MNON,MERI,2,0,0,2
+39,Invercargill (Electricity Invercargill),MTRX,PSNZ,6,3,0,3
+39,Invercargill (Electricity Invercargill),MTRX,SWCH,2,1,0,1
+39,Invercargill (Electricity Invercargill),MTRX,TODD,5,1,0,4
+39,Invercargill (Electricity Invercargill),MTRX,CTCT,13,13,0,0
+39,Invercargill (Electricity Invercargill),MTRX,ECOT,22,3,3,16
+39,Invercargill (Electricity Invercargill),MTRX,CTCS,6,0,2,4
+39,Invercargill (Electricity Invercargill),MTRX,PUNZ,2,1,0,1
+39,Invercargill (Electricity Invercargill),MTRX,MERI,42,4,1,37
+39,Invercargill (Electricity Invercargill),MTRX,MEEN,14,12,0,2
+39,Invercargill (Electricity Invercargill),MTRX,GENE,11,5,0,6
+39,Invercargill (Electricity Invercargill),NGCM,ECOT,1,1,0,0
+39,Invercargill (Electricity Invercargill),NGCM,SWCH,23,23,0,0
+39,Invercargill (Electricity Invercargill),NGCM,CTCT,146,138,2,6
+39,Invercargill (Electricity Invercargill),NGCM,ELKI,18,17,0,1
+39,Invercargill (Electricity Invercargill),NGCM,PSNZ,40,36,1,3
+39,Invercargill (Electricity Invercargill),NGCM,PUNZ,12,12,0,0
+39,Invercargill (Electricity Invercargill),NGCM,GBUG,67,67,0,0
+39,Invercargill (Electricity Invercargill),NGCM,GENE,69,66,1,2
+39,Invercargill (Electricity Invercargill),NGCM,CTCS,2,0,2,0
+39,Invercargill (Electricity Invercargill),NGCM,MEEN,105,101,2,2
+39,Invercargill (Electricity Invercargill),NGCM,MERI,70,42,5,23
+39,Invercargill (Electricity Invercargill),NGCM,TODD,7,7,0,0
+39,Invercargill (Electricity Invercargill),NGCM,TRUS,1,1,0,0
+39,Invercargill (Electricity Invercargill),NGCM,GEOL,7,7,0,0
+39,Invercargill (Electricity Invercargill),SMCO,PUNZ,598,581,3,14
+39,Invercargill (Electricity Invercargill),SMCO,CTCT,5691,5131,146,414
+39,Invercargill (Electricity Invercargill),SMCO,ECOT,50,24,3,23
+39,Invercargill (Electricity Invercargill),SMCO,MEEN,1793,1745,12,36
+39,Invercargill (Electricity Invercargill),SMCO,MERI,1919,1097,127,695
+39,Invercargill (Electricity Invercargill),SMCO,TRUS,2155,2080,8,67
+39,Invercargill (Electricity Invercargill),SMCO,GENE,1287,1178,17,92
+39,Invercargill (Electricity Invercargill),SMCO,PSNZ,1162,1076,9,77
+39,Invercargill (Electricity Invercargill),SMCO,SWCH,472,449,5,18
+39,Invercargill (Electricity Invercargill),SMCO,CTCS,5,0,4,1
+39,Invercargill (Electricity Invercargill),SMCO,TODD,91,75,2,14
+39,Invercargill (Electricity Invercargill),SMCO,GEOL,246,246,0,0
+39,Invercargill (Electricity Invercargill),SMCO,ELKI,293,287,0,6
+39,Invercargill (Electricity Invercargill),SMCO,EDGE,1,1,0,0
+39,Invercargill (Electricity Invercargill),SMCO,LNRG,1,0,0,1
+4,Auckland (Vector),ACCM,MEEN,2,0,0,2
+4,Auckland (Vector),ACCM,PUNZ,1,0,0,1
+4,Auckland (Vector),ACCM,GENE,11,0,2,9
+4,Auckland (Vector),ACCM,ECOT,2,0,2,0
+4,Auckland (Vector),ACCM,CTCS,1,0,1,0
+4,Auckland (Vector),ACCM,CTCT,1,0,1,0
+4,Auckland (Vector),AMCI,CTCS,209,0,93,116
+4,Auckland (Vector),AMCI,PRME,1,0,0,1
+4,Auckland (Vector),AMCI,SWCH,7,0,0,7
+4,Auckland (Vector),AMCI,MEEN,760,13,226,521
+4,Auckland (Vector),AMCI,ECOT,398,2,94,302
+4,Auckland (Vector),AMCI,MERI,830,3,205,622
+4,Auckland (Vector),AMCI,PUNZ,43,3,2,38
+4,Auckland (Vector),AMCI,CTCT,189,36,40,113
+4,Auckland (Vector),AMCI,PSNZ,5,2,0,3
+4,Auckland (Vector),AMCI,GENE,413,11,74,328
+4,Auckland (Vector),AMCI,PLUS,2,0,0,2
+4,Auckland (Vector),AMCI,TODD,94,1,28,65
+4,Auckland (Vector),AMCI,ELKI,81,0,24,57
+4,Auckland (Vector),AMCI,LNRG,8,0,2,6
+4,Auckland (Vector),AMCI,TRUS,2,2,0,0
+4,Auckland (Vector),BASI,MEEN,18,16,2,0
+4,Auckland (Vector),BOPE,MERI,174,47,7,120
+4,Auckland (Vector),BOPE,MEEN,514,458,12,44
+4,Auckland (Vector),BOPE,GEOL,34,34,0,0
+4,Auckland (Vector),BOPE,ELKI,39,37,0,2
+4,Auckland (Vector),BOPE,PUNZ,14,13,0,1
+4,Auckland (Vector),BOPE,OCTO,2,2,0,0
+4,Auckland (Vector),BOPE,HANE,2,2,0,0
+4,Auckland (Vector),BOPE,HNET,31,19,0,12
+4,Auckland (Vector),BOPE,GENE,194,141,1,52
+4,Auckland (Vector),BOPE,PLUS,1,1,0,0
+4,Auckland (Vector),BOPE,PSNZ,118,95,3,20
+4,Auckland (Vector),BOPE,SWCH,71,69,0,2
+4,Auckland (Vector),BOPE,ECOT,18,6,0,12
+4,Auckland (Vector),BOPE,TODD,328,107,21,200
+4,Auckland (Vector),BOPE,CTCT,360,325,5,30
+4,Auckland (Vector),COUP,MEEN,12,12,0,0
+4,Auckland (Vector),COUP,GENE,3,3,0,0
+4,Auckland (Vector),COUP,SWCH,3,3,0,0
+4,Auckland (Vector),COUP,PSNZ,1,1,0,0
+4,Auckland (Vector),COUP,CTCT,9,9,0,0
+4,Auckland (Vector),COUP,MERI,1,1,0,0
+4,Auckland (Vector),CTCT,MERI,27,0,0,27
+4,Auckland (Vector),DELT,CTCT,29,1,27,1
+4,Auckland (Vector),DELT,MEEN,3,2,0,1
+4,Auckland (Vector),DELT,GENE,1,1,0,0
+4,Auckland (Vector),FCLM,CTCT,1,1,0,0
+4,Auckland (Vector),FCLM,GENE,1,1,0,0
+4,Auckland (Vector),IHUB,CTCS,47,18,10,19
+4,Auckland (Vector),IHUB,SWCH,1898,1792,12,94
+4,Auckland (Vector),IHUB,EDGE,9,9,0,0
+4,Auckland (Vector),IHUB,PSNZ,2906,2476,61,369
+4,Auckland (Vector),IHUB,TTTL,3,2,0,1
+4,Auckland (Vector),IHUB,HANE,16,14,1,1
+4,Auckland (Vector),IHUB,ECOT,316,154,21,141
+4,Auckland (Vector),IHUB,GEOL,243,243,0,0
+4,Auckland (Vector),IHUB,HNET,795,664,10,121
+4,Auckland (Vector),IHUB,TODD,1838,1090,84,664
+4,Auckland (Vector),IHUB,LNRG,3,0,0,3
+4,Auckland (Vector),IHUB,PLUS,24,19,5,0
+4,Auckland (Vector),IHUB,WISE,876,875,0,1
+4,Auckland (Vector),IHUB,MEEN,22830,20784,502,1544
+4,Auckland (Vector),IHUB,MERI,3875,2090,221,1564
+4,Auckland (Vector),IHUB,GBUG,5,5,0,0
+4,Auckland (Vector),IHUB,GENE,3538,2889,76,573
+4,Auckland (Vector),IHUB,ADOE,4,1,0,3
+4,Auckland (Vector),IHUB,PUNZ,1399,1317,14,68
+4,Auckland (Vector),IHUB,OCTO,90,88,1,1
+4,Auckland (Vector),IHUB,CTCT,9547,8785,156,606
+4,Auckland (Vector),IHUB,ELKI,1002,972,5,25
+4,Auckland (Vector),IHUB,FOGY,144,143,0,1
+4,Auckland (Vector),IHUB,TRUS,1,1,0,0
+4,Auckland (Vector),IHUB,TLNT,1,1,0,0
+4,Auckland (Vector),MNON,CTCT,5,1,1,3
+4,Auckland (Vector),MNON,MEEN,87,9,5,73
+4,Auckland (Vector),MNON,MERI,73,0,2,71
+4,Auckland (Vector),MNON,GENE,332,0,3,329
+4,Auckland (Vector),MNON,ECOT,845,0,5,840
+4,Auckland (Vector),MNON,PUNZ,3,0,0,3
+4,Auckland (Vector),MNON,CTCS,1,0,0,1
+4,Auckland (Vector),MTRX,ECOT,3964,2386,139,1439
+4,Auckland (Vector),MTRX,TLNT,13,9,0,4
+4,Auckland (Vector),MTRX,ORSL,1,0,0,1
+4,Auckland (Vector),MTRX,PSNZ,12593,11274,129,1190
+4,Auckland (Vector),MTRX,PUNZ,3800,3452,23,325
+4,Auckland (Vector),MTRX,GEOL,3127,3126,0,1
+4,Auckland (Vector),MTRX,TRUS,135,125,3,7
+4,Auckland (Vector),MTRX,EDGE,12,11,1,0
+4,Auckland (Vector),MTRX,OCTO,403,391,4,8
+4,Auckland (Vector),MTRX,FOGY,596,593,0,3
+4,Auckland (Vector),MTRX,HANE,56,49,2,5
+4,Auckland (Vector),MTRX,ADOE,104,2,0,102
+4,Auckland (Vector),MTRX,DEEP,1,1,0,0
+4,Auckland (Vector),MTRX,ELKI,5701,5528,13,160
+4,Auckland (Vector),MTRX,CTCS,334,87,39,208
+4,Auckland (Vector),MTRX,MERI,16840,9788,685,6367
+4,Auckland (Vector),MTRX,SPEL,5,4,0,1
+4,Auckland (Vector),MTRX,WISE,1152,1152,0,0
+4,Auckland (Vector),MTRX,GIVE,5,4,1,0
+4,Auckland (Vector),MTRX,PLUS,30,22,3,5
+4,Auckland (Vector),MTRX,PRME,2,0,0,2
+4,Auckland (Vector),MTRX,CTCT,43114,39966,564,2584
+4,Auckland (Vector),MTRX,MEEN,93031,85609,1308,6114
+4,Auckland (Vector),MTRX,SWCH,6591,6241,53,297
+4,Auckland (Vector),MTRX,TODD,3470,2395,101,974
+4,Auckland (Vector),MTRX,HNET,1968,1749,8,211
+4,Auckland (Vector),MTRX,TTTL,1,1,0,0
+4,Auckland (Vector),MTRX,GBUG,6303,6303,0,0
+4,Auckland (Vector),MTRX,GENE,21538,19884,151,1503
+4,Auckland (Vector),MTRX,STAK,1,1,0,0
+4,Auckland (Vector),MTRX,ECOS,1,1,0,0
+4,Auckland (Vector),NGCM,SPEL,2,2,0,0
+4,Auckland (Vector),NGCM,ELKI,2522,2451,13,58
+4,Auckland (Vector),NGCM,GBUG,1667,1667,0,0
+4,Auckland (Vector),NGCM,MEEN,24891,23402,446,1043
+4,Auckland (Vector),NGCM,HNET,829,764,0,65
+4,Auckland (Vector),NGCM,SWCH,3436,3277,28,131
+4,Auckland (Vector),NGCM,OCTO,196,182,2,12
+4,Auckland (Vector),NGCM,ECOT,1036,230,319,487
+4,Auckland (Vector),NGCM,GENE,22165,19841,572,1752
+4,Auckland (Vector),NGCM,PLUS,23,16,3,4
+4,Auckland (Vector),NGCM,ADOE,6,0,0,6
+4,Auckland (Vector),NGCM,GIVE,2,1,1,0
+4,Auckland (Vector),NGCM,MERI,7772,4039,419,3314
+4,Auckland (Vector),NGCM,TRUS,28,28,0,0
+4,Auckland (Vector),NGCM,CTCS,78,36,16,26
+4,Auckland (Vector),NGCM,FOGY,340,339,0,1
+4,Auckland (Vector),NGCM,WISE,905,905,0,0
+4,Auckland (Vector),NGCM,EDGE,8,8,0,0
+4,Auckland (Vector),NGCM,HANE,622,518,99,5
+4,Auckland (Vector),NGCM,GEOL,1905,1902,2,1
+4,Auckland (Vector),NGCM,DEEP,15,14,1,0
+4,Auckland (Vector),NGCM,TODD,832,671,16,145
+4,Auckland (Vector),NGCM,PSNZ,5779,5151,80,548
+4,Auckland (Vector),NGCM,CTCT,26849,24106,831,1912
+4,Auckland (Vector),NGCM,PUNZ,1656,1558,25,73
+4,Auckland (Vector),NGCM,TLNT,3,2,0,1
+4,Auckland (Vector),NGCM,PRME,1,0,1,0
+4,Auckland (Vector),NGCM,LNRG,1,0,0,1
+4,Auckland (Vector),NGCM,TTTL,1,1,0,0
+40,Frankton (Lakelands),AMCI,MERI,8,0,0,8
+40,Frankton (Lakelands),AMCI,MEEN,1,0,0,1
+40,Frankton (Lakelands),AMCI,CTCS,5,0,1,4
+40,Frankton (Lakelands),AMCI,GENE,3,0,0,3
+40,Frankton (Lakelands),AMCI,ECOT,3,0,0,3
+40,Frankton (Lakelands),CTCT,GENE,1,0,0,1
+40,Frankton (Lakelands),IHUB,ECOT,11,9,0,2
+40,Frankton (Lakelands),IHUB,GENE,150,147,1,2
+40,Frankton (Lakelands),IHUB,OCTO,7,7,0,0
+40,Frankton (Lakelands),IHUB,CTCT,668,652,5,11
+40,Frankton (Lakelands),IHUB,GEOL,27,27,0,0
+40,Frankton (Lakelands),IHUB,MEEN,480,440,12,28
+40,Frankton (Lakelands),IHUB,PUNZ,34,33,0,1
+40,Frankton (Lakelands),IHUB,MERI,148,126,2,20
+40,Frankton (Lakelands),IHUB,PSNZ,173,167,0,6
+40,Frankton (Lakelands),IHUB,TODD,12,8,0,4
+40,Frankton (Lakelands),IHUB,ELKI,102,102,0,0
+40,Frankton (Lakelands),IHUB,TRUS,31,30,1,0
+40,Frankton (Lakelands),MTRX,MERI,69,19,5,45
+40,Frankton (Lakelands),MTRX,ELKI,2,2,0,0
+40,Frankton (Lakelands),MTRX,PSNZ,15,13,0,2
+40,Frankton (Lakelands),MTRX,MEEN,45,29,4,12
+40,Frankton (Lakelands),MTRX,CTCT,152,118,15,19
+40,Frankton (Lakelands),MTRX,PUNZ,5,5,0,0
+40,Frankton (Lakelands),MTRX,ECOT,20,15,2,3
+40,Frankton (Lakelands),MTRX,GENE,38,30,2,6
+40,Frankton (Lakelands),MTRX,TODD,4,1,0,3
+40,Frankton (Lakelands),MTRX,CTCS,1,0,0,1
+40,Frankton (Lakelands),NGCM,TRUS,3,3,0,0
+40,Frankton (Lakelands),NGCM,TODD,2,1,1,0
+40,Frankton (Lakelands),NGCM,MERI,135,80,9,46
+40,Frankton (Lakelands),NGCM,MEEN,101,84,9,8
+40,Frankton (Lakelands),NGCM,GBUG,2,2,0,0
+40,Frankton (Lakelands),NGCM,OCTO,3,3,0,0
+40,Frankton (Lakelands),NGCM,ECOT,13,9,0,4
+40,Frankton (Lakelands),NGCM,GENE,193,170,10,13
+40,Frankton (Lakelands),NGCM,PSNZ,121,111,0,10
+40,Frankton (Lakelands),NGCM,ELKI,60,60,0,0
+40,Frankton (Lakelands),NGCM,CTCT,514,467,6,41
+40,Frankton (Lakelands),NGCM,GEOL,26,26,0,0
+40,Frankton (Lakelands),NGCM,PUNZ,18,15,1,2
+40,Frankton (Lakelands),SMCO,GENE,298,260,26,12
+40,Frankton (Lakelands),SMCO,TODD,12,9,1,2
+40,Frankton (Lakelands),SMCO,OCTO,4,4,0,0
+40,Frankton (Lakelands),SMCO,TRUS,2,2,0,0
+40,Frankton (Lakelands),SMCO,PSNZ,98,90,1,7
+40,Frankton (Lakelands),SMCO,CTCT,806,763,26,17
+40,Frankton (Lakelands),SMCO,ECOT,7,7,0,0
+40,Frankton (Lakelands),SMCO,MERI,198,150,12,36
+40,Frankton (Lakelands),SMCO,PUNZ,27,23,3,1
+40,Frankton (Lakelands),SMCO,MEEN,95,94,0,1
+40,Frankton (Lakelands),SMCO,ELKI,54,53,0,1
+40,Frankton (Lakelands),SMCO,GEOL,11,11,0,0
+5,Counties (Counties Power),ACCM,PEAK,1,0,1,0
+5,Counties (Counties Power),AMCI,LNRG,1,0,1,0
+5,Counties (Counties Power),AMCI,MERI,20,0,6,14
+5,Counties (Counties Power),AMCI,MEEN,18,0,9,9
+5,Counties (Counties Power),AMCI,PUNZ,2,0,0,2
+5,Counties (Counties Power),AMCI,ELKI,1,0,0,1
+5,Counties (Counties Power),AMCI,GENE,18,0,1,17
+5,Counties (Counties Power),AMCI,CTCS,10,0,6,4
+5,Counties (Counties Power),AMCI,ECOT,19,0,14,5
+5,Counties (Counties Power),AMCI,CTCT,10,0,2,8
+5,Counties (Counties Power),AMCI,TODD,3,0,2,1
+5,Counties (Counties Power),AMCI,CNIR,1,0,1,0
+5,Counties (Counties Power),COUP,HANE,66,51,15,0
+5,Counties (Counties Power),COUP,CTCT,12865,10909,1326,630
+5,Counties (Counties Power),COUP,CTCS,73,21,38,14
+5,Counties (Counties Power),COUP,PUNZ,1080,1028,33,19
+5,Counties (Counties Power),COUP,OCTO,231,197,5,29
+5,Counties (Counties Power),COUP,TTTL,1,1,0,0
+5,Counties (Counties Power),COUP,EDGE,6,6,0,0
+5,Counties (Counties Power),COUP,SWCH,1084,1037,19,28
+5,Counties (Counties Power),COUP,HNET,175,157,14,4
+5,Counties (Counties Power),COUP,MEEN,12156,11272,488,396
+5,Counties (Counties Power),COUP,GENE,8068,7010,616,442
+5,Counties (Counties Power),COUP,TRUS,97,93,2,2
+5,Counties (Counties Power),COUP,WISE,224,224,0,0
+5,Counties (Counties Power),COUP,PSNZ,4424,4092,125,207
+5,Counties (Counties Power),COUP,TODD,1461,1089,163,209
+5,Counties (Counties Power),COUP,GEOL,2046,2039,7,0
+5,Counties (Counties Power),COUP,MANT,1,0,0,1
+5,Counties (Counties Power),COUP,ELKI,1197,1172,9,16
+5,Counties (Counties Power),COUP,ECOT,804,695,32,77
+5,Counties (Counties Power),COUP,MERI,3423,1519,986,918
+5,Counties (Counties Power),COUP,FOGY,186,186,0,0
+5,Counties (Counties Power),COUP,LNRG,14,0,14,0
+5,Counties (Counties Power),COUP,TLNT,1,1,0,0
+5,Counties (Counties Power),CTCT,MERI,4,0,0,4
+5,Counties (Counties Power),IHUB,MEEN,1,1,0,0
+5,Counties (Counties Power),MNON,ECOT,68,0,1,67
+5,Counties (Counties Power),MNON,GENE,14,0,1,13
+5,Counties (Counties Power),MNON,MERI,5,0,0,5
+5,Counties (Counties Power),MNON,MEEN,2,0,0,2
+5,Counties (Counties Power),MTRX,OCTO,3,3,0,0
+5,Counties (Counties Power),MTRX,CTCT,11,10,0,1
+5,Counties (Counties Power),MTRX,MERI,22,3,14,5
+5,Counties (Counties Power),MTRX,GENE,80,76,1,3
+5,Counties (Counties Power),MTRX,RERL,7,0,7,0
+5,Counties (Counties Power),MTRX,CTCS,3,0,2,1
+5,Counties (Counties Power),MTRX,ECOT,88,6,0,82
+5,Counties (Counties Power),MTRX,MEEN,13,11,2,0
+5,Counties (Counties Power),MTRX,EDGE,1,1,0,0
+5,Counties (Counties Power),MTRX,TODD,3,3,0,0
+5,Counties (Counties Power),MTRX,PSNZ,1,1,0,0
+5,Counties (Counties Power),NGCM,MERI,65,0,56,9
+5,Counties (Counties Power),NGCM,GENE,32,2,0,30
+5,Counties (Counties Power),NGCM,CTCT,1,1,0,0
+5,Counties (Counties Power),NGCM,MEEN,3,2,0,1
+5,Counties (Counties Power),NGCM,PSNZ,1,1,0,0
+5,Counties (Counties Power),NGCM,PUNZ,1,0,0,1
+6,Thames Valley (Powerco),ACCM,LODE,1,0,1,0
+6,Thames Valley (Powerco),ACCM,PUNZ,1,0,1,0
+6,Thames Valley (Powerco),ACCM,MEEN,1,0,1,0
+6,Thames Valley (Powerco),ACCM,MERI,1,0,0,1
+6,Thames Valley (Powerco),ACCM,CTCS,1,0,1,0
+6,Thames Valley (Powerco),AMCI,PUNZ,4,0,0,4
+6,Thames Valley (Powerco),AMCI,CTCT,8,0,0,8
+6,Thames Valley (Powerco),AMCI,ELKI,3,0,2,1
+6,Thames Valley (Powerco),AMCI,ECOT,10,0,4,6
+6,Thames Valley (Powerco),AMCI,MERI,56,0,34,22
+6,Thames Valley (Powerco),AMCI,TODD,5,0,3,2
+6,Thames Valley (Powerco),AMCI,LNRG,11,0,9,2
+6,Thames Valley (Powerco),AMCI,CTCS,14,0,10,4
+6,Thames Valley (Powerco),AMCI,GENE,37,0,15,22
+6,Thames Valley (Powerco),AMCI,MEEN,58,0,18,40
+6,Thames Valley (Powerco),BOPE,SWCH,2,2,0,0
+6,Thames Valley (Powerco),BOPE,ELKI,4,4,0,0
+6,Thames Valley (Powerco),BOPE,GENE,21,14,3,4
+6,Thames Valley (Powerco),BOPE,GEOL,4,4,0,0
+6,Thames Valley (Powerco),BOPE,PSNZ,4,2,0,2
+6,Thames Valley (Powerco),BOPE,CTCT,13,12,0,1
+6,Thames Valley (Powerco),BOPE,TODD,45,28,5,12
+6,Thames Valley (Powerco),BOPE,MEEN,40,37,1,2
+6,Thames Valley (Powerco),BOPE,MERI,13,4,0,9
+6,Thames Valley (Powerco),BOPE,PUNZ,1,0,1,0
+6,Thames Valley (Powerco),BOPE,TRUS,3,3,0,0
+6,Thames Valley (Powerco),CTCT,MEEN,1,0,0,1
+6,Thames Valley (Powerco),DELT,CTCT,14,0,14,0
+6,Thames Valley (Powerco),DELT,PUNZ,1,1,0,0
+6,Thames Valley (Powerco),IHUB,GEOL,37,37,0,0
+6,Thames Valley (Powerco),IHUB,ECOT,25,24,0,1
+6,Thames Valley (Powerco),IHUB,TODD,1341,1054,87,200
+6,Thames Valley (Powerco),IHUB,CTCT,222,214,4,4
+6,Thames Valley (Powerco),IHUB,HNET,132,124,1,7
+6,Thames Valley (Powerco),IHUB,PUNZ,155,149,3,3
+6,Thames Valley (Powerco),IHUB,FOGY,10,10,0,0
+6,Thames Valley (Powerco),IHUB,CTCS,5,1,2,2
+6,Thames Valley (Powerco),IHUB,MEEN,1492,1340,85,67
+6,Thames Valley (Powerco),IHUB,SWCH,53,51,0,2
+6,Thames Valley (Powerco),IHUB,EDGE,1,1,0,0
+6,Thames Valley (Powerco),IHUB,TRUS,271,258,9,4
+6,Thames Valley (Powerco),IHUB,PSNZ,161,156,1,4
+6,Thames Valley (Powerco),IHUB,ELKI,66,65,0,1
+6,Thames Valley (Powerco),IHUB,WISE,3,3,0,0
+6,Thames Valley (Powerco),IHUB,MERI,296,147,77,72
+6,Thames Valley (Powerco),IHUB,GENE,364,321,21,22
+6,Thames Valley (Powerco),IHUB,OCTO,11,11,0,0
+6,Thames Valley (Powerco),MNON,GENE,61,7,21,33
+6,Thames Valley (Powerco),MNON,ECOT,18,0,0,18
+6,Thames Valley (Powerco),MNON,MERI,11,0,1,10
+6,Thames Valley (Powerco),MNON,MEEN,5,1,1,3
+6,Thames Valley (Powerco),MTRX,WISE,2,2,0,0
+6,Thames Valley (Powerco),MTRX,GEOL,8,8,0,0
+6,Thames Valley (Powerco),MTRX,MEEN,478,425,35,18
+6,Thames Valley (Powerco),MTRX,LNRG,1,1,0,0
+6,Thames Valley (Powerco),MTRX,ELKI,17,15,1,1
+6,Thames Valley (Powerco),MTRX,RERL,134,0,134,0
+6,Thames Valley (Powerco),MTRX,HNET,10,10,0,0
+6,Thames Valley (Powerco),MTRX,TRUS,27,24,1,2
+6,Thames Valley (Powerco),MTRX,MERI,178,41,46,91
+6,Thames Valley (Powerco),MTRX,PSNZ,60,53,1,6
+6,Thames Valley (Powerco),MTRX,SWCH,19,18,1,0
+6,Thames Valley (Powerco),MTRX,CTCS,8,0,5,3
+6,Thames Valley (Powerco),MTRX,TODD,92,61,10,21
+6,Thames Valley (Powerco),MTRX,KEAE,1,0,1,0
+6,Thames Valley (Powerco),MTRX,FOGY,3,3,0,0
+6,Thames Valley (Powerco),MTRX,CTCT,105,87,12,6
+6,Thames Valley (Powerco),MTRX,PUNZ,41,38,1,2
+6,Thames Valley (Powerco),MTRX,GENE,204,152,24,28
+6,Thames Valley (Powerco),MTRX,OCTO,10,10,0,0
+6,Thames Valley (Powerco),MTRX,ECOT,509,399,15,95
+6,Thames Valley (Powerco),MTRX,ECOS,2,2,0,0
+6,Thames Valley (Powerco),NGCM,ECOS,3,3,0,0
+6,Thames Valley (Powerco),NGCM,HNET,266,258,0,8
+6,Thames Valley (Powerco),NGCM,FOGY,290,290,0,0
+6,Thames Valley (Powerco),NGCM,ELKI,2002,1949,25,28
+6,Thames Valley (Powerco),NGCM,MEEN,14550,13550,574,426
+6,Thames Valley (Powerco),NGCM,GENE,24890,20893,2576,1421
+6,Thames Valley (Powerco),NGCM,GBUG,121,121,0,0
+6,Thames Valley (Powerco),NGCM,LNRG,6,0,6,0
+6,Thames Valley (Powerco),NGCM,PLUS,2,2,0,0
+6,Thames Valley (Powerco),NGCM,SWCH,1325,1249,18,58
+6,Thames Valley (Powerco),NGCM,ECOT,299,208,11,80
+6,Thames Valley (Powerco),NGCM,MERI,7731,3110,2744,1877
+6,Thames Valley (Powerco),NGCM,PUNZ,3082,2996,39,47
+6,Thames Valley (Powerco),NGCM,TRUS,152,136,13,3
+6,Thames Valley (Powerco),NGCM,CTCT,8883,8123,344,416
+6,Thames Valley (Powerco),NGCM,GEOL,1268,1263,5,0
+6,Thames Valley (Powerco),NGCM,TODD,618,457,41,120
+6,Thames Valley (Powerco),NGCM,WISE,121,121,0,0
+6,Thames Valley (Powerco),NGCM,CTCS,32,8,16,8
+6,Thames Valley (Powerco),NGCM,PSNZ,3547,3204,87,256
+6,Thames Valley (Powerco),NGCM,OCTO,149,146,2,1
+6,Thames Valley (Powerco),NGCM,RERL,5,0,5,0
+6,Thames Valley (Powerco),NGCM,EDGE,10,10,0,0
+6,Thames Valley (Powerco),TPNZ,CTCS,2,0,2,0
+7,Waikato (WEL Networks),ACCM,MERI,2,0,2,0
+7,Waikato (WEL Networks),ACCM,GENE,2,0,0,2
+7,Waikato (WEL Networks),ACCM,ECOT,1,0,0,1
+7,Waikato (WEL Networks),ACCM,NPEL,3,0,3,0
+7,Waikato (WEL Networks),AMCI,PUNZ,6,0,0,6
+7,Waikato (WEL Networks),AMCI,CTCS,76,0,35,41
+7,Waikato (WEL Networks),AMCI,CTCT,55,0,20,35
+7,Waikato (WEL Networks),AMCI,GENE,300,0,81,219
+7,Waikato (WEL Networks),AMCI,ECOT,54,0,18,36
+7,Waikato (WEL Networks),AMCI,ELKI,15,0,8,7
+7,Waikato (WEL Networks),AMCI,SWCH,2,0,0,2
+7,Waikato (WEL Networks),AMCI,MERI,215,0,75,140
+7,Waikato (WEL Networks),AMCI,MEEN,243,0,87,156
+7,Waikato (WEL Networks),AMCI,TODD,30,0,8,22
+7,Waikato (WEL Networks),BOPE,ECOT,1,0,0,1
+7,Waikato (WEL Networks),BOPE,TODD,5,0,1,4
+7,Waikato (WEL Networks),BOPE,MERI,1,0,0,1
+7,Waikato (WEL Networks),CTCT,MERI,2,0,1,1
+7,Waikato (WEL Networks),CTCT,GENE,2,0,0,2
+7,Waikato (WEL Networks),DELT,MERI,1,0,0,1
+7,Waikato (WEL Networks),DELT,CTCT,3,0,3,0
+7,Waikato (WEL Networks),DELT,GENE,1,1,0,0
+7,Waikato (WEL Networks),IHUB,CTCT,361,340,4,17
+7,Waikato (WEL Networks),IHUB,MEEN,1331,1271,18,42
+7,Waikato (WEL Networks),IHUB,GEOL,19,19,0,0
+7,Waikato (WEL Networks),IHUB,ECOT,47,40,3,4
+7,Waikato (WEL Networks),IHUB,ELKI,61,60,0,1
+7,Waikato (WEL Networks),IHUB,WISE,55,55,0,0
+7,Waikato (WEL Networks),IHUB,TRUS,3,3,0,0
+7,Waikato (WEL Networks),IHUB,MERI,360,129,117,114
+7,Waikato (WEL Networks),IHUB,TODD,1648,1184,75,389
+7,Waikato (WEL Networks),IHUB,RERL,2,0,2,0
+7,Waikato (WEL Networks),IHUB,PUNZ,150,149,1,0
+7,Waikato (WEL Networks),IHUB,FOGY,46,46,0,0
+7,Waikato (WEL Networks),IHUB,SWCH,90,87,0,3
+7,Waikato (WEL Networks),IHUB,OCTO,26,15,3,8
+7,Waikato (WEL Networks),IHUB,HNET,187,171,1,15
+7,Waikato (WEL Networks),IHUB,GENE,553,493,13,47
+7,Waikato (WEL Networks),IHUB,CTCS,5,0,0,5
+7,Waikato (WEL Networks),IHUB,PSNZ,211,188,0,23
+7,Waikato (WEL Networks),MERG,MERI,1,0,1,0
+7,Waikato (WEL Networks),MNON,MEEN,4,0,0,4
+7,Waikato (WEL Networks),MNON,ECOT,44,0,6,38
+7,Waikato (WEL Networks),MNON,MERI,78,0,1,77
+7,Waikato (WEL Networks),MNON,GENE,46,0,0,46
+7,Waikato (WEL Networks),MTRX,HNET,3,1,0,2
+7,Waikato (WEL Networks),MTRX,MERI,151,13,30,108
+7,Waikato (WEL Networks),MTRX,TODD,36,16,2,18
+7,Waikato (WEL Networks),MTRX,ECOT,823,665,8,150
+7,Waikato (WEL Networks),MTRX,RERL,57,0,57,0
+7,Waikato (WEL Networks),MTRX,PSNZ,30,15,0,15
+7,Waikato (WEL Networks),MTRX,PUNZ,31,30,1,0
+7,Waikato (WEL Networks),MTRX,FOGY,4,4,0,0
+7,Waikato (WEL Networks),MTRX,SWCH,12,8,0,4
+7,Waikato (WEL Networks),MTRX,TRUS,8,6,1,1
+7,Waikato (WEL Networks),MTRX,CTCS,15,0,5,10
+7,Waikato (WEL Networks),MTRX,MEEN,141,110,10,21
+7,Waikato (WEL Networks),MTRX,GENE,124,54,8,62
+7,Waikato (WEL Networks),MTRX,ELKI,5,5,0,0
+7,Waikato (WEL Networks),MTRX,CTCT,51,33,9,9
+7,Waikato (WEL Networks),MTRX,OCTO,14,14,0,0
+7,Waikato (WEL Networks),NGCM,TODD,793,690,17,86
+7,Waikato (WEL Networks),NGCM,CTCT,12548,11610,408,530
+7,Waikato (WEL Networks),NGCM,MERI,6575,3070,1424,2081
+7,Waikato (WEL Networks),NGCM,GEOL,665,665,0,0
+7,Waikato (WEL Networks),NGCM,RERL,3,0,3,0
+7,Waikato (WEL Networks),NGCM,PSNZ,4800,4447,45,308
+7,Waikato (WEL Networks),NGCM,HNET,261,242,1,18
+7,Waikato (WEL Networks),NGCM,SWCH,2229,2136,15,78
+7,Waikato (WEL Networks),NGCM,GENE,35468,30755,2114,2599
+7,Waikato (WEL Networks),NGCM,ECOT,479,227,25,227
+7,Waikato (WEL Networks),NGCM,MEEN,22136,20931,588,617
+7,Waikato (WEL Networks),NGCM,PUNZ,2527,2475,17,35
+7,Waikato (WEL Networks),NGCM,ELKI,1832,1778,23,31
+7,Waikato (WEL Networks),NGCM,CTCS,51,17,11,23
+7,Waikato (WEL Networks),NGCM,OCTO,468,403,10,55
+7,Waikato (WEL Networks),NGCM,EDGE,6,6,0,0
+7,Waikato (WEL Networks),NGCM,PLUS,2,2,0,0
+7,Waikato (WEL Networks),NGCM,WISE,204,204,0,0
+7,Waikato (WEL Networks),NGCM,FOGY,1415,1408,1,6
+7,Waikato (WEL Networks),NGCM,TRUS,395,342,34,19
+7,Waikato (WEL Networks),NGCM,GBUG,246,246,0,0
+7,Waikato (WEL Networks),NGCM,ECOS,4,3,0,1
+7,Waikato (WEL Networks),NGCM,HANE,1,1,0,0
+7,Waikato (WEL Networks),WASN,SWCH,17,17,0,0
+7,Waikato (WEL Networks),WASN,TODD,15,15,0,0
+7,Waikato (WEL Networks),WASN,WISE,13,13,0,0
+7,Waikato (WEL Networks),WASN,FOGY,12,12,0,0
+7,Waikato (WEL Networks),WASN,HNET,4,4,0,0
+7,Waikato (WEL Networks),WASN,OCTO,7,7,0,0
+7,Waikato (WEL Networks),WASN,ECOT,52,16,30,6
+7,Waikato (WEL Networks),WASN,PSNZ,35,35,0,0
+7,Waikato (WEL Networks),WASN,MERI,73,42,12,19
+7,Waikato (WEL Networks),WASN,PUNZ,25,25,0,0
+7,Waikato (WEL Networks),WASN,MEEN,88,88,0,0
+7,Waikato (WEL Networks),WASN,CTCT,35,34,0,1
+7,Waikato (WEL Networks),WASN,GENE,136,132,3,1
+7,Waikato (WEL Networks),WASN,TRUS,1,1,0,0
+7,Waikato (WEL Networks),WASN,GIVE,1,1,0,0
+8,Waipa (Waipa Networks),ACCM,GENE,1,0,0,1
+8,Waipa (Waipa Networks),ACCM,MERI,1,0,1,0
+8,Waipa (Waipa Networks),ACCM,MEEN,1,0,1,0
+8,Waipa (Waipa Networks),AMCI,MERI,30,0,12,18
+8,Waipa (Waipa Networks),AMCI,CTCT,9,0,4,5
+8,Waipa (Waipa Networks),AMCI,GENE,39,0,7,32
+8,Waipa (Waipa Networks),AMCI,CTCS,10,0,8,2
+8,Waipa (Waipa Networks),AMCI,TODD,5,0,1,4
+8,Waipa (Waipa Networks),AMCI,MEEN,21,0,5,16
+8,Waipa (Waipa Networks),AMCI,LNRG,1,0,1,0
+8,Waipa (Waipa Networks),AMCI,ECOT,1,0,0,1
+8,Waipa (Waipa Networks),AMCI,PUNZ,2,0,0,2
+8,Waipa (Waipa Networks),BOPE,GENE,3,3,0,0
+8,Waipa (Waipa Networks),BOPE,PSNZ,3,3,0,0
+8,Waipa (Waipa Networks),BOPE,CTCT,5,5,0,0
+8,Waipa (Waipa Networks),BOPE,PUNZ,1,1,0,0
+8,Waipa (Waipa Networks),BOPE,TODD,13,9,1,3
+8,Waipa (Waipa Networks),BOPE,SWCH,1,1,0,0
+8,Waipa (Waipa Networks),BOPE,MEEN,8,6,1,1
+8,Waipa (Waipa Networks),BOPE,MERI,1,1,0,0
+8,Waipa (Waipa Networks),CTCT,GENE,2,0,0,2
+8,Waipa (Waipa Networks),CTCT,MERI,1,0,0,1
+8,Waipa (Waipa Networks),DELT,CTCT,3,0,3,0
+8,Waipa (Waipa Networks),IHUB,CTCS,10,2,4,4
+8,Waipa (Waipa Networks),IHUB,MERI,834,338,399,97
+8,Waipa (Waipa Networks),IHUB,MEEN,3642,3007,438,197
+8,Waipa (Waipa Networks),IHUB,SWCH,134,125,3,6
+8,Waipa (Waipa Networks),IHUB,GENE,1154,948,144,62
+8,Waipa (Waipa Networks),IHUB,HNET,51,47,0,4
+8,Waipa (Waipa Networks),IHUB,ECOT,73,69,2,2
+8,Waipa (Waipa Networks),IHUB,FOGY,24,24,0,0
+8,Waipa (Waipa Networks),IHUB,CTCT,592,535,33,24
+8,Waipa (Waipa Networks),IHUB,PUNZ,179,171,3,5
+8,Waipa (Waipa Networks),IHUB,ELKI,188,181,6,1
+8,Waipa (Waipa Networks),IHUB,GEOL,137,137,0,0
+8,Waipa (Waipa Networks),IHUB,EDGE,3,2,1,0
+8,Waipa (Waipa Networks),IHUB,TRUS,1312,1070,170,72
+8,Waipa (Waipa Networks),IHUB,TODD,697,543,48,106
+8,Waipa (Waipa Networks),IHUB,PSNZ,508,476,8,24
+8,Waipa (Waipa Networks),MNON,ECOT,31,0,0,31
+8,Waipa (Waipa Networks),MNON,MEEN,5,0,0,5
+8,Waipa (Waipa Networks),MNON,GENE,14,0,0,14
+8,Waipa (Waipa Networks),MNON,MERI,13,0,2,11
+8,Waipa (Waipa Networks),MNON,CTCS,2,0,0,2
+8,Waipa (Waipa Networks),MTRX,RERL,79,0,79,0
+8,Waipa (Waipa Networks),MTRX,MEEN,1131,863,140,128
+8,Waipa (Waipa Networks),MTRX,GENE,1012,792,127,93
+8,Waipa (Waipa Networks),MTRX,GEOL,71,71,0,0
+8,Waipa (Waipa Networks),MTRX,SWCH,102,91,2,9
+8,Waipa (Waipa Networks),MTRX,PUNZ,113,106,3,4
+8,Waipa (Waipa Networks),MTRX,TODD,158,123,7,28
+8,Waipa (Waipa Networks),MTRX,PSNZ,184,165,2,17
+8,Waipa (Waipa Networks),MTRX,CTCT,368,296,24,48
+8,Waipa (Waipa Networks),MTRX,TRUS,3,2,1,0
+8,Waipa (Waipa Networks),MTRX,ELKI,82,81,0,1
+8,Waipa (Waipa Networks),MTRX,FOGY,9,9,0,0
+8,Waipa (Waipa Networks),MTRX,EDGE,1,1,0,0
+8,Waipa (Waipa Networks),MTRX,CTCS,6,0,4,2
+8,Waipa (Waipa Networks),MTRX,MERI,412,125,151,136
+8,Waipa (Waipa Networks),MTRX,HNET,24,18,0,6
+8,Waipa (Waipa Networks),MTRX,ECOT,309,229,8,72
+8,Waipa (Waipa Networks),MTRX,ECOS,2,2,0,0
+8,Waipa (Waipa Networks),MTRX,PLUS,1,0,0,1
+8,Waipa (Waipa Networks),NGCM,HNET,18,17,0,1
+8,Waipa (Waipa Networks),NGCM,MEEN,2641,2471,86,84
+8,Waipa (Waipa Networks),NGCM,CTCS,8,0,1,7
+8,Waipa (Waipa Networks),NGCM,GEOL,613,612,1,0
+8,Waipa (Waipa Networks),NGCM,FOGY,74,74,0,0
+8,Waipa (Waipa Networks),NGCM,MERI,1685,720,573,392
+8,Waipa (Waipa Networks),NGCM,TRUS,111,94,11,6
+8,Waipa (Waipa Networks),NGCM,GBUG,31,31,0,0
+8,Waipa (Waipa Networks),NGCM,ADOE,1,1,0,0
+8,Waipa (Waipa Networks),NGCM,ECOT,111,93,8,10
+8,Waipa (Waipa Networks),NGCM,EDGE,4,3,1,0
+8,Waipa (Waipa Networks),NGCM,TODD,150,133,8,9
+8,Waipa (Waipa Networks),NGCM,CTCT,2597,2325,160,112
+8,Waipa (Waipa Networks),NGCM,GENE,5723,5056,431,236
+8,Waipa (Waipa Networks),NGCM,OCTO,2,2,0,0
+8,Waipa (Waipa Networks),NGCM,PSNZ,1115,1052,18,45
+8,Waipa (Waipa Networks),NGCM,PUNZ,486,471,7,8
+8,Waipa (Waipa Networks),NGCM,SWCH,318,295,7,16
+8,Waipa (Waipa Networks),NGCM,ELKI,542,532,2,8
+8,Waipa (Waipa Networks),NGCM,LNRG,1,0,0,1
+8,Waipa (Waipa Networks),TRUM,GENE,1,0,0,1
+9,King Country (The Lines Company),ACCM,MEEN,1,0,0,1
+9,King Country (The Lines Company),ACCM,PUNZ,2,0,2,0
+9,King Country (The Lines Company),ACCM,CTCS,1,0,1,0
+9,King Country (The Lines Company),ACCM,CTCT,1,0,1,0
+9,King Country (The Lines Company),AMCI,ELKI,2,0,2,0
+9,King Country (The Lines Company),AMCI,MEEN,21,0,6,15
+9,King Country (The Lines Company),AMCI,CTCS,8,0,5,3
+9,King Country (The Lines Company),AMCI,ECOT,4,0,4,0
+9,King Country (The Lines Company),AMCI,MERI,3,0,2,1
+9,King Country (The Lines Company),AMCI,GENE,11,0,2,9
+9,King Country (The Lines Company),AMCI,CTCT,3,0,0,3
+9,King Country (The Lines Company),AMCI,PUNZ,2,0,1,1
+9,King Country (The Lines Company),CTCT,ECOT,1,0,0,1
+9,King Country (The Lines Company),FCLM,GEOL,1,1,0,0
+9,King Country (The Lines Company),FCLM,MERI,1,0,0,1
+9,King Country (The Lines Company),FCLM,ECOT,1,0,0,1
+9,King Country (The Lines Company),IHUB,MEEN,1,0,0,1
+9,King Country (The Lines Company),MNON,MERI,8,0,0,8
+9,King Country (The Lines Company),MNON,GENE,20,0,0,20
+9,King Country (The Lines Company),MNON,ECOT,25,0,0,25
+9,King Country (The Lines Company),MNON,MEEN,5,0,0,5
+9,King Country (The Lines Company),MNON,TODD,1,0,0,1
+9,King Country (The Lines Company),MNON,CTCS,1,0,0,1
+9,King Country (The Lines Company),MTRX,CTCS,206,4,70,132
+9,King Country (The Lines Company),MTRX,HNET,17,15,0,2
+9,King Country (The Lines Company),MTRX,FOGY,113,113,0,0
+9,King Country (The Lines Company),MTRX,ELKI,548,519,14,15
+9,King Country (The Lines Company),MTRX,PSNZ,768,720,8,40
+9,King Country (The Lines Company),MTRX,TODD,249,166,16,67
+9,King Country (The Lines Company),MTRX,PUNZ,573,540,20,13
+9,King Country (The Lines Company),MTRX,EDGE,1,1,0,0
+9,King Country (The Lines Company),MTRX,MEEN,11089,8746,1574,769
+9,King Country (The Lines Company),MTRX,GIVE,3,0,3,0
+9,King Country (The Lines Company),MTRX,SWCH,561,532,7,22
+9,King Country (The Lines Company),MTRX,GENE,4825,4094,472,259
+9,King Country (The Lines Company),MTRX,ECOT,254,119,11,124
+9,King Country (The Lines Company),MTRX,RERL,29,0,29,0
+9,King Country (The Lines Company),MTRX,MERI,2921,1067,1155,699
+9,King Country (The Lines Company),MTRX,ECOS,3,3,0,0
+9,King Country (The Lines Company),MTRX,CTCT,1879,1692,75,112
+9,King Country (The Lines Company),MTRX,PLTM,1,1,0,0
+9,King Country (The Lines Company),NGCM,MERI,3,0,0,3
+9,King Country (The Lines Company),NGCM,MEEN,1,0,0,1
+9,King Country (The Lines Company),NGCM,ECOT,1,0,0,1
