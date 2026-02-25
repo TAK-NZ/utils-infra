@@ -296,10 +296,11 @@ export class UtilsInfraStack extends cdk.Stack {
         }
         
         // Get ECR repository ARN from BaseInfra and extract repository name
-        const ecrRepoArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ECR_ETL_REPO));
+        const ecrRepoArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ECR_REPO));
         // Extract repository name from ARN (format: arn:aws:ecr:region:account:repository/name)
         const ecrRepoName = Fn.select(1, Fn.split('/', ecrRepoArn));
-        containerImageUri = `${this.account}.dkr.ecr.${this.region}.amazonaws.com/${cdk.Token.asString(ecrRepoName)}:${imageTag}`;
+        // Add utils- prefix to image tag
+        containerImageUri = `${this.account}.dkr.ecr.${this.region}.amazonaws.com/${cdk.Token.asString(ecrRepoName)}:utils-${imageTag}`;
       }
 
       // Add environment variables for S3 config access
