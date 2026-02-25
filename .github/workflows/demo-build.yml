@@ -55,7 +55,7 @@ jobs:
           # Get ECR repository ARN from BaseInfra exports
           ECR_REPO_ARN=$(aws cloudformation describe-stacks \
             --stack-name TAK-${{ vars.DEMO_STACK_NAME }}-BaseInfra \
-            --query 'Stacks[0].Outputs[?OutputKey==`EcrEtlTasksRepoArnOutput`].OutputValue' \
+            --query 'Stacks[0].Outputs[?OutputKey==`EcrArtifactsRepoArnOutput`].OutputValue' \
             --output text)
           
           if [[ -z "$ECR_REPO_ARN" ]]; then
@@ -105,12 +105,12 @@ jobs:
             # Get version from cdk.json
             VERSION=$(jq -r ".context[\"dev-test\"].containers[\"$container\"].imageTag" cdk.json)
             
-            # Generate tag
+            # Generate tag with utils- prefix
             if [[ "${{ github.event.inputs.force_rebuild }}" == "true" ]]; then
               TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-              TAG="$container-${TIMESTAMP}"
+              TAG="utils-$container-${TIMESTAMP}"
             else
-              TAG="$container-${VERSION}"
+              TAG="utils-$container-${VERSION}"
             fi
             
             # Check if image already exists
