@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 3000;
 const CONFIG_BUCKET = process.env.CONFIG_BUCKET;
 const CONFIG_KEY = process.env.CONFIG_KEY || 'ETL-Util-Weather-Proxy-Api-Keys.json';
 const MAX_ZOOM_LEVEL = 9;
+const RAINVIEWER_MAX_ZOOM = 7; // RainViewer only supports zoom 0-7, higher zooms are upscaled
 const RATE_LIMIT_PER_MINUTE = 600; // RainViewer allows 600 requests per minute
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -315,6 +316,38 @@ class WeatherProvider {
 // RainViewer provider implementation
 class RainViewerProvider extends WeatherProvider {
   async getTile(z, x, y, options) {
+    const { smooth = 0, size = 256, snow = 0, color = 2 } = options;
+    
+    // Upscale from z=7 ancestor for zoom levels 8-9
+    if (z > RAINVIEWER_MAX_ZOOM) {
+      return await this.getUpscaledTile(z, x, y, options);
+    }
+    
+    return await this.fetchTile(z, x, y, options);
+  }
+  
+  async getUpscaledTile(z, x, y, options) {
+    const { size = 256 } = options;
+    const zoomDiff = z - RAINVIEWER_MAX_ZOOM;
+    const scale = Math.pow(2, zoomDiff);
+    const ancestorX = Math.floor(x / scale);
+    const ancestorY = Math.floor(y / scale);
+    
+    // Fetch ancestor tile at native 256 to crop precisely
+    const ancestorBuffer = await this.fetchTile(RAINVIEWER_MAX_ZOOM, ancestorX, ancestorY, { ...options, size: 256 });
+    
+    const cropSize = Math.floor(256 / scale);
+    const offsetX = (x % scale) * cropSize;
+    const offsetY = (y % scale) * cropSize;
+    
+    return await sharp(ancestorBuffer)
+      .extract({ left: offsetX, top: offsetY, width: cropSize, height: cropSize })
+      .resize(size, size, { kernel: 'nearest' })
+      .png()
+      .toBuffer();
+  }
+  
+  async fetchTile(z, x, y, options) {
     const { smooth = 0, size = 256, snow = 0, color = 2 } = options;
     
     return await retryWithBackoff(async () => {
@@ -773,7 +806,7 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Weather radar proxy server running on port ${PORT}`);
-    console.log(`Max zoom: ${MAX_ZOOM_LEVEL}, Rate limit: ${RATE_LIMIT_PER_MINUTE}/min`);
+    console.log(`Max zoom: ${MAX_ZOOM_LEVEL}, RainViewer max native zoom: ${RAINVIEWER_MAX_ZOOM} (z${RAINVIEWER_MAX_ZOOM+1}-${MAX_ZOOM_LEVEL} upscaled), Rate limit: ${RATE_LIMIT_PER_MINUTE}/min`);
     console.log(`Providers: RainViewer (public), Rainbow.ai (API key required)`);
     console.log(`Supports: ?provider=rainviewer|rainbow, ?size=256|512, ?smooth=0|1, ?snow=0|1, ?color=0-8, ?forecast=0-240`);
 });

@@ -31,6 +31,8 @@ GET /weather-radar/{z}/{x}/{y}.png
 
 **Parameters:**
 - `z` - Zoom level (0-9)
+  - RainViewer: native data at z0-7, z8-9 are upscaled from z7
+  - Rainbow.ai: native data at all zoom levels
 - `x` - Tile X coordinate
 - `y` - Tile Y coordinate
 
@@ -207,6 +209,7 @@ For detailed specifications:
 ## Integration Notes
 
 - **Caching**: Tiles are cached for 10 minutes
+- **Zoom Limits**: RainViewer natively supports z0-7; zoom levels 8-9 are served by cropping and upscaling the z7 ancestor tile. Rainbow.ai supports all zoom levels natively
 - **Attribution**: Weather data provided by RainViewer.com or Rainbow.ai
 - **CORS**: Cross-origin requests are supported
 - **Retry Logic**: Service automatically retries failed requests
