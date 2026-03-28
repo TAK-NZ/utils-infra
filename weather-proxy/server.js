@@ -617,7 +617,7 @@ app.get('/weather-radar/health', async (req, res) => {
         res.json({ 
             status: 'ok', 
             cache_keys: cache.keys().length,
-            timestamp_cache: timestampCache.keys().length,
+            timestamp_cache: pathCache.keys().length,
             api_keys_configured: rainviewerKeys + apiKeys,
             public_mode: !!keys._publicMode,
             config_bucket: !!CONFIG_BUCKET,
