@@ -5,7 +5,7 @@ const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 
 const app = express();
 const cache = new NodeCache({ stdTTL: 600 }); // 10 minutes cache
-const timestampCache = new NodeCache({ stdTTL: 300 }); // 5 minutes for timestamps
+const pathCache = new NodeCache({ stdTTL: 300 }); // 5 minutes cache
 const rateLimitCache = new NodeCache({ stdTTL: 60 }); // 1 minute for rate limiting
 const apiKeyCache = new NodeCache({ stdTTL: 3600 }); // 1 hour for API keys
 
@@ -163,9 +163,11 @@ app.set('trust proxy', true);
 
 
 
-// Get latest radar timestamp from RainViewer
-async function getLatestTimestamp() {
-    const cached = timestampCache.get('latest');
+// Get latest radar path from RainViewer
+async function getLatestPath() {
+    // Note: Make sure to rename `timestampCache` to `pathCache` at the top of your file:
+    // const pathCache = new NodeCache({ stdTTL: 300 });
+    const cached = pathCache.get('latest');
     if (cached) return cached;
     
     const controller = new AbortController();
@@ -183,17 +185,17 @@ async function getLatestTimestamp() {
         }
         
         const data = await response.json();
+        
+        // Grab the path hash from the last element in the past array
         const latest = data.radar.past[data.radar.past.length - 1];
         
-        timestampCache.set('latest', latest.time);
-        return latest.time;
+        pathCache.set('latest', latest.path);
+        return latest.path;
     } catch (error) {
         clearTimeout(timeoutId);
-        console.error('Failed to get timestamp, using fallback:', error.message);
-        // Use current time minus 10 minutes as fallback
-        const fallbackTime = Math.floor((Date.now() - 600000) / 1000);
-        timestampCache.set('latest', fallbackTime);
-        return fallbackTime;
+        console.error('Failed to get path from RainViewer:', error.message);
+        // Fallbacks using math no longer work with hashes, so we must throw
+        throw new Error('Could not retrieve latest radar path');
     }
 }
 
@@ -311,6 +313,10 @@ class WeatherProvider {
   async getLatestTimestamp() {
     throw new Error('getLatestTimestamp must be implemented by subclass');
   }
+  
+  async getLatestPath() {
+    throw new Error('getLatestPath must be implemented by subclass');
+  }
 }
 
 // RainViewer provider implementation
@@ -351,9 +357,12 @@ class RainViewerProvider extends WeatherProvider {
     const { smooth = 0, size = 256, snow = 0, color = 2 } = options;
     
     return await retryWithBackoff(async () => {
-      const timestamp = await this.getLatestTimestamp();
+      // Fetch the new path hash instead of the timestamp
+      const path = await this.getLatestPath();
       const rainviewerColor = mapColorToProvider(color, 'rainviewer');
-      const url = `https://tilecache.rainviewer.com/v2/radar/${timestamp}/${size}/${z}/${x}/${y}/${rainviewerColor}/${smooth}_${snow}.png`;
+      
+      // The path variable already includes '/v2/radar/[hash]'
+      const url = `https://tilecache.rainviewer.com${path}/${size}/${z}/${x}/${y}/${rainviewerColor}/${smooth}_${snow}.png`;
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -389,8 +398,9 @@ class RainViewerProvider extends WeatherProvider {
     });
   }
   
-  async getLatestTimestamp() {
-    return await getLatestTimestamp();
+  // Update this wrapper function to point to our new global getLatestPath()
+  async getLatestPath() {
+    return await getLatestPath();
   }
 }
 
