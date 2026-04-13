@@ -34,23 +34,7 @@ const rateLimitCache = new Map();
 const clientStatusCache = new Map(); // Track AIS upload clients
 const MAX_VESSEL_CACHE_SIZE = 50000;
 const MAX_RATE_LIMIT_CACHE_SIZE = 10000;
-const nameLookupQueue = [];
-let nameLookupInProgress = false;
-
-
-
 const RATE_LIMIT_PER_MINUTE = 600;
-const NAME_LOOKUP_DELAY = 5000; // 5 seconds between lookups (more conservative due to rate limiting)
-const MAX_LOOKUP_RETRIES = 3;
-const LOOKUP_BACKOFF_MULTIPLIER = 2;
-
-
-// Circuit breaker for VesselFinder API
-let circuitBreakerState = 'CLOSED'; // CLOSED, OPEN, HALF_OPEN
-let failureCount = 0;
-let lastFailureTime = null;
-const FAILURE_THRESHOLD = 5;
-const CIRCUIT_BREAKER_TIMEOUT = 300000; // 5 minutes
 
 // Sanitize log input to prevent log injection
 function sanitizeLogInput(input) {
@@ -166,58 +150,12 @@ function loadCache() {
     if (fs.existsSync(CACHE_FILE)) {
       const data = fs.readFileSync(CACHE_FILE, 'utf8');
       const cached = JSON.parse(data);
-      let queuedForLookup = 0;
-      
       for (const [mmsi, vessel] of Object.entries(cached)) {
         vessel.lastUpdate = new Date(vessel.lastUpdate);
-        // Fix date parsing for _nameLastLookup
-        if (vessel._nameLastLookup && typeof vessel._nameLastLookup === 'string') {
-          vessel._nameLastLookup = new Date(vessel._nameLastLookup);
-        }
         vesselCache.set(parseInt(mmsi), vessel);
-        
-        // Queue existing vessels that need lookup
-        const needsLookup = (
-          // Class B vessels without names
-          (!vessel.NAME && (vessel._messageType === 'StandardClassBPositionReport' || vessel._messageType === 'ExtendedClassBPositionReport')) ||
-          // Any vessel without type information
-          (vessel.TYPE === null && vessel._messageType !== 'AidsToNavigationReport')
-        );
-        
-        if (needsLookup) {
-          // For startup, be more aggressive about queuing lookups for vessels with TYPE=null
-          // even if they were looked up recently, since the lookup logic was just fixed
-          const shouldQueue = !vessel._nameLastLookup || 
-                             vessel.TYPE === null || 
-                             (!vessel.NAME && (vessel._messageType === 'StandardClassBPositionReport' || vessel._messageType === 'ExtendedClassBPositionReport'));
-          
-          if (shouldQueue) {
-            queueNameLookup(parseInt(mmsi));
-            queuedForLookup++;
-          }
-        }
       }
       
-      console.log(`Loaded ${vesselCache.size} vessels from cache, queued ${queuedForLookup} for lookup`);
-      
-      // Diagnostic: Show some Class B vessels that need lookups
-      let classBCount = 0;
-      let classBWithoutNames = 0;
-      for (const [mmsi, vessel] of vesselCache.entries()) {
-        if (vessel._messageType === 'StandardClassBPositionReport' || vessel._messageType === 'ExtendedClassBPositionReport') {
-          classBCount++;
-          if (!vessel.NAME) {
-            classBWithoutNames++;
-            if (classBWithoutNames <= 5) { // Show first 5 examples
-              const lastLookup = vessel._nameLastLookup ? 
-                (vessel._nameLastLookup instanceof Date ? vessel._nameLastLookup.toISOString() : vessel._nameLastLookup) : 
-                'never';
-              console.log(`  Example Class B without name: MMSI ${mmsi}, last lookup: ${lastLookup}`);
-            }
-          }
-        }
-      }
-      console.log(`Class B vessels: ${classBCount} total, ${classBWithoutNames} without names`);
+      console.log(`Loaded ${vesselCache.size} vessels from cache`);
     }
   } catch (error) {
     if (error.code === 'ENOENT') {
@@ -354,312 +292,7 @@ function scheduleReconnect() {
   setTimeout(connectToAISStream, delay);
 }
 
-// Vessel type mapping from VesselFinder text to AIS codes
-const VESSEL_TYPE_MAPPING = {
-  'cargo ship': 70,
-  'cargo': 70,
-  'container ship': 70,
-  'bulk carrier': 70,
-  'general cargo': 70,
-  'tanker': 80,
-  'oil tanker': 80,
-  'chemical tanker': 80,
-  'gas tanker': 80,
-  'passenger ship': 60,
-  'passenger': 60,
-  'cruise ship': 60,
-  'ferry': 60,
-  'ro-ro passenger': 60,
-  'fishing vessel': 30,
-  'fishing': 30,
-  'fishing support vessel': 30,
-  'tug': 52,
-  'tugboat': 52,
-  'pilot vessel': 50,
-  'pilot': 50,
-  'pleasure craft': 37,
-  'yacht': 37,
-  'sailing vessel': 36,
-  'sailing': 36,
-  'military': 35,
-  'naval': 35,
-  'warship': 35,
-  'research vessel': 58,
-  'research': 58,
-  'supply vessel': 79,
-  'offshore supply': 79,
-  'platform supply': 79,
-  'anchor handling': 79,
-  'dredger': 33,
-  'diving vessel': 33,
-  'law enforcement': 55,
-  'patrol vessel': 55,
-  'rescue vessel': 51,
-  'search and rescue': 51,
-  'icebreaker': 52,
-  'cable layer': 57,
-  'pipe layer': 57,
-  // Additional types found from analysis
-  'towing vessel': 52,
-  'hsc': 40, // High speed craft
-  'wig': 20, // Wing in ground
-  'dredging or uw ops': 33,
-  'sar': 51, // Search and rescue
-  'other type': 0, // Not available
-  'unknown': 0 // Not available
-};
 
-// Track unknown vessel types for future mapping
-const unknownVesselTypes = new Set();
-
-// Check circuit breaker state
-function checkCircuitBreaker() {
-  if (circuitBreakerState === 'OPEN') {
-    if (Date.now() - lastFailureTime > CIRCUIT_BREAKER_TIMEOUT) {
-      circuitBreakerState = 'HALF_OPEN';
-      console.log('🔄 Circuit breaker moving to HALF_OPEN state');
-    } else {
-      return false; // Circuit is open, don't make requests
-    }
-  }
-  return true;
-}
-
-// Record API success/failure for circuit breaker
-function recordApiResult(success) {
-  if (success) {
-    if (circuitBreakerState === 'HALF_OPEN') {
-      circuitBreakerState = 'CLOSED';
-      failureCount = 0;
-      console.log('✅ Circuit breaker reset to CLOSED state');
-    }
-  } else {
-    failureCount++;
-    lastFailureTime = Date.now();
-    
-    if (failureCount >= FAILURE_THRESHOLD && circuitBreakerState === 'CLOSED') {
-      circuitBreakerState = 'OPEN';
-      console.warn(`🚫 Circuit breaker OPEN - too many failures (${failureCount}). Pausing lookups for ${CIRCUIT_BREAKER_TIMEOUT/1000}s`);
-    }
-  }
-}
-
-// Enhanced vessel lookup with retry logic
-async function lookupVesselData(mmsi, retryCount = 0) {
-  // Check circuit breaker
-  if (!checkCircuitBreaker()) {
-    if (DEBUG) console.log(`Circuit breaker OPEN - skipping lookup for MMSI ${mmsi}`);
-    return null;
-  }
-  
-  try {
-    // Validate MMSI to prevent SSRF
-    if (!Number.isInteger(mmsi) || mmsi < 100000000 || mmsi > 999999999) {
-      throw new Error('Invalid MMSI format');
-    }
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    
-    let data;
-    try {
-      const response = await fetch(`https://www.vesselfinder.com/api/pub/click/${mmsi}`, {
-        signal: controller.signal,
-        headers: { 
-          'User-Agent': 'Mozilla/5.0 (compatible; AIS-Proxy/1.0)',
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.status === 429 || response.status === 503) {
-        // Rate limited or service unavailable - retry with exponential backoff
-        if (retryCount < MAX_LOOKUP_RETRIES) {
-          const delay = NAME_LOOKUP_DELAY * Math.pow(LOOKUP_BACKOFF_MULTIPLIER, retryCount);
-          console.warn(`⏳ Rate limited for MMSI ${mmsi}, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_LOOKUP_RETRIES})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return await lookupVesselData(mmsi, retryCount + 1);
-        } else {
-          console.warn(`❌ Max retries exceeded for MMSI ${mmsi} due to rate limiting`);
-          throw new Error(`Rate limited after ${MAX_LOOKUP_RETRIES} attempts`);
-        }
-      }
-      
-      if (!response.ok) {
-        console.warn(`⚠️ VesselFinder API returned ${response.status} for MMSI ${mmsi}`);
-        return null;
-      }
-      
-      data = await response.json();
-      
-      // Log successful response with full data for debugging
-      console.log(`✅ VesselFinder response for MMSI ${mmsi}:`, JSON.stringify(data));
-      
-      // Record successful API call
-      recordApiResult(true);
-      
-      // Check if we have a name - VesselFinder sometimes returns data without name
-      if (!data.name || (typeof data.name === 'string' && data.name.trim() === '')) {
-        console.log(`⚠ No name found for MMSI ${mmsi} in VesselFinder response:`, JSON.stringify(data));
-        return null;
-      }
-      
-      console.log(`✅ Found vessel data for MMSI ${mmsi}: name="${data.name}", type="${data.type || 'unknown'}"`);
-      
-    } finally {
-      clearTimeout(timeoutId);
-    }
-    
-    // Map vessel type
-    let aisType = null;
-    if (data.type) {
-      const typeKey = data.type.toLowerCase();
-      aisType = VESSEL_TYPE_MAPPING[typeKey];
-      
-      // Handle undefined vs null - if not found in mapping, set to null
-      if (aisType === undefined) aisType = null;
-      
-      // Track unknown types for future mapping
-      if (aisType === null && !unknownVesselTypes.has(typeKey)) {
-        unknownVesselTypes.add(typeKey);
-        console.warn(`Unknown vessel type from VesselFinder: "${sanitizeLogInput(String(data.type || ''))}" (${sanitizeLogInput(String(typeKey))})`);
-      }
-    }
-    
-    const result = {
-      name: data.name.trim(),
-      type: aisType,
-      imo: data.imo || null,
-      country: data.country || null,
-      grossTonnage: data.gt || null,
-      deadweight: data.dw || null,
-      yearBuilt: data.y || null,
-      typeText: data.type || null
-    };
-    
-    console.log(`✅ Returning vessel data for MMSI ${mmsi}:`, JSON.stringify(result));
-    return result;
-  } catch (error) {
-    // Record failed API call
-    recordApiResult(false);
-    
-    if (error.name === 'AbortError') {
-      console.warn(`⏰ Lookup timeout for MMSI ${mmsi}`);
-    } else if (error.message.includes('Rate limited')) {
-      console.warn(`🚫 ${error.message} for MMSI ${mmsi}`);
-    } else {
-      console.warn(`❌ Vessel lookup failed for MMSI ${mmsi}:`, sanitizeLogInput(String(error.message)));
-    }
-    return null;
-  }
-}
-
-// Process name lookup queue
-async function processNameLookupQueue() {
-  if (nameLookupInProgress || nameLookupQueue.length === 0) return;
-  
-  nameLookupInProgress = true;
-  
-  while (nameLookupQueue.length > 0) {
-    const mmsi = nameLookupQueue.shift();
-    const vessel = vesselCache.get(mmsi);
-    
-    if (!vessel) {
-      console.warn(`⚠ Vessel ${mmsi} not found in cache during lookup processing`);
-      continue; // Skip if vessel gone
-    }
-    
-    console.log(`⚙️ Processing lookup for MMSI ${mmsi} (${nameLookupQueue.length} remaining in queue)`);
-    
-    // Skip if vessel already has both name and type, or if we only need name but already have it
-    const needsName = !vessel.NAME && (vessel._messageType === 'StandardClassBPositionReport' || vessel._messageType === 'ExtendedClassBPositionReport');
-    const needsType = vessel.TYPE === null && vessel._messageType !== 'AidsToNavigationReport';
-    
-    if (!needsName && !needsType) {
-      console.log(`✓ MMSI ${mmsi} already has required data (name: "${vessel.NAME}", type: ${vessel.TYPE})`);
-      continue;
-    }
-    
-    if (DEBUG) console.log(`Looking up MMSI ${mmsi}: needs name=${needsName}, needs type=${needsType}`);
-    
-    let vesselData;
-    let lookupError = null;
-    try {
-      vesselData = await lookupVesselData(mmsi);
-    } catch (error) {
-      lookupError = error;
-      console.warn(`⚠ Vessel lookup failed for MMSI ${mmsi}:`, sanitizeLogInput(String(error.message)));
-      vesselData = null;
-    }
-    if (vesselData) {
-      console.log(`🔄 Updating vessel cache for MMSI ${mmsi} with lookup data:`, JSON.stringify(vesselData));
-      
-      // Update name if missing
-      if (!vessel.NAME && vesselData.name) {
-        vessel.NAME = vesselData.name;
-        vessel._nameSource = 'lookup';
-        console.log(`✓ Updated NAME for MMSI ${mmsi}: "${sanitizeLogInput(String(vesselData.name))}"`);
-      }
-      
-      // Update type if missing
-      if (vessel.TYPE === null && vesselData.type !== null) {
-        vessel.TYPE = vesselData.type;
-        console.log(`✓ Updated TYPE for MMSI ${mmsi}: ${vesselData.type} (${sanitizeLogInput(String(vesselData.typeText))})`);
-      }
-      if (!vessel.IMO && vesselData.imo) vessel.IMO = vesselData.imo;
-      
-      // Store additional lookup data
-      vessel._lookupCountry = vesselData.country;
-      vessel._lookupGrossTonnage = vesselData.grossTonnage;
-      vessel._lookupDeadweight = vesselData.deadweight;
-      vessel._lookupYearBuilt = vesselData.yearBuilt;
-      vessel._lookupTypeText = vesselData.typeText;
-      
-      // Force cache update
-      vesselCache.set(mmsi, vessel);
-      console.log(`✅ Cache updated for MMSI ${mmsi}: NAME="${vessel.NAME}", TYPE=${vessel.TYPE}`);
-      
-      if (DEBUG) console.log(`Enhanced data for MMSI ${mmsi}: ${sanitizeLogInput(String(vesselData.name))} (${sanitizeLogInput(String(vesselData.typeText))}) - AIS type: ${vesselData.type}`);
-    } else {
-      console.warn(`⚠ No data found for MMSI ${mmsi} in VesselFinder - vesselData is:`, vesselData);
-      console.warn(`⚠ Lookup error was:`, lookupError ? lookupError.message : 'none');
-    }
-    
-    // Only update lookup timestamp if we got a successful response or a definitive "not found"
-    // Don't update if there was a network/API error, so we can retry sooner
-    if (vesselData || !lookupError) {
-      vessel._nameLastLookup = new Date();
-    } else {
-      // For errors, set a shorter retry interval
-      vessel._nameLastLookup = new Date(Date.now() - 82800000); // 23 hours ago, so retry in 1 hour
-      if (DEBUG) console.log(`Setting shorter retry interval for MMSI ${mmsi} due to lookup error`);
-    }
-    
-    // Rate limit: wait between requests
-    if (nameLookupQueue.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, NAME_LOOKUP_DELAY));
-    }
-  }
-  
-  nameLookupInProgress = false;
-}
-
-// Queue vessel for name lookup
-function queueNameLookup(mmsi) {
-  if (!nameLookupQueue.includes(mmsi)) {
-    nameLookupQueue.push(mmsi);
-    console.log(`→ Queued MMSI ${mmsi} for name lookup (queue length: ${nameLookupQueue.length})`);
-    // Process queue in next tick to avoid blocking
-    setImmediate(processNameLookupQueue);
-  } else {
-    if (DEBUG) console.log(`MMSI ${mmsi} already in lookup queue`);
-  }
-}
 
 
 
@@ -703,13 +336,7 @@ function processAISMessage(message) {
       _fixType: null,
       _valid: null,
       _messageType: null,
-      _nameSource: null, // 'ais' | 'lookup' | null
-      _nameLastLookup: null,
-      _lookupCountry: null,
-      _lookupGrossTonnage: null,
-      _lookupDeadweight: null,
-      _lookupYearBuilt: null,
-      _lookupTypeText: null
+      _nameSource: null // 'ais' | null
     };
     
     // Update common fields
@@ -718,7 +345,13 @@ function processAISMessage(message) {
     vessel.LONGITUDE = lon;
     vessel.LATITUDE = lat;
     vessel.lastUpdate = new Date();
-    vessel._messageType = messageType;
+    // Only update _messageType for position/nav reports (used for vessel classification)
+    // Static data messages should not change the vessel's class category
+    if (['PositionReport', 'StandardClassBPositionReport', 'ExtendedClassBPositionReport', 'AidsToNavigationReport'].includes(messageType)) {
+      vessel._messageType = messageType;
+    } else if (!vessel._messageType) {
+      vessel._messageType = messageType;
+    }
     
     // Process position reports (Class A)
     if (message.Message.PositionReport) {
@@ -783,6 +416,7 @@ function processAISMessage(message) {
       if (static_data.Name) {
         vessel.NAME = static_data.Name.trim();
         vessel._nameSource = 'ais';
+        console.log(`📡 Received Class A name from AIS for MMSI ${mmsi}: "${sanitizeLogInput(String(static_data.Name.trim()))}"`);
       }
       
       if (static_data.Dimension) {
@@ -884,32 +518,6 @@ function processAISMessage(message) {
     }
     
     vesselCache.set(mmsi, vessel);
-    
-    // Queue lookup for vessels missing name or type information
-    const needsLookup = (
-      // Class B vessels without names
-      (!vessel.NAME && (vessel._messageType === 'StandardClassBPositionReport' || vessel._messageType === 'ExtendedClassBPositionReport')) ||
-      // Any vessel without type information
-      (vessel.TYPE === null && vessel._messageType !== 'AidsToNavigationReport')
-    );
-    
-    if (needsLookup) {
-      // More aggressive retry for vessels that failed lookup or have no data
-      const retryInterval = vessel._nameLastLookup ? 
-        (vessel.NAME || vessel.TYPE !== null ? 86400000 : 3600000) : // 24h if has some data, 1h if no data
-        0; // Immediate if never looked up
-      
-      const retryTime = new Date(Date.now() - retryInterval);
-      
-      if (!vessel._nameLastLookup || vessel._nameLastLookup < retryTime) {
-        if (DEBUG) console.log(`Queueing lookup for MMSI ${mmsi}: NAME="${sanitizeLogInput(String(vessel.NAME || ''))}", TYPE=${vessel.TYPE}, messageType=${sanitizeLogInput(String(vessel._messageType || ''))}, lastLookup=${vessel._nameLastLookup ? vessel._nameLastLookup.toISOString() : 'never'}`);
-        queueNameLookup(mmsi);
-      } else {
-        if (DEBUG) console.log(`Skipping lookup for MMSI ${mmsi}: last lookup was ${vessel._nameLastLookup.toISOString()}, next retry after ${new Date(vessel._nameLastLookup.getTime() + retryInterval).toISOString()}`);
-      }
-    }
-    
-
     
     // Save cache occasionally
     if (Math.random() < 0.01) saveCache();
@@ -1100,15 +708,7 @@ app.get('/ais-proxy/v2/vessels', async (req, res) => {
         lastUpdate: vessel.lastUpdate.toISOString(),
         // Easy identification
         category: isNavigationAid ? 'navigation-aid' : 'vessel',
-        nameSource: vessel._nameSource,
-        // Enriched data from lookup
-        enrichedData: vessel._nameSource === 'lookup' ? {
-          country: vessel._lookupCountry,
-          grossTonnage: vessel._lookupGrossTonnage,
-          deadweight: vessel._lookupDeadweight,
-          yearBuilt: vessel._lookupYearBuilt,
-          typeText: vessel._lookupTypeText
-        } : null
+        nameSource: vessel._nameSource
       });
     }
   }
@@ -1171,89 +771,6 @@ app.get('/ais-proxy/health', async (req, res) => {
     });
   }
 });
-
-// Manual vessel lookup endpoint for debugging
-app.get('/ais-proxy/debug/lookup/:mmsi', async (req, res) => {
-  const mmsi = parseInt(req.params.mmsi);
-  const { username } = req.query;
-  
-  if (isNaN(mmsi)) {
-    return res.status(400).json({ error: 'Invalid MMSI' });
-  }
-  
-  // Validate user API key
-  const keyValidation = await validateUserApiKey(username);
-  if (!keyValidation.valid) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
-  try {
-    console.log(`Manual lookup requested for MMSI ${mmsi}`);
-    const vesselData = await lookupVesselData(mmsi);
-    
-    const cachedVessel = vesselCache.get(mmsi);
-    
-    res.json({
-      mmsi,
-      lookupResult: vesselData,
-      cachedVessel: cachedVessel ? {
-        name: cachedVessel.NAME,
-        type: cachedVessel.TYPE,
-        nameSource: cachedVessel._nameSource,
-        lastLookup: cachedVessel._nameLastLookup,
-        messageType: cachedVessel._messageType,
-        lookupData: {
-          country: cachedVessel._lookupCountry,
-          typeText: cachedVessel._lookupTypeText,
-          grossTonnage: cachedVessel._lookupGrossTonnage
-        }
-      } : null,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Lookup failed',
-      message: sanitizeLogInput(String(error.message)),
-      mmsi,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Force lookup queue for specific MMSI
-app.post('/ais-proxy/debug/queue-lookup/:mmsi', async (req, res) => {
-  const mmsi = parseInt(req.params.mmsi);
-  const { username } = req.query;
-  
-  if (isNaN(mmsi)) {
-    return res.status(400).json({ error: 'Invalid MMSI' });
-  }
-  
-  // Validate user API key
-  const keyValidation = await validateUserApiKey(username);
-  if (!keyValidation.valid) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
-  const vessel = vesselCache.get(mmsi);
-  if (!vessel) {
-    return res.status(404).json({ error: 'Vessel not found in cache' });
-  }
-  
-  // Reset last lookup time to force a new lookup
-  vessel._nameLastLookup = null;
-  
-  queueNameLookup(mmsi);
-  
-  res.json({
-    message: `Queued lookup for MMSI ${mmsi}`,
-    queueLength: nameLookupQueue.length,
-    inProgress: nameLookupInProgress,
-    timestamp: new Date().toISOString()
-  });
-});
-
-
 
 
 
@@ -1755,19 +1272,10 @@ app.get('/ais-proxy/v2/health', async (req, res) => {
         connected: wsConnection?.readyState === 1,
         reconnectAttempts
       },
-      lookupQueue: {
-        nameLookupQueue: nameLookupQueue.length,
-        nameLookupInProgress
-      },
       uploadClients: {
         totalClients: clientStatusCache.size,
         activeClients24h: Array.from(clientStatusCache.values())
           .filter(status => status.lastSeen > new Date(Date.now() - 24 * 60 * 60 * 1000)).length
-      },
-      vesselFinderApi: {
-        circuitBreakerState,
-        failureCount,
-        lastFailureTime: lastFailureTime ? new Date(lastFailureTime).toISOString() : null
       },
       timestamp: new Date().toISOString()
     });
