@@ -43,17 +43,13 @@ GET /weather-radar/{z}/{x}/{y}.png
 - `smooth` - Smoothing: `0` (default, no smoothing) or `1` (smoothed)
 - `snow` - Snow overlay: `0` (default, no snow) or `1` (with snow)
 - `forecast` - Forecast minutes ahead: `0-240` (Rainbow.ai only, default: `0`)
-- `color` - Color scheme: `0-8, 10` (default: `2`)
-  - `0` - dBZ values with automatic MetService color mapping
-  - `1` - Original RainViewer
-  - `2` - Universal Blue (default)
-  - `3` - TITAN
-  - `4` - The Weather Channel
-  - `5` - Meteored
-  - `6` - NEXRAD Level-III
-  - `7` - RAINBOW @ SELEX-SI
-  - `8` - Dark Sky
+- `color` - Color scheme (default: `2`)
+  - `0` - dBZ values with automatic MetService color mapping (both providers)
+  - `2` - Universal Blue (default, RainViewer's only supported scheme)
+  - `1, 3-8` - Additional schemes (Rainbow.ai only; mapped to Universal Blue on RainViewer)
   - `10` - Rainbow.ai native color scheme (Rainbow.ai only)
+
+  > **Note**: As of 2025, RainViewer only supports color scheme `2` (Universal Blue). Color values `1, 3-8` are still accepted but will render as Universal Blue when using the RainViewer provider. These schemes remain fully functional with the Rainbow.ai provider.
 
 **Examples:**
 ```bash
@@ -81,11 +77,11 @@ https://utils.tak.nz/weather-radar/5/10/15.png?snow=1
 # MetService colors (dBZ values with NZ-style colors)
 https://utils.tak.nz/weather-radar/5/10/15.png?color=0
 
-# Original RainViewer color scheme
-https://utils.tak.nz/weather-radar/5/10/15.png?color=1
+# Universal Blue color scheme (RainViewer's only supported scheme)
+https://utils.tak.nz/weather-radar/5/10/15.png?color=2
 
-# NEXRAD Level-III color scheme
-https://utils.tak.nz/weather-radar/5/10/15.png?color=6
+# NEXRAD Level-III color scheme (Rainbow.ai only, falls back to Universal Blue on RainViewer)
+https://utils.tak.nz/weather-radar/5/10/15.png?provider=rainbow&api=your-key&color=6
 
 # Rainbow.ai native color scheme (premium only)
 https://utils.tak.nz/weather-radar/5/10/15.png?provider=rainbow&api=your-key&color=10
@@ -114,7 +110,7 @@ Returns service status and cache statistics.
 ```json
 {
   "error": "Invalid parameter",
-  "message": "color parameter must be 0-8, 10 (0=MetService, 1-8=RainViewer schemes, 10=Rainbow.ai native)"
+  "message": "color parameter must be 0-8, 10 (0=MetService, 2=Universal Blue, 1/3-8=Rainbow.ai only, 10=Rainbow.ai native)"
 }
 ```
 
@@ -167,34 +163,32 @@ When using `color=0`, the service automatically applies New Zealand MetService-s
 - **RainViewer**: Uses RainViewer's dBZ color scheme (color=0) and applies MetService colors
 - **Rainbow.ai**: Fetches raw dBZ data (`color=dbz_u8`) and applies MetService color mapping
 
-### Provider-Specific Color Schemes (color=1-8)
+### Provider-Specific Color Schemes
 
 #### RainViewer Color Schemes
-RainViewer uses numeric color schemes (1-8):
-- **1**: Original RainViewer colors
-- **2**: Universal Blue (default) - widely compatible
-- **3**: TITAN - high contrast for severe weather
-- **4**: The Weather Channel - familiar TV weather colors
-- **5**: Meteored - European weather service style
-- **6**: NEXRAD Level-III - US National Weather Service standard
-- **7**: RAINBOW @ SELEX-SI - radar manufacturer colors
-- **8**: Dark Sky - minimalist dark theme
+As of 2025, RainViewer only supports a single color scheme:
+- **2**: Universal Blue - the only available RainViewer color scheme
+
+All other color values (1, 3-8) are accepted for backward compatibility but will render as Universal Blue when using the RainViewer provider.
+
+#### Rainbow.ai Color Schemes
+Rainbow.ai continues to support multiple color schemes via the smart mapping below.
 
 #### Smart Color Mapping
 Our service provides **intelligent color mapping** to ensure consistent visual experience across providers:
 
 | Our Color | Description | RainViewer | Rainbow.ai | Visual Result |
 |-----------|-------------|------------|------------|---------------|
-| `0` | MetService colors | `color=0` + processing | `color=dbz_u8` + processing | Identical NZ colors |
-| `1` | Original | `color=1` | `color=5` (RainViewer) | Similar original style |
-| `2` | Universal Blue | `color=2` | `color=8` (RV Universal Blue) | Identical blue theme |
-| `3` | TITAN | `color=3` | `color=7` (Titan) | Identical high contrast |
-| `4` | Weather Channel | `color=4` | `color=1` (TWC) | Similar TV weather style |
-| `5` | Meteored | `color=5` | `color=3` (Meteored) | Identical European style |
-| `6` | NEXRAD Level-III | `color=6` | `color=4` (Nexrad) | Identical US weather service |
-| `7` | RAINBOW @ SELEX-SI | `color=7` | `color=6` (Selex) | Identical radar manufacturer |
-| `8` | Dark Sky | `color=8` | `color=2` (Dark Sky) | Identical minimalist theme |
-| `10` | Rainbow.ai native | `color=2` (fallback) | `color=0` (Rainbow) | Rainbow.ai's unique palette |
+| `0` | MetService colors | Universal Blue + processing | `color=dbz_u8` + processing | Identical NZ colors |
+| `1` | Original | Universal Blue | `color=5` (RainViewer) | Original style (Rainbow.ai only) |
+| `2` | Universal Blue | Universal Blue | `color=8` (RV Universal Blue) | Identical blue theme |
+| `3` | TITAN | Universal Blue | `color=7` (Titan) | High contrast (Rainbow.ai only) |
+| `4` | Weather Channel | Universal Blue | `color=1` (TWC) | TV weather style (Rainbow.ai only) |
+| `5` | Meteored | Universal Blue | `color=3` (Meteored) | European style (Rainbow.ai only) |
+| `6` | NEXRAD Level-III | Universal Blue | `color=4` (Nexrad) | US weather service (Rainbow.ai only) |
+| `7` | RAINBOW @ SELEX-SI | Universal Blue | `color=6` (Selex) | Radar manufacturer (Rainbow.ai only) |
+| `8` | Dark Sky | Universal Blue | `color=2` (Dark Sky) | Minimalist theme (Rainbow.ai only) |
+| `10` | Rainbow.ai native | Universal Blue (fallback) | `color=0` (Rainbow) | Rainbow.ai's unique palette |
 
 **Benefits:**
 - **Consistent UX**: Same color parameter gives visually similar results
@@ -305,5 +299,5 @@ https://utils.tak.nz/weather-radar/5/10/15.png?api=basic-key
 | **Cost** | Free | Premium |
 | **MetService Colors** | ✅ | ✅ |
 | **Forecast Capability** | None | 0-240 minutes ahead |
-| **Color Schemes** | Numeric (0-8) | Numeric (0-8, 10) |
-| **Color System** | RainViewer native | 0=dbz_u8, 1-8=numeric, 10=native |
+| **Color Schemes** | Universal Blue only (color=2) | Numeric (0-8, 10) |
+| **Color System** | Single scheme (Universal Blue) | 0=dbz_u8, 1-8=numeric, 10=native |

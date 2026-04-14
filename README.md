@@ -26,7 +26,7 @@ Weather radar proxy service providing access to real-time radar data from multip
 - **Health Check**: `/weather-radar/health`
 - **Parameters**: `?provider=rainviewer|rainbow&api=key&size=256|512&smooth=0|1&snow=0|1&color=0-8`
 - **Providers**: RainViewer (free), Rainbow.ai (API key required)
-- **Color Schemes**: 9 options including MetService colors (color=0) and RainViewer schemes
+- **Color Schemes**: MetService colors (color=0), Universal Blue (color=2, default); additional schemes via Rainbow.ai only
 - **Documentation**: [Weather Proxy API](docs/WEATHER_PROXY.md)
 
 ### ais-proxy
