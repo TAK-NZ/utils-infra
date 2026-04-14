@@ -35,6 +35,11 @@ const clientStatusCache = new Map(); // Track AIS upload clients
 const MAX_VESSEL_CACHE_SIZE = 50000;
 const MAX_RATE_LIMIT_CACHE_SIZE = 10000;
 const RATE_LIMIT_PER_MINUTE = 600;
+const MARINESIA_POLL_INTERVAL = parseInt(process.env.MARINESIA_POLL_INTERVAL) || 30000; // Configurable, default 30s
+const MARINESIA_BOUNDING_BOX = {
+  lat_min: -48.0, lat_max: -34.0,
+  long_min: 166.0, long_max: 179.0
+};
 
 // Sanitize log input to prevent log injection
 function sanitizeLogInput(input) {
@@ -78,6 +83,12 @@ async function loadApiKeys() {
 async function getAISStreamKey() {
   const keys = await loadApiKeys();
   return keys.aisstream?.primary?.key || keys.aisstream?.backup?.key;
+}
+
+// Get Marinesia API key
+async function getMarinesiaKey() {
+  const keys = await loadApiKeys();
+  return keys.marinesia?.apiKey || process.env.MARINESIA_API_KEY;
 }
 
 
@@ -336,7 +347,7 @@ function processAISMessage(message) {
       _fixType: null,
       _valid: null,
       _messageType: null,
-      _nameSource: null // 'ais' | null
+      _nameSource: null // 'ais' | 'marinesia' | null
     };
     
     // Update common fields
@@ -518,6 +529,26 @@ function processAISMessage(message) {
     }
     
     vesselCache.set(mmsi, vessel);
+    
+    // Enrich from Marinesia data if available
+    const marinesiaVessel = marinesiaCache.get(mmsi);
+    if (marinesiaVessel) {
+      if (!vessel.NAME && marinesiaVessel.name) {
+        vessel.NAME = marinesiaVessel.name;
+        vessel._nameSource = 'marinesia';
+      }
+      if (vessel.TYPE === null && marinesiaVessel.type !== null) {
+        vessel.TYPE = marinesiaVessel.type;
+      }
+      if (!vessel.IMO && marinesiaVessel.imo) vessel.IMO = marinesiaVessel.imo;
+      if (!vessel.CALLSIGN && marinesiaVessel.callsign) vessel.CALLSIGN = marinesiaVessel.callsign;
+      if (!vessel.DEST && marinesiaVessel.dest) vessel.DEST = marinesiaVessel.dest;
+      if (!vessel.DRAUGHT && marinesiaVessel.draught) vessel.DRAUGHT = marinesiaVessel.draught;
+      if (vessel.A === null && marinesiaVessel.a) vessel.A = marinesiaVessel.a;
+      if (vessel.B === null && marinesiaVessel.b) vessel.B = marinesiaVessel.b;
+      if (vessel.C === null && marinesiaVessel.c) vessel.C = marinesiaVessel.c;
+      if (vessel.D === null && marinesiaVessel.d) vessel.D = marinesiaVessel.d;
+    }
     
     // Save cache occasionally
     if (Math.random() < 0.01) saveCache();
@@ -1272,6 +1303,12 @@ app.get('/ais-proxy/v2/health', async (req, res) => {
         connected: wsConnection?.readyState === 1,
         reconnectAttempts
       },
+      marinesia: {
+        enabled: marinesiaEnabled,
+        cachedVessels: marinesiaCache.size,
+        lastPoll: marinesiaLastPoll ? marinesiaLastPoll.toISOString() : null,
+        pollInterval: MARINESIA_POLL_INTERVAL
+      },
       uploadClients: {
         totalClients: clientStatusCache.size,
         activeClients24h: Array.from(clientStatusCache.values())
@@ -1313,8 +1350,114 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
+// Marinesia vessel enrichment
+const marinesiaCache = new Map(); // MMSI -> vessel data from Marinesia
+let marinesiaEnabled = false;
+let marinesiaLastPoll = null;
+let marinesiaInterval = null;
+
+// Map Marinesia type text to AIS type codes
+const MARINESIA_TYPE_MAP = {
+  'cargo': 70, 'tanker': 80, 'passenger': 60, 'fishing': 30,
+  'tug': 52, 'towing': 52, 'pilot': 50, 'pleasure craft': 37,
+  'sailing': 36, 'military': 35, 'search and rescue': 51,
+  'high speed craft': 40, 'dredging': 33, 'diving': 33,
+  'law enforcement': 55, 'wing in ground (wig)': 20
+};
+
+async function pollMarinesia() {
+  const apiKey = await getMarinesiaKey();
+  if (!apiKey) {
+    if (marinesiaEnabled) {
+      console.warn('Marinesia API key removed, disabling enrichment');
+      marinesiaEnabled = false;
+    }
+    return;
+  }
+
+  const { lat_min, lat_max, long_min, long_max } = MARINESIA_BOUNDING_BOX;
+  const url = `https://api.marinesia.com/api/v2/vessel/area?lat_min=${lat_min}&lat_max=${lat_max}&long_min=${long_min}&long_max=${long_max}&key=${apiKey}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json', 'User-Agent': 'ais-proxy/1.0' }
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn(`Marinesia API returned ${response.status}`);
+      return;
+    }
+
+    const body = await response.json();
+    const vessels = body.data || [];
+
+    let enriched = 0;
+    for (const v of vessels) {
+      if (!v.mmsi) continue;
+      const typeKey = (v.type || '').toLowerCase();
+      marinesiaCache.set(v.mmsi, {
+        name: v.name || '',
+        imo: v.imo || null,
+        type: MARINESIA_TYPE_MAP[typeKey] ?? null,
+        typeText: v.type || null,
+        flag: v.flag || null,
+        dest: v.dest || '',
+        draught: v.draught || null,
+        callsign: '', // Marinesia doesn't provide callsign
+        a: v.a || null, b: v.b || null, c: v.c || null, d: v.d || null
+      });
+
+      // Immediately enrich any cached vessel missing data
+      const cached = vesselCache.get(v.mmsi);
+      if (cached && !cached.NAME && v.name) {
+        cached.NAME = v.name;
+        cached._nameSource = 'marinesia';
+        enriched++;
+      }
+      if (cached && cached.TYPE === null && MARINESIA_TYPE_MAP[typeKey] !== undefined) {
+        cached.TYPE = MARINESIA_TYPE_MAP[typeKey];
+      }
+      if (cached && !cached.IMO && v.imo) cached.IMO = v.imo;
+      if (cached && !cached.DEST && v.dest) cached.DEST = v.dest;
+      if (cached && !cached.DRAUGHT && v.draught) cached.DRAUGHT = v.draught;
+      if (cached && cached.A === null && v.a) { cached.A = v.a; cached.B = v.b; cached.C = v.c; cached.D = v.d; }
+    }
+
+    marinesiaLastPoll = new Date();
+    if (!marinesiaEnabled) {
+      marinesiaEnabled = true;
+      console.log(`Marinesia enrichment enabled (${MARINESIA_POLL_INTERVAL/1000}s interval)`);
+    }
+    console.log(`Marinesia: ${vessels.length} vessels fetched, ${enriched} names enriched, ${marinesiaCache.size} cached`);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.warn('Marinesia poll timed out');
+    } else {
+      console.warn('Marinesia poll failed:', sanitizeLogInput(String(error.message)));
+    }
+  }
+}
+
+async function startMarinesiaEnrichment() {
+  const apiKey = await getMarinesiaKey();
+  if (!apiKey) {
+    console.log('Marinesia API key not configured, enrichment disabled');
+    return;
+  }
+  console.log(`Starting Marinesia enrichment (interval: ${MARINESIA_POLL_INTERVAL/1000}s)`);
+  await pollMarinesia();
+  marinesiaInterval = setInterval(pollMarinesia, MARINESIA_POLL_INTERVAL);
+}
+
 app.listen(PORT, () => {
   console.log(`AIS Proxy server running on port ${PORT}`);
   loadCache();
   connectToAISStream();
+  startMarinesiaEnrichment();
 });
