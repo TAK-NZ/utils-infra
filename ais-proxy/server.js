@@ -537,17 +537,15 @@ function processAISMessage(message) {
         vessel.NAME = marinesiaVessel.name;
         vessel._nameSource = 'marinesia';
       }
-      if (vessel.TYPE === null && marinesiaVessel.type !== null) {
+      if ((vessel.TYPE === null || vessel.TYPE === 0) && marinesiaVessel.type !== null) {
         vessel.TYPE = marinesiaVessel.type;
       }
       if (!vessel.IMO && marinesiaVessel.imo) vessel.IMO = marinesiaVessel.imo;
       if (!vessel.CALLSIGN && marinesiaVessel.callsign) vessel.CALLSIGN = marinesiaVessel.callsign;
       if (!vessel.DEST && marinesiaVessel.dest) vessel.DEST = marinesiaVessel.dest;
       if (!vessel.DRAUGHT && marinesiaVessel.draught) vessel.DRAUGHT = marinesiaVessel.draught;
-      if (vessel.A === null && marinesiaVessel.a) vessel.A = marinesiaVessel.a;
-      if (vessel.B === null && marinesiaVessel.b) vessel.B = marinesiaVessel.b;
-      if (vessel.C === null && marinesiaVessel.c) vessel.C = marinesiaVessel.c;
-      if (vessel.D === null && marinesiaVessel.d) vessel.D = marinesiaVessel.d;
+      if ((vessel.A === null || vessel.A === 0) && marinesiaVessel.a) { vessel.A = marinesiaVessel.a; vessel.B = marinesiaVessel.b; }
+      if ((vessel.C === null || vessel.C === 0) && marinesiaVessel.c) { vessel.C = marinesiaVessel.c; vessel.D = marinesiaVessel.d; }
     }
     
     // Save cache occasionally
@@ -1358,11 +1356,13 @@ let marinesiaInterval = null;
 
 // Map Marinesia type text to AIS type codes
 const MARINESIA_TYPE_MAP = {
-  'cargo': 70, 'tanker': 80, 'passenger': 60, 'fishing': 30,
+  'tanker': 80, 'cargo': 70, 'passenger': 60, 'fishing': 30,
   'tug': 52, 'towing': 52, 'pilot': 50, 'pleasure craft': 37,
-  'sailing': 36, 'military': 35, 'search and rescue': 51,
-  'high speed craft': 40, 'dredging': 33, 'diving': 33,
-  'law enforcement': 55, 'wing in ground (wig)': 20
+  'sailing': 36, 'military': 35, 'high speed craft': 40,
+  'search and rescue': 51, 'law enforcement': 55,
+  'dredging': 33, 'diving': 33, 'supply ship': 79,
+  'wing in ground (wig)': 20, 'port tender': 53, 'anti-pollution': 54,
+  'medical': 58
 };
 
 async function pollMarinesia() {
@@ -1414,18 +1414,21 @@ async function pollMarinesia() {
 
       // Immediately enrich any cached vessel missing data
       const cached = vesselCache.get(v.mmsi);
-      if (cached && !cached.NAME && v.name) {
-        cached.NAME = v.name;
-        cached._nameSource = 'marinesia';
-        enriched++;
+      if (cached) {
+        if (!cached.NAME && v.name) {
+          cached.NAME = v.name;
+          cached._nameSource = 'marinesia';
+          enriched++;
+        }
+        if ((cached.TYPE === null || cached.TYPE === 0) && MARINESIA_TYPE_MAP[typeKey] !== undefined) {
+          cached.TYPE = MARINESIA_TYPE_MAP[typeKey];
+        }
+        if (!cached.IMO && v.imo) cached.IMO = v.imo;
+        if (!cached.DEST && v.dest) cached.DEST = v.dest;
+        if (!cached.DRAUGHT && v.draught) cached.DRAUGHT = v.draught;
+        if ((cached.A === null || cached.A === 0) && v.a) { cached.A = v.a; cached.B = v.b; }
+        if ((cached.C === null || cached.C === 0) && v.c) { cached.C = v.c; cached.D = v.d; }
       }
-      if (cached && cached.TYPE === null && MARINESIA_TYPE_MAP[typeKey] !== undefined) {
-        cached.TYPE = MARINESIA_TYPE_MAP[typeKey];
-      }
-      if (cached && !cached.IMO && v.imo) cached.IMO = v.imo;
-      if (cached && !cached.DEST && v.dest) cached.DEST = v.dest;
-      if (cached && !cached.DRAUGHT && v.draught) cached.DRAUGHT = v.draught;
-      if (cached && cached.A === null && v.a) { cached.A = v.a; cached.B = v.b; cached.C = v.c; cached.D = v.d; }
     }
 
     marinesiaLastPoll = new Date();
