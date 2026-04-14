@@ -423,8 +423,9 @@ function mapColorToProvider(color, provider) {
     };
     return rainbowMap[color] || '8'; // Default to Universal Blue
   } else {
-    // RainViewer color mapping (original)
-    return color === 10 ? '2' : color.toString(); // color=10 -> Universal Blue for RainViewer
+    // RainViewer now only supports color scheme 2 (Universal Blue)
+    // All non-MetService colors map to 2; color=0 is handled separately via applyMetServiceColors
+    return '2';
   }
 }
 
@@ -637,7 +638,8 @@ app.get('/weather-radar/health', async (req, res) => {
                 size: [256, 512],
                 smooth: [0, 1],
                 snow: [0, 1],
-                color: [0, 1, 2, 3, 4, 5, 6, 7, 8, 10],
+                color: [0, 2],
+                color_note: 'RainViewer only supports color=2 (Universal Blue); other values (1,3-8,10) only apply to Rainbow.ai provider',
                 color_default: 2,
                 forecast: [0, 240],
                 forecast_default: 0,
