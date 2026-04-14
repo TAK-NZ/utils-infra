@@ -36,6 +36,7 @@ const MAX_VESSEL_CACHE_SIZE = 50000;
 const MAX_RATE_LIMIT_CACHE_SIZE = 10000;
 const RATE_LIMIT_PER_MINUTE = 600;
 const MARINESIA_DEFAULT_POLL_INTERVAL = 60000; // Default 60s, overridden by S3 config or env var
+const VESSEL_CACHE_TTL = 6 * 3600000; // 6 hours - matches Marinesia data retention window
 const MARINESIA_BOUNDING_BOX = {
   lat_min: -48.0, lat_max: -34.0,
   long_min: 166.0, long_max: 179.0
@@ -559,12 +560,12 @@ function processAISMessage(message) {
 
 // Clean up old vessels every 5 minutes
 setInterval(() => {
-  const oneHourAgo = new Date(Date.now() - 3600000);
+  const cutoff = new Date(Date.now() - VESSEL_CACHE_TTL);
   let removed = 0;
   let classA = 0, classB = 0, navigationAids = 0, unknown = 0;
   
   for (const [mmsi, vessel] of vesselCache.entries()) {
-    if (vessel.lastUpdate < oneHourAgo) {
+    if (vessel.lastUpdate < cutoff) {
       vesselCache.delete(mmsi);
       removed++;
     } else {
@@ -1404,6 +1405,9 @@ async function pollMarinesia() {
       const typeKey = (v.type || '').toLowerCase();
       const mappedType = MARINESIA_TYPE_MAP[typeKey] ?? null;
       const marinesiaTs = v.ts ? new Date(v.ts + 'Z') : new Date();
+
+      // Skip vessels with data older than cache TTL
+      if (Date.now() - marinesiaTs.getTime() > VESSEL_CACHE_TTL) continue;
 
       marinesiaCache.set(v.mmsi, {
         name: v.name || '',
