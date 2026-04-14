@@ -1396,38 +1396,79 @@ async function pollMarinesia() {
     const body = await response.json();
     const vessels = body.data || [];
 
+    let added = 0;
     let enriched = 0;
     for (const v of vessels) {
       if (!v.mmsi) continue;
       const typeKey = (v.type || '').toLowerCase();
+      const mappedType = MARINESIA_TYPE_MAP[typeKey] ?? null;
+      const marinesiaTs = v.ts ? new Date(v.ts + 'Z') : new Date();
+
       marinesiaCache.set(v.mmsi, {
         name: v.name || '',
         imo: v.imo || null,
-        type: MARINESIA_TYPE_MAP[typeKey] ?? null,
+        type: mappedType,
         typeText: v.type || null,
         flag: v.flag || null,
         dest: v.dest || '',
         draught: v.draught || null,
-        callsign: '', // Marinesia doesn't provide callsign
+        callsign: '',
         a: v.a || null, b: v.b || null, c: v.c || null, d: v.d || null
       });
 
-      // Immediately enrich any cached vessel missing data
       const cached = vesselCache.get(v.mmsi);
       if (cached) {
-        if (!cached.NAME && v.name) {
-          cached.NAME = v.name;
-          cached._nameSource = 'marinesia';
-          enriched++;
-        }
-        if ((cached.TYPE === null || cached.TYPE === 0) && MARINESIA_TYPE_MAP[typeKey] !== undefined) {
-          cached.TYPE = MARINESIA_TYPE_MAP[typeKey];
-        }
+        // Enrich existing vessel with missing static data
+        if (!cached.NAME && v.name) { cached.NAME = v.name; cached._nameSource = 'marinesia'; enriched++; }
+        if ((cached.TYPE === null || cached.TYPE === 0) && mappedType !== null) cached.TYPE = mappedType;
         if (!cached.IMO && v.imo) cached.IMO = v.imo;
         if (!cached.DEST && v.dest) cached.DEST = v.dest;
         if (!cached.DRAUGHT && v.draught) cached.DRAUGHT = v.draught;
         if ((cached.A === null || cached.A === 0) && v.a) { cached.A = v.a; cached.B = v.b; }
         if ((cached.C === null || cached.C === 0) && v.c) { cached.C = v.c; cached.D = v.d; }
+        // Update position if Marinesia data is newer
+        if (marinesiaTs > cached.lastUpdate) {
+          cached.LATITUDE = v.lat;
+          cached.LONGITUDE = v.lng;
+          cached.COG = v.cog;
+          cached.SOG = v.sog;
+          cached.HEADING = v.hdt;
+          cached.NAVSTAT = v.status;
+          cached._rateOfTurn = v.rot;
+          cached.TIME = marinesiaTs.toISOString().replace('T', ' ').replace('Z', ' UTC');
+          cached.lastUpdate = marinesiaTs;
+        }
+      } else {
+        // Add new vessel from Marinesia
+        vesselCache.set(v.mmsi, {
+          MMSI: v.mmsi,
+          NAME: v.name || '',
+          CALLSIGN: '',
+          DEST: v.dest || '',
+          TYPE: mappedType,
+          IMO: v.imo || null,
+          DRAUGHT: v.draught || null,
+          A: v.a || null, B: v.b || null, C: v.c || null, D: v.d || null,
+          ETA: v.eta || null,
+          LATITUDE: v.lat,
+          LONGITUDE: v.lng,
+          COG: v.cog,
+          SOG: v.sog,
+          HEADING: v.hdt,
+          NAVSTAT: v.status,
+          TIME: marinesiaTs.toISOString().replace('T', ' ').replace('Z', ' UTC'),
+          lastUpdate: marinesiaTs,
+          _rateOfTurn: v.rot,
+          _positionAccuracy: null,
+          _timestamp: null,
+          _aisVersion: null,
+          _fixType: null,
+          _valid: null,
+          _messageType: 'PositionReport',
+          _nameSource: v.name ? 'marinesia' : null,
+          _dataSource: 'marinesia'
+        });
+        added++;
       }
     }
 
@@ -1436,7 +1477,7 @@ async function pollMarinesia() {
       marinesiaEnabled = true;
       console.log(`Marinesia enrichment enabled (${MARINESIA_POLL_INTERVAL/1000}s interval)`);
     }
-    console.log(`Marinesia: ${vessels.length} vessels fetched, ${enriched} names enriched, ${marinesiaCache.size} cached`);
+    console.log(`Marinesia: ${vessels.length} vessels fetched, ${added} added, ${enriched} enriched, ${marinesiaCache.size} cached`);
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
