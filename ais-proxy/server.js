@@ -35,7 +35,7 @@ const clientStatusCache = new Map(); // Track AIS upload clients
 const MAX_VESSEL_CACHE_SIZE = 50000;
 const MAX_RATE_LIMIT_CACHE_SIZE = 10000;
 const RATE_LIMIT_PER_MINUTE = 600;
-const MARINESIA_POLL_INTERVAL = parseInt(process.env.MARINESIA_POLL_INTERVAL) || 30000; // Configurable, default 30s
+const MARINESIA_DEFAULT_POLL_INTERVAL = 60000; // Default 60s, overridden by S3 config or env var
 const MARINESIA_BOUNDING_BOX = {
   lat_min: -48.0, lat_max: -34.0,
   long_min: 166.0, long_max: 179.0
@@ -1305,7 +1305,7 @@ app.get('/ais-proxy/v2/health', async (req, res) => {
         enabled: marinesiaEnabled,
         cachedVessels: marinesiaCache.size,
         lastPoll: marinesiaLastPoll ? marinesiaLastPoll.toISOString() : null,
-        pollInterval: MARINESIA_POLL_INTERVAL
+        pollInterval: marinesiaPollInterval
       },
       uploadClients: {
         totalClients: clientStatusCache.size,
@@ -1353,6 +1353,7 @@ const marinesiaCache = new Map(); // MMSI -> vessel data from Marinesia
 let marinesiaEnabled = false;
 let marinesiaLastPoll = null;
 let marinesiaInterval = null;
+let marinesiaPollInterval = MARINESIA_DEFAULT_POLL_INTERVAL;
 
 // Map Marinesia type text to AIS type codes
 const MARINESIA_TYPE_MAP = {
@@ -1475,7 +1476,7 @@ async function pollMarinesia() {
     marinesiaLastPoll = new Date();
     if (!marinesiaEnabled) {
       marinesiaEnabled = true;
-      console.log(`Marinesia enrichment enabled (${MARINESIA_POLL_INTERVAL/1000}s interval)`);
+      console.log(`Marinesia enrichment enabled (${marinesiaPollInterval/1000}s interval)`);
     }
     console.log(`Marinesia: ${vessels.length} vessels fetched, ${added} added, ${enriched} enriched, ${marinesiaCache.size} cached`);
   } catch (error) {
@@ -1489,14 +1490,16 @@ async function pollMarinesia() {
 }
 
 async function startMarinesiaEnrichment() {
-  const apiKey = await getMarinesiaKey();
+  const keys = await loadApiKeys();
+  const apiKey = keys.marinesia?.apiKey || process.env.MARINESIA_API_KEY;
   if (!apiKey) {
     console.log('Marinesia API key not configured, enrichment disabled');
     return;
   }
-  console.log(`Starting Marinesia enrichment (interval: ${MARINESIA_POLL_INTERVAL/1000}s)`);
+  marinesiaPollInterval = keys.marinesia?.pollInterval || parseInt(process.env.MARINESIA_POLL_INTERVAL) || MARINESIA_DEFAULT_POLL_INTERVAL;
+  console.log(`Starting Marinesia enrichment (interval: ${marinesiaPollInterval/1000}s)`);
   await pollMarinesia();
-  marinesiaInterval = setInterval(pollMarinesia, MARINESIA_POLL_INTERVAL);
+  marinesiaInterval = setInterval(pollMarinesia, marinesiaPollInterval);
 }
 
 app.listen(PORT, () => {
