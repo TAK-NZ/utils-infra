@@ -84,6 +84,16 @@
               }
             ]
           }
+        },
+        "terrain-proxy": {
+          "enabled": true,
+          "path": "/terrain",
+          "healthCheckPath": "/terrain/health",
+          "port": 3000,
+          "cpu": 512,
+          "memory": 1024,
+          "priority": 5,
+          "imageTag": "v1.0.0"
         }
       },
       "general": {
@@ -168,6 +178,16 @@
               }
             ]
           }
+        },
+        "terrain-proxy": {
+          "enabled": true,
+          "path": "/terrain",
+          "healthCheckPath": "/terrain/health",
+          "port": 3000,
+          "cpu": 512,
+          "memory": 1024,
+          "priority": 5,
+          "imageTag": "v1.0.0"
         }
       },
       "general": {
