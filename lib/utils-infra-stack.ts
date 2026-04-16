@@ -319,6 +319,9 @@ export class UtilsInfraStack extends cdk.Stack {
           const artifactsBucketName = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ARTIFACTS_BUCKET));
           environmentVariables.S3_BUCKET = cdk.Token.asString(artifactsBucketName);
         }
+      } else if (containerName === 'terrain-proxy') {
+        environmentVariables.CONFIG_BUCKET = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
+        environmentVariables.CONFIG_KEY = 'Utils-Terrain-Proxy-Config.json';
       }
 
       // Create container service

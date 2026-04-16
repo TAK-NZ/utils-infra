@@ -3,6 +3,7 @@
 !ais-proxy/server.js
 !weather-proxy/server.js
 !camera-proxy/server.js
+!terrain-proxy/server.js
 !power-outages/**/*.js
 !scripts/*.js
 *.d.ts

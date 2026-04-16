@@ -1,0 +1,27 @@
+{
+  "schema": "2.1.0",
+  "title": "NZ LINZ Terrain",
+  "content": "terrain",
+  "downloadable": true,
+  "refreshInterval": 0,
+  "isQuadtree": true,
+  "url": "{BASE_URL}/terrain/{$z}/{$x}/{$y}.png",
+  "srs": "EPSG:4326",
+  "numLevels": 14,
+  "tileMatrix": [
+    {
+      "level": 0,
+      "pixelSizeX": 0.703125,
+      "pixelSizeY": 0.703125,
+      "tileWidth": 256,
+      "resolution": 156543.034,
+      "tileHeight": 256
+    }
+  ],
+  "metadata": {
+    "heights": "hae",
+    "dataSource": "LINZ NZ Elevation",
+    "coverage": "New Zealand",
+    "attribution": "© LINZ CC BY 4.0"
+  }
+}
