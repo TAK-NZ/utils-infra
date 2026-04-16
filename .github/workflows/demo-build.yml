@@ -6,7 +6,9 @@ on:
     paths:
       - 'weather-proxy/**'
       - 'ais-proxy/**'
+      - 'power-outages/**'
       - 'tileserver-gl/**'
+      - 'terrain-proxy/**'
       - '**/Dockerfile'
       - 'cdk.json'
   workflow_call:
