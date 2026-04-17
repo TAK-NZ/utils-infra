@@ -58,6 +58,17 @@ MapTiler TileServer GL providing vector and raster tile services for New Zealand
 - **CloudFront CDN**: [CloudFront Setup](docs/CLOUDFRONT.md) with edge authentication
 - **API Keys**: Managed via CDK context or fallback defaults
 
+### terrain-proxy
+TAK terrain tile proxy that converts LINZ NZ elevation data into TAK-compatible terrain-RGB tiles for 3D rendering, line-of-sight analysis, and elevation profiles.
+
+- **Path**: `/terrain/*`
+- **Manifest**: `/terrain/t3-taknz-elevation-manifest.json`
+- **Health Check**: `/terrain/health`
+- **Data Source**: LINZ NZ Elevation (Terrain-RGB tiles)
+- **Coverage**: New Zealand (166°E–179°E, 48°S–34°S)
+- **Features**: EPSG:3857→4326 reprojection, Mapbox→TAK encoding, NZVD2016→HAE conversion
+- **Documentation**: [Terrain Proxy API](docs/TERRAIN_PROXY.md)
+
 
 
 ## Configuration
