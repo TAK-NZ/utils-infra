@@ -196,12 +196,17 @@ export class UtilsInfraStack extends cdk.Stack {
       );
     }
 
-    // Grant S3 access to config bucket for API keys
+    // Grant S3 access to config bucket for API keys and terrain tile cache
     const configBucketArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ENV_CONFIG_BUCKET));
     taskRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['s3:GetObject'],
       resources: [`${configBucketArn}/*`],
+    }));
+    taskRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['s3:PutObject'],
+      resources: [`${configBucketArn}/terrain-cache/*`],
     }));
     taskRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
@@ -213,7 +218,7 @@ export class UtilsInfraStack extends cdk.Stack {
     const kmsKeyArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.KMS_KEY));
     taskRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: ['kms:Decrypt'],
+      actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
       resources: [kmsKeyArn],
     }));
 
