@@ -16,7 +16,7 @@ Compared to the global TAK Bathy terrain dataset, this service provides:
 
 ### Terrain Manifest
 ```
-GET /terrain/manifest.json
+GET /terrain/t3-taknz-elevation-manifest.json
 ```
 Returns the TAK terrain tile descriptor. Point your TAK server or client at this URL to load NZ terrain.
 
@@ -42,7 +42,7 @@ GET /terrain/health
 ### ATAK / WinTAK
 Add as a terrain source using the manifest URL:
 ```
-https://utils.{domain}/terrain/manifest.json
+https://utils.{domain}/terrain/t3-taknz-elevation-manifest.json
 ```
 
 ### TAK Server

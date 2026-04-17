@@ -276,7 +276,7 @@ async function generateTerrainTile(z, x, y) {
 // --- Routes ---
 
 // TAK terrain manifest — serves t3-taknz.json with {BASE_URL} replaced
-app.get('/terrain/manifest.json', (req, res) => {
+app.get('/terrain/t3-taknz-elevation-manifest.json', (req, res) => {
   const protocol = req.get('x-forwarded-proto') || req.protocol;
   const host = req.get('host');
   const baseUrl = `${protocol}://${host}`;
