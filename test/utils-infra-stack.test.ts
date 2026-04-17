@@ -116,7 +116,7 @@ describe('UtilsInfraStack', () => {
         Statement: Match.arrayWith([
           Match.objectLike({
             Effect: 'Allow',
-            Action: 'kms:Decrypt'
+            Action: ['kms:Decrypt', 'kms:GenerateDataKey']
           })
         ])
       }
