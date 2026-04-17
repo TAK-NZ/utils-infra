@@ -14,6 +14,7 @@ import { SecurityGroups } from './constructs/security-groups';
 import { Alb } from './constructs/alb';
 import { ContainerService } from './constructs/container-service';
 import { CloudFront } from './constructs/cloudfront';
+import { TerrainCloudFront } from './constructs/terrain-cloudfront';
 import { ApiAuth } from './constructs/api-auth';
 
 // Utility imports
@@ -196,17 +197,12 @@ export class UtilsInfraStack extends cdk.Stack {
       );
     }
 
-    // Grant S3 access to config bucket for API keys and terrain tile cache
+    // Grant S3 access to config bucket for API keys
     const configBucketArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ENV_CONFIG_BUCKET));
     taskRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['s3:GetObject'],
       resources: [`${configBucketArn}/*`],
-    }));
-    taskRole.addToPolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['s3:PutObject'],
-      resources: [`${configBucketArn}/terrain-cache/*`],
     }));
     taskRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
@@ -218,7 +214,7 @@ export class UtilsInfraStack extends cdk.Stack {
     const kmsKeyArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.KMS_KEY));
     taskRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+      actions: ['kms:Decrypt'],
       resources: [kmsKeyArn],
     }));
 
@@ -405,6 +401,45 @@ export class UtilsInfraStack extends cdk.Stack {
             value: cloudFront.domainName,
             description: 'CloudFront distribution domain name',
             exportName: `${id}-CloudFrontDomain`,
+          });
+        } else if (containerName === 'terrain-proxy') {
+          // Create CloudFront distribution for terrain proxy
+          const terrainCfCert = new acm.DnsValidatedCertificate(this, 'TerrainCloudFrontCertificate', {
+            domainName: `${containerConfig.hostname}.${hostedZone.zoneName}`,
+            hostedZone,
+            region: 'us-east-1',
+          });
+
+          const apiKeys = this.node.tryGetContext('apiKeys') || [];
+
+          const terrainCloudFront = new TerrainCloudFront(this, 'TerrainCloudFront', {
+            albDomainName: alb.dnsName,
+            certificate: terrainCfCert,
+            hostedZone,
+            hostname: containerConfig.hostname,
+            apiKeys,
+          });
+
+          new route53.ARecord(this, `${containerName}ARecord`, {
+            zone: hostedZone,
+            recordName: containerConfig.hostname,
+            target: route53.RecordTarget.fromAlias(
+              new targets.CloudFrontTarget(terrainCloudFront.distribution)
+            ),
+          });
+
+          new route53.AaaaRecord(this, `${containerName}AaaaRecord`, {
+            zone: hostedZone,
+            recordName: containerConfig.hostname,
+            target: route53.RecordTarget.fromAlias(
+              new targets.CloudFrontTarget(terrainCloudFront.distribution)
+            ),
+          });
+
+          new cdk.CfnOutput(this, 'TerrainCloudFrontDomain', {
+            value: terrainCloudFront.domainName,
+            description: 'Terrain CloudFront distribution domain name',
+            exportName: `${id}-TerrainCloudFrontDomain`,
           });
         } else {
           // Create Route53 record for hostname (direct ALB)

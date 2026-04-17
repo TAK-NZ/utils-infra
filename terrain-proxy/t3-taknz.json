@@ -5,7 +5,7 @@
   "downloadable": true,
   "refreshInterval": 0,
   "isQuadtree": true,
-  "url": "{BASE_URL}/terrain/{$z}/{$x}/{$y}.png",
+  "url": "{BASE_URL}/terrain/{$z}/{$x}/{$y}.png?api={API_KEY}",
   "srs": "EPSG:4326",
   "numLevels": 14,
   "tileMatrix": [

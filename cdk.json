@@ -87,7 +87,7 @@
         },
         "terrain-proxy": {
           "enabled": true,
-          "path": "/terrain",
+          "hostname": "terrain",
           "healthCheckPath": "/terrain/health",
           "port": 3000,
           "cpu": 512,
@@ -181,7 +181,7 @@
         },
         "terrain-proxy": {
           "enabled": true,
-          "path": "/terrain",
+          "hostname": "terrain",
           "healthCheckPath": "/terrain/health",
           "port": 3000,
           "cpu": 512,

@@ -3,7 +3,7 @@ const sharp = require('sharp');
 const NodeCache = require('node-cache');
 const fs = require('fs');
 const path = require('path');
-const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,16 +14,12 @@ const CONFIG_KEY = process.env.CONFIG_KEY || 'Utils-Terrain-Proxy-Config.json';
 
 let LINZ_API_KEY = process.env.LINZ_API_KEY || 'PLACEHOLDER_API_KEY';
 
-// Cache tiles: in-memory LRU for hot tiles, S3 for persistent storage
-const tileCache = new NodeCache({ stdTTL: 0, maxKeys: 50000 }); // No TTL, LRU eviction
+// Cache tiles in memory (elevation data is static)
+const tileCache = new NodeCache({ stdTTL: 0, maxKeys: 50000 });
 
 const TILE_SIZE = 256;
 const MAX_ZOOM = 14;
 const NZ_BOUNDS = { minLat: -48.0, maxLat: -34.0, minLon: 166.0, maxLon: 179.0 };
-
-// S3 cache configuration
-const S3_CACHE_BUCKET = process.env.CONFIG_BUCKET;
-const S3_CACHE_PREFIX = 'terrain-cache/';
 
 // Load the static manifest template once at startup
 const manifestTemplate = fs.readFileSync(
@@ -48,42 +44,6 @@ async function loadConfigFromS3() {
     }
   } catch (error) {
     console.error('Failed to load config from S3:', error.message);
-  }
-}
-
-// --- S3 tile cache ---
-
-async function getFromS3Cache(cacheKey) {
-  if (!S3_CACHE_BUCKET) return null;
-  try {
-    const command = new GetObjectCommand({
-      Bucket: S3_CACHE_BUCKET,
-      Key: `${S3_CACHE_PREFIX}${cacheKey}.png`,
-    });
-    const response = await s3Client.send(command);
-    const chunks = [];
-    for await (const chunk of response.Body) {
-      chunks.push(chunk);
-    }
-    return Buffer.concat(chunks);
-  } catch (err) {
-    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) return null;
-    return null;
-  }
-}
-
-async function putToS3Cache(cacheKey, data) {
-  if (!S3_CACHE_BUCKET) return;
-  try {
-    await s3Client.send(new PutObjectCommand({
-      Bucket: S3_CACHE_BUCKET,
-      Key: `${S3_CACHE_PREFIX}${cacheKey}.png`,
-      Body: data,
-      ContentType: 'image/png',
-      CacheControl: 'public, max-age=31536000, immutable',
-    }));
-  } catch (err) {
-    // Non-fatal: cache write failure shouldn't break tile serving
   }
 }
 
@@ -239,24 +199,14 @@ async function getSeaLevelTile() {
 
 async function generateTerrainTile(z, x, y) {
   const cacheKey = `tak-${z}-${x}-${y}`;
-
-  // Tier 1: in-memory cache
-  const memCached = tileCache.get(cacheKey);
-  if (memCached) return memCached;
-
-  // Tier 2: S3 persistent cache
-  const s3Cached = await getFromS3Cache(cacheKey);
-  if (s3Cached) {
-    tileCache.set(cacheKey, s3Cached);
-    return s3Cached;
-  }
+  const cached = tileCache.get(cacheKey);
+  if (cached) return cached;
 
   const bounds = tileToLatLonBounds(z, x, y);
 
   if (!tileOverlapsNZ(z, x, y)) {
     const tile = await getSeaLevelTile();
     tileCache.set(cacheKey, tile);
-    putToS3Cache(cacheKey, tile); // async, don't await
     return tile;
   }
 
@@ -324,7 +274,6 @@ async function generateTerrainTile(z, x, y) {
   }).png({ compressionLevel: 6 }).toBuffer();
 
   tileCache.set(cacheKey, pngBuffer);
-  putToS3Cache(cacheKey, pngBuffer); // async, don't await
   return pngBuffer;
 }
 
@@ -332,10 +281,17 @@ async function generateTerrainTile(z, x, y) {
 
 // TAK terrain manifest — serves t3-taknz.json with {BASE_URL} replaced
 app.get('/terrain/t3-taknz-elevation-manifest.json', (req, res) => {
+  const apiKey = req.query.api;
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key required', message: 'Use ?api=your-key' });
+  }
+
   const protocol = req.get('x-forwarded-proto') || req.protocol;
   const host = req.get('host');
   const baseUrl = `${protocol}://${host}`;
-  const manifest = manifestTemplate.replace('{BASE_URL}', baseUrl);
+  const manifest = manifestTemplate
+    .replace('{BASE_URL}', baseUrl)
+    .replace('{API_KEY}', apiKey);
 
   res.set({ 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' });
   res.send(manifest);
@@ -346,8 +302,6 @@ app.get('/terrain/health', (req, res) => {
   res.json({
     status: 'ok',
     cache_keys: tileCache.keys().length,
-    cache_type: S3_CACHE_BUCKET ? 'memory+s3' : 'memory',
-    s3_cache_bucket: !!S3_CACHE_BUCKET,
     linz_api_configured: LINZ_API_KEY !== 'PLACEHOLDER_API_KEY',
     config_source: CONFIG_BUCKET ? 'S3' : 'environment',
     config_bucket: !!CONFIG_BUCKET,
