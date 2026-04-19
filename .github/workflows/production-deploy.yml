@@ -56,9 +56,11 @@ jobs:
           echo "tak-tag=$TAK_TAG" >> $GITHUB_OUTPUT
 
       - name: Validate Production Change Set
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           # Check if override is requested
-          if [[ "${{ github.event.head_commit.message }}" == *"[force-deploy]"* ]]; then
+          if [[ "$COMMIT_MSG" == *"[force-deploy]"* ]]; then
             echo "🚨 Force deploy detected - skipping change set validation"
           else
             ./scripts/github/validate-changeset.sh TAK-${{ vars.PROD_STACK_NAME }}-TakInfra
