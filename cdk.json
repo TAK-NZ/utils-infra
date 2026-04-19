@@ -61,7 +61,6 @@
           "priority": 3,
           "imageTag": "v1.1.5"
         },
-
         "tileserver-gl": {
           "enabled": true,
           "hostname": "tiles",
@@ -70,7 +69,7 @@
           "cpu": 2048,
           "memory": 4096,
           "priority": 4,
-          "imageTag": "v1.2.0",
+          "imageTag": "v1.3.0",
           "mbtilesMulti": {
             "enabled": true,
             "files": [
@@ -155,7 +154,6 @@
           "priority": 3,
           "imageTag": "v1.1.5"
         },
-
         "tileserver-gl": {
           "enabled": true,
           "hostname": "tiles",
@@ -164,7 +162,7 @@
           "cpu": 2048,
           "memory": 4096,
           "priority": 4,
-          "imageTag": "v1.2.0",
+          "imageTag": "v1.3.0",
           "mbtilesMulti": {
             "enabled": true,
             "files": [
