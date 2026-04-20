@@ -42,6 +42,57 @@ const MARINESIA_BOUNDING_BOX = {
   long_min: 166.0, long_max: 179.0
 };
 
+// ITU-assigned Maritime Identification Digits (MIDs) per ITU-R M.585
+const VALID_MIDS = new Set([
+  // Europe (201-279)
+  201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,218,219,220,
+  224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,
+  243,244,245,246,247,248,249,250,251,252,253,254,255,256,257,258,259,260,261,
+  262,263,264,265,266,267,268,269,270,271,272,273,274,275,276,277,278,279,
+  // Americas (301-379)
+  301,303,304,305,306,307,308,309,310,311,312,314,316,319,321,323,325,327,328,
+  329,330,331,332,334,336,338,339,341,343,345,347,348,349,350,351,352,353,354,
+  355,356,357,358,359,361,362,364,366,367,368,369,370,371,372,373,374,375,376,
+  377,378,379,
+  // Asia (401-478)
+  401,403,405,408,410,412,413,414,416,417,419,422,423,425,428,431,432,434,436,
+  437,438,440,441,443,445,447,450,451,453,455,456,457,459,460,461,462,463,466,
+  467,468,469,470,471,472,473,475,477,478,
+  // Oceania (501-578)
+  501,503,506,508,510,511,512,514,515,516,518,520,521,523,525,529,531,533,536,
+  538,540,542,544,546,548,550,553,555,557,559,561,563,564,565,566,567,570,572,
+  574,576,577,578,
+  // Africa (601-679)
+  601,603,605,607,608,609,610,611,612,613,614,615,616,617,618,619,620,621,622,
+  624,625,626,627,629,630,631,632,633,634,635,636,637,638,642,644,645,647,649,
+  650,654,655,656,657,659,660,661,662,663,664,665,666,667,668,669,670,671,672,
+  674,675,676,677,678,679,
+  // Pacific/misc (701-775)
+  701,710,720,725,730,735,740,745,750,755,760,765,770,775
+]);
+
+// Validate MMSI against ITU MID assignments
+// Supports: standard vessels (MIDxxxxxx), AtoN (99MIDxxxx), coast (00MIDxxxx),
+//           group (0MIDxxxxx), SAR aircraft (111MIDxxx), and short base stations
+function isValidMMSI(mmsi) {
+  const s = String(mmsi);
+  let mid;
+  if (s.startsWith('99') && s.length === 9) {
+    mid = parseInt(s.substring(2, 5)); // AtoN: 99MIDxxxx
+  } else if (s.startsWith('111') && s.length === 9) {
+    mid = parseInt(s.substring(3, 6)); // SAR aircraft: 111MIDxxx
+  } else if (s.startsWith('00') && s.length === 9) {
+    mid = parseInt(s.substring(2, 5)); // Coast station: 00MIDxxxx
+  } else if (s.startsWith('0') && s.length === 9) {
+    mid = parseInt(s.substring(1, 4)); // Group: 0MIDxxxxx
+  } else if (s.length >= 7 && s.length <= 9) {
+    mid = parseInt(s.substring(0, 3)); // Standard vessel or short base station
+  } else {
+    return false;
+  }
+  return VALID_MIDS.has(mid);
+}
+
 // Sanitize log input to prevent log injection
 function sanitizeLogInput(input) {
   if (typeof input !== 'string') return String(input);
@@ -162,12 +213,15 @@ function loadCache() {
     if (fs.existsSync(CACHE_FILE)) {
       const data = fs.readFileSync(CACHE_FILE, 'utf8');
       const cached = JSON.parse(data);
+      let filtered = 0;
       for (const [mmsi, vessel] of Object.entries(cached)) {
+        const mmsiNum = parseInt(mmsi);
+        if (!isValidMMSI(mmsiNum)) { filtered++; continue; }
         vessel.lastUpdate = new Date(vessel.lastUpdate);
-        vesselCache.set(parseInt(mmsi), vessel);
+        vesselCache.set(mmsiNum, vessel);
       }
       
-      console.log(`Loaded ${vesselCache.size} vessels from cache`);
+      console.log(`Loaded ${vesselCache.size} vessels from cache${filtered ? ` (filtered ${filtered} invalid MMSIs)` : ''}`);
     }
   } catch (error) {
     if (error.code === 'ENOENT') {
@@ -318,6 +372,12 @@ function processAISMessage(message) {
     
     const mmsi = message.MetaData.MMSI;
     const messageType = message.MessageType;
+    
+    // Validate MMSI against ITU MID assignments
+    if (!isValidMMSI(mmsi)) {
+      if (DEBUG) console.warn(`Rejected invalid MMSI ${mmsi} (unassigned MID)`);
+      return;
+    }
     
     // Validate coordinates
     const lat = message.MetaData.latitude;
@@ -1402,6 +1462,7 @@ async function pollMarinesia() {
     let enriched = 0;
     for (const v of vessels) {
       if (!v.mmsi) continue;
+      if (!isValidMMSI(v.mmsi)) continue;
       const typeKey = (v.type || '').toLowerCase();
       const mappedType = MARINESIA_TYPE_MAP[typeKey] ?? null;
       const marinesiaTs = v.ts ? new Date(v.ts + 'Z') : new Date();
