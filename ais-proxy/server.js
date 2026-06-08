@@ -1439,6 +1439,7 @@ async function pollMarinesia() {
 
   const { lat_min, lat_max, long_min, long_max } = MARINESIA_BOUNDING_BOX;
   const url = `https://api.marinesia.com/api/v2/vessel/area?lat_min=${lat_min}&lat_max=${lat_max}&long_min=${long_min}&long_max=${long_max}&key=${apiKey}`;
+  const keyHint = apiKey.slice(-4);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 20000);
@@ -1451,7 +1452,7 @@ async function pollMarinesia() {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.warn(`Marinesia API returned ${response.status}`);
+      console.warn(`Marinesia API returned ${response.status} (key: ...${keyHint})`);
       return;
     }
 
@@ -1543,7 +1544,7 @@ async function pollMarinesia() {
       marinesiaEnabled = true;
       console.log(`Marinesia enrichment enabled (${marinesiaPollInterval/1000}s interval)`);
     }
-    console.log(`Marinesia: ${vessels.length} vessels fetched, ${added} added, ${enriched} enriched, ${marinesiaCache.size} cached`);
+    console.log(`Marinesia: ${vessels.length} vessels fetched, ${added} added, ${enriched} enriched, ${marinesiaCache.size} cached (key: ...${keyHint})`);
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
@@ -1562,7 +1563,8 @@ async function startMarinesiaEnrichment() {
     return;
   }
   marinesiaPollInterval = keys.marinesia?.pollInterval || parseInt(process.env.MARINESIA_POLL_INTERVAL) || MARINESIA_DEFAULT_POLL_INTERVAL;
-  console.log(`Starting Marinesia enrichment (interval: ${marinesiaPollInterval/1000}s)`);
+  const keyHint = apiKey.slice(-4);
+  console.log(`Starting Marinesia enrichment (interval: ${marinesiaPollInterval/1000}s, key: ...${keyHint})`);
   await pollMarinesia();
   marinesiaInterval = setInterval(pollMarinesia, marinesiaPollInterval);
 }
