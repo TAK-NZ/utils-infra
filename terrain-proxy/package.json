@@ -8,10 +8,10 @@
     "dev": "node server.js"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1031.0",
-    "express": "^4.18.2",
+    "@aws-sdk/client-s3": "^3.1079.0",
+    "express": "^5.2.1",
     "node-cache": "^5.1.2",
-    "sharp": "^0.33.2"
+    "sharp": "^0.35.3"
   },
   "keywords": [
     "terrain",
