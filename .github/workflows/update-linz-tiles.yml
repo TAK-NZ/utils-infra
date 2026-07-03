@@ -26,8 +26,8 @@ jobs:
 
       - name: Install pmtiles
         run: |
-          wget -q https://github.com/protomaps/go-pmtiles/releases/download/v1.29.1/go-pmtiles_1.29.1_Linux_x86_64.tar.gz
-          tar xzf go-pmtiles_1.29.1_Linux_x86_64.tar.gz
+          wget -q https://github.com/protomaps/go-pmtiles/releases/download/v1.30.3/go-pmtiles_1.30.3_Linux_x86_64.tar.gz
+          tar xzf go-pmtiles_1.30.3_Linux_x86_64.tar.gz
           chmod +x pmtiles
 
       - name: Get Stack Outputs
@@ -129,8 +129,8 @@ jobs:
       - name: Install pmtiles
         if: steps.check.outputs.enabled == 'true'
         run: |
-          wget -q https://github.com/protomaps/go-pmtiles/releases/download/v1.29.1/go-pmtiles_1.29.1_Linux_x86_64.tar.gz
-          tar xzf go-pmtiles_1.29.1_Linux_x86_64.tar.gz
+          wget -q https://github.com/protomaps/go-pmtiles/releases/download/v1.30.3/go-pmtiles_1.30.3_Linux_x86_64.tar.gz
+          tar xzf go-pmtiles_1.30.3_Linux_x86_64.tar.gz
           chmod +x pmtiles
 
       - name: Get Stack Outputs
@@ -185,31 +185,6 @@ jobs:
           
           # Update FORCE_DOWNLOAD in tile-downloader container
           jq '.containerDefinitions |= map(
-            if .name == "tile-downloader" then
-              .environment |= (map(if .name == "FORCE_DOWNLOAD" then .value = "true" else . end) |
-              if (map(.name) | contains(["FORCE_DOWNLOAD"]) | not) then
-                . + [{"name": "FORCE_DOWNLOAD", "value": "true"}]
-              else . end)
-            else . end
-          ) | {family, taskRoleArn, executionRoleArn, networkMode, containerDefinitions, 
-             volumes, placementConstraints, requiresCompatibilities, cpu, memory}' \
-            /tmp/task-def.json > /tmp/new-task-def.json
-          
-          # Register new task definition
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file:///tmp/new-task-def.json \
-            --query 'taskDefinition.taskDefinitionArn' --output text)
-          
-          echo "Registered new task definition: $NEW_TASK_DEF_ARN"
-          
-          # Update service with new task definition and force deployment
-          aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $SERVICE_NAME \
-            --task-definition $NEW_TASK_DEF_ARN \
-            --force-new-deployment
-          
-          echo "Service updated - new tasks will download fresh tiles from S3"
             if .name == "tile-downloader" then
               .environment |= (map(if .name == "FORCE_DOWNLOAD" then .value = "true" else . end) |
               if (map(.name) | contains(["FORCE_DOWNLOAD"]) | not) then
