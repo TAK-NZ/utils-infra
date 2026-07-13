@@ -1,0 +1,17 @@
+{
+  "name": "display-proxy",
+  "version": "1.0.0",
+  "description": "CloudTAK MJPEG display proxy — streams a live headless-browser view of CloudTAK",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "lint": "eslint server.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "playwright": "^1.61.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

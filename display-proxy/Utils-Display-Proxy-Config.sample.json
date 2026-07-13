@@ -1,0 +1,12 @@
+{
+    "cloudtak_url": "https://map.demo.tak.nz",
+    "cloudtak_token": "etl.<your-cloudtak-api-token>",
+    "display_url_params": "/",
+    "viewport_width": 1920,
+    "viewport_height": 1080,
+    "jpeg_quality": 80,
+    "initial_wait_ms": 15000,
+    "access_keys": [
+        "<generate-with: python3 -c \"import secrets; print(secrets.token_urlsafe(32))\">"
+    ]
+}

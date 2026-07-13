@@ -82,3 +82,9 @@ TAK-NZ-Maps-Package*.zip
 
 # Generated GRG files
 grg-output/
+
+# Display proxy config contains real API tokens — upload to S3, don't commit
+display-proxy/Utils-Display-Proxy-Config.json
+
+# Allow display-proxy JS source (excluded by *.js CDK rule above)
+!display-proxy/*.js
