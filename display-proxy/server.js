@@ -127,6 +127,22 @@ class BrowserLoop {
             pushFrame(currentFrame);
         });
 
+        // Fallback: if Chrome goes idle (no visual changes), force a screenshot
+        // every 30 seconds so connected clients always get a fresh frame
+        this.fallbackTimer = setInterval(async () => {
+            const idleMs = lastFrameTime ? Date.now() - lastFrameTime.getTime() : Infinity;
+            if (idleMs > 25000) {
+                try {
+                    const buf = await this.page.screenshot({ type: 'jpeg', quality: this.cfg.jpeg_quality || 80 });
+                    currentFrame  = buf;
+                    lastFrameTime = new Date();
+                    pushFrame(currentFrame);
+                } catch (err) {
+                    // page may be navigating — ignore
+                }
+            }
+        }, 30000);
+
         this.browser.on('disconnected', () => {
             if (!this.running) return;
             console.error('Browser disconnected — restarting in 5s…');
@@ -139,6 +155,10 @@ class BrowserLoop {
 
     async stop() {
         this.running = false;
+        if (this.fallbackTimer) {
+            clearInterval(this.fallbackTimer);
+            this.fallbackTimer = null;
+        }
         if (this.cdp) {
             await this.cdp.send('Page.stopScreencast').catch(() => {});
             this.cdp = null;
