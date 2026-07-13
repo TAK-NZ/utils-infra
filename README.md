@@ -69,6 +69,51 @@ TAK terrain tile proxy that converts LINZ NZ elevation data into TAK-compatible 
 - **Features**: EPSG:3857→4326 reprojection, Mapbox→TAK encoding, NZVD2016→HAE conversion
 - **Documentation**: [Terrain Proxy API](docs/TERRAIN_PROXY.md)
 
+### display-proxy
+CloudTAK MJPEG display proxy. Opens CloudTAK in a headless Chromium browser and
+streams it as a continuous MJPEG video feed. Designed for digital signage platforms
+(AbleSign, Fire TV sticks, wall-mounted displays) that cannot render the CloudTAK
+web application directly.
+
+The browser stays open permanently — CDP screencast pushes JPEG frames only when
+the page content changes, so bandwidth is near-zero when the map is static and
+briefly higher when icons or data update.
+
+- **Hostname**: `display.{domain}` (e.g. `display.demo.tak.nz`)
+- **Health Check**: `/health`
+- **Stream**: `GET /stream?key=<token>` — raw MJPEG stream (`<img src="...">` or AbleSign image URL)
+- **View**: `GET /view?key=<token>` — full-screen HTML wrapper (for browsers / AbleSign web page mode)
+- **Auth**: Local access key in `?key=` query parameter, validated against `access_keys` in S3 config
+- **S3 Config**: `Utils-Display-Proxy-Config.json` — see `display-proxy/Utils-Display-Proxy-Config.sample.json`
+
+**S3 config format:**
+```json
+{
+    "cloudtak_url":        "https://map.demo.tak.nz",
+    "cloudtak_token":      "etl.<jwt>",
+    "display_url_params":  "/",
+    "viewport_width":      1920,
+    "viewport_height":     1080,
+    "jpeg_quality":        80,
+    "initial_wait_ms":     15000,
+    "access_keys":         ["<your-random-token>"]
+}
+```
+
+> **Note:** The config file contains a real CloudTAK API token. Upload it directly to S3 — do not commit it to git (`Utils-Display-Proxy-Config.json` is in `.gitignore`).
+
+**Upload config to S3:**
+```bash
+aws s3 cp display-proxy/Utils-Display-Proxy-Config.json \
+    s3://<config-bucket>/Utils-Display-Proxy-Config.json \
+    --profile tak-nz-demo --region ap-southeast-2
+```
+
+**Use in AbleSign or Fire TV:**
+```
+https://display.demo.tak.nz/view?key=<your-random-token>
+```
+
 
 
 ## Configuration

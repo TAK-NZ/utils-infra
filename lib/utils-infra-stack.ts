@@ -323,6 +323,9 @@ export class UtilsInfraStack extends cdk.Stack {
       } else if (containerName === 'terrain-proxy') {
         environmentVariables.CONFIG_BUCKET = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
         environmentVariables.CONFIG_KEY = 'Utils-Terrain-Proxy-Config.json';
+      } else if (containerName === 'display-proxy') {
+        environmentVariables.CONFIG_BUCKET = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
+        environmentVariables.CONFIG_KEY = 'Utils-Display-Proxy-Config.json';
       }
 
       // Create container service
