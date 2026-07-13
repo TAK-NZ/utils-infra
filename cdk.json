@@ -102,7 +102,7 @@
           "cpu": 1024,
           "memory": 2048,
           "priority": 6,
-          "imageTag": "v1.0.0"
+          "imageTag": "v1.0.1"
         }
       },
       "general": {
@@ -205,7 +205,7 @@
           "cpu": 1024,
           "memory": 2048,
           "priority": 6,
-          "imageTag": "v1.0.0"
+          "imageTag": "v1.0.1"
         }
       },
       "general": {
