@@ -71,10 +71,13 @@ class BrowserLoop {
     }
 
     loginUrl() {
-        // Same approach as screenshot-loop.cjs — construct full login URL
-        const base    = this.cfg.cloudtak_url.replace(/\/$/, '');
-        const token   = encodeURIComponent(this.cfg.cloudtak_token);
-        const redirect = encodeURIComponent(this.cfg.display_url_params || '/');
+        // Construct the CloudTAK login URL with token and redirect.
+        // display_url_params should be stored pre-encoded in config
+        // (e.g. "/%236/-41.29/174.78" not "/#6/-41.29/174.78")
+        // since the # must be %23 in the redirect query parameter.
+        const base     = this.cfg.cloudtak_url.replace(/\/$/, '');
+        const token    = encodeURIComponent(this.cfg.cloudtak_token);
+        const redirect = this.cfg.display_url_params || '/';
         return `${base}/login?token=${token}&redirect=${redirect}`;
     }
 
