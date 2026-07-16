@@ -15,6 +15,7 @@ import { Alb } from './constructs/alb';
 import { ContainerService } from './constructs/container-service';
 import { CloudFront } from './constructs/cloudfront';
 import { TerrainCloudFront } from './constructs/terrain-cloudfront';
+import { DisplayCloudFront } from './constructs/display-cloudfront';
 import { ApiAuth } from './constructs/api-auth';
 
 // Utility imports
@@ -472,6 +473,46 @@ export class UtilsInfraStack extends cdk.Stack {
         );
       }
     });
+
+    // =================
+    // DISPLAY CLOUDFRONT (Legacy Lambda+S3 approach — skipped when display-proxy ECS container is enabled)
+    // =================
+
+    const displayContainerEnabled = envConfig.containers['display-proxy']?.enabled ?? false;
+    if (envConfig.cloudfront?.display?.enabled && !displayContainerEnabled) {
+      const displayConfig   = envConfig.cloudfront.display;
+      const configBucketName = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
+
+      // us-east-1 certificate required for CloudFront
+      const displayCfCert = new acm.DnsValidatedCertificate(this, 'DisplayCloudFrontCertificate', {
+        domainName: `${displayConfig.hostname}.${hostedZone.zoneName}`,
+        hostedZone,
+        region: 'us-east-1',
+      });
+
+      const displayCf = new DisplayCloudFront(this, 'DisplayCloudFront', {
+        certificate:       displayCfCert,
+        hostedZone,
+        hostname:          displayConfig.hostname,
+        configBucketName,
+        kmsKeyArn:         cdk.Token.asString(kmsKeyArn),
+        removalPolicy:     envConfig.general.removalPolicy === 'DESTROY'
+                             ? RemovalPolicy.DESTROY
+                             : RemovalPolicy.RETAIN,
+      });
+
+      new cdk.CfnOutput(this, 'DisplayCloudFrontDomain', {
+        value:       displayCf.domainName,
+        description: 'Display CloudFront distribution domain name',
+        exportName:  `${id}-DisplayCloudFrontDomain`,
+      });
+
+      new cdk.CfnOutput(this, 'DisplayUrl', {
+        value:       `https://${displayConfig.hostname}.${hostedZone.zoneName}`,
+        description: 'Display web app URL',
+        exportName:  `${id}-DisplayUrl`,
+      });
+    }
 
     // =================
     // STACK OUTPUTS

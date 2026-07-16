@@ -99,10 +99,10 @@
           "hostname": "display",
           "healthCheckPath": "/health",
           "port": 3000,
-          "cpu": 1024,
-          "memory": 2048,
+          "cpu": 256,
+          "memory": 512,
           "priority": 6,
-          "imageTag": "v1.0.1"
+          "imageTag": "v1.0.0"
         }
       },
       "general": {
@@ -120,6 +120,10 @@
             "metadata": "1h",
             "health": "0s"
           }
+        },
+        "display": {
+          "enabled": true,
+          "hostname": "display"
         }
       }
     },
@@ -202,10 +206,10 @@
           "hostname": "display",
           "healthCheckPath": "/health",
           "port": 3000,
-          "cpu": 1024,
-          "memory": 2048,
+          "cpu": 256,
+          "memory": 512,
           "priority": 6,
-          "imageTag": "v1.0.1"
+          "imageTag": "v1.0.0"
         }
       },
       "general": {
@@ -223,6 +227,10 @@
             "metadata": "1h",
             "health": "0s"
           }
+        },
+        "display": {
+          "enabled": true,
+          "hostname": "display"
         }
       }
     },

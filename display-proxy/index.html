@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TAK.NZ Display</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a0a; font-family: system-ui, -apple-system, sans-serif; }
+
+    #layout {
+      display: flex; width: 100%; height: 100%;
+    }
+
+    /* Left 2/3: map */
+    #map-container {
+      flex: 2; position: relative; min-width: 0;
+    }
+    #map { width: 100%; height: 100%; }
+
+    /* Right 1/3: info panel */
+    #info-panel {
+      flex: 1; display: flex; flex-direction: column;
+      background: #111; color: #eee; padding: 2.5vw;
+      border-left: 1px solid #2a2a2a; overflow-y: auto;
+    }
+
+    /* Branding */
+    #branding {
+      display: flex; align-items: center; gap: 1.2vw; margin-bottom: 3vh;
+    }
+    #branding img { height: clamp(2.8rem, 4.5vw, 4.2rem); width: auto; flex-shrink: 0; }
+    #branding-text { display: flex; flex-direction: column; }
+    #branding h1 {
+      font-size: clamp(0.85rem, 1.4vw, 1.3rem); font-weight: 600;
+      color: #fff; letter-spacing: 0.02em; line-height: 1.3;
+    }
+    #branding h2 {
+      font-size: clamp(0.65rem, 1vw, 0.95rem); font-weight: 300;
+      color: #999; letter-spacing: 0.01em; line-height: 1.3;
+    }
+
+    /* Dividers */
+    .divider {
+      border: 0; border-top: 1px solid #2a2a2a; margin: 2vh 0;
+    }
+
+    /* Stats section */
+    #stats { flex: 1; }
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.8vh 0; border-bottom: 1px solid #1a1a1a;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label {
+      font-size: clamp(0.8rem, 1.1vw, 1rem); color: #aaa; text-transform: capitalize;
+    }
+    .stat-value {
+      font-size: clamp(1rem, 1.4vw, 1.3rem); font-weight: 600;
+      color: #fff; font-variant-numeric: tabular-nums;
+    }
+    .stat-row.total .stat-label { color: #fff; font-weight: 500; }
+    .stat-row.total .stat-value { font-size: clamp(1.2rem, 1.8vw, 1.6rem); color: #4fd1c5; }
+
+    /* Contact group rows */
+    .stat-label .group-dot {
+      display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+      margin-right: 6px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.3);
+    }
+    #contacts-section .stat-label { font-size: clamp(0.7rem, 1vw, 0.9rem); }
+
+    /* Clock */
+    #clock-section { text-align: center; margin-top: 2vh; }
+    #clock {
+      font-size: clamp(1.1rem, 2vw, 1.8rem); font-weight: 700;
+      color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 0.05em;
+    }
+    #clock-date {
+      font-size: clamp(0.7rem, 1vw, 0.9rem); font-weight: 400;
+      color: #aaa; margin-top: 0.2vh;
+    }
+    #clock-label {
+      font-size: clamp(0.6rem, 0.8vw, 0.75rem); color: #666;
+      text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.5vh;
+    }
+
+    /* Error overlay */
+    #error-overlay {
+      display: none; position: absolute; inset: 0; background: #111;
+      color: #fff; font-family: system-ui, sans-serif;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; z-index: 20;
+    }
+    #error-overlay.visible { display: flex; }
+    #error-overlay h1 { font-size: 1.4rem; }
+    #error-overlay p  { font-size: 0.9rem; color: #aaa; }
+  </style>
+</head>
+<body>
+<div id="layout">
+  <div id="map-container">
+    <div id="map"></div>
+  </div>
+  <div id="info-panel">
+    <div id="branding">
+      <img src="/static/tak-nz-logo.svg" alt="TAK.NZ"/>
+      <div id="branding-text">
+        <h1>Common Operational Picture</h1>
+        <h2>New Zealand / Aotearoa</h2>
+      </div>
+    </div>
+    <hr class="divider"/>
+    <div id="stats">
+      <div id="contacts-section"></div>
+      <hr class="divider" id="contacts-divider" style="display:none"/>
+      <div id="layer-rows"></div>
+      <hr class="divider"/>
+      <div class="stat-row total">
+        <span class="stat-label">Total</span>
+        <span class="stat-value" id="count-total">--</span>
+      </div>
+    </div>
+    <hr class="divider"/>
+    <div id="clock-section">
+      <div id="clock">--:--:--</div>
+      <div id="clock-date"></div>
+      <div id="clock-label">NZST</div>
+    </div>
+  </div>
+</div>
+<div id="error-overlay">
+  <h1 id="error-title">Error</h1>
+  <p  id="error-detail"></p>
+</div>
+<script>
+'use strict';
+
+var params        = new URLSearchParams(window.location.search);
+var KEY           = params.get('key')    || '';
+var LAT           = parseFloat(params.get('lat')  || '-41.28');
+var LNG           = parseFloat(params.get('lng')  || '174.77');
+var ZOOM          = parseFloat(params.get('zoom') || '5');
+var LOCKED        = params.get('locked') !== 'false';
+
+var COT_SOURCES = []; // populated from config
+var COT_REFRESH_MS = 10 * 1000;
+
+// Layer counts for the info panel
+var layerCounts = {};
+
+function showError(t, d) {
+  document.getElementById('error-title').textContent = t;
+  document.getElementById('error-detail').textContent = d;
+  document.getElementById('error-overlay').classList.add('visible');
+}
+if (!KEY) showError('Access denied', 'A valid ?key= parameter is required.');
+
+// ---------------------------------------------------------------------------
+// Clock
+// ---------------------------------------------------------------------------
+function updateClock() {
+  var now = new Date();
+  var time = now.toLocaleTimeString('en-NZ', {
+    timeZone: 'Pacific/Auckland', hour12: false,
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  var date = now.toLocaleDateString('en-NZ', {
+    timeZone: 'Pacific/Auckland',
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+  document.getElementById('clock').textContent = time;
+  document.getElementById('clock-date').textContent = date;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ---------------------------------------------------------------------------
+// Stats update
+// ---------------------------------------------------------------------------
+var CONTACT_GROUPS_CONFIG = {}; // populated from config
+var GROUP_COLORS = {
+  'Yellow': '#f59f00', 'Orange': '#f76707', 'Magenta': '#ea4c89',
+  'Red': '#d63939', 'Maroon': '#bd081c', 'Purple': '#ae3ec9',
+  'Dark Blue': '#0054a6', 'Blue': '#4299e1', 'Cyan': '#17a2b8',
+  'Teal': '#0ca678', 'Green': '#74b816', 'Dark Green': '#2fb344',
+  'Brown': '#dc4e41', 'White': '#ffffff',
+};
+
+// Track per-group contact counts
+var contactGroupCounts = {};
+
+function updateContactGroups(features) {
+  // Count contacts per group
+  var counts = {};
+  (features || []).forEach(function(f) {
+    var gn = f.properties['group-name'] || '';
+    if (gn) counts[gn] = (counts[gn] || 0) + 1;
+  });
+  contactGroupCounts = counts;
+  renderContactGroups();
+}
+
+function renderContactGroups() {
+  var container = document.getElementById('contacts-section');
+  var divider = document.getElementById('contacts-divider');
+  container.innerHTML = '';
+
+  // Build sorted array of groups with counts > 0
+  var groups = Object.keys(contactGroupCounts)
+    .filter(function(g) { return contactGroupCounts[g] > 0; })
+    .sort(function(a, b) { return contactGroupCounts[b] - contactGroupCounts[a]; });
+
+  if (groups.length === 0) {
+    divider.style.display = 'none';
+    return;
+  }
+  divider.style.display = '';
+
+  groups.forEach(function(groupName) {
+    var label = CONTACT_GROUPS_CONFIG[groupName] || groupName;
+    var color = GROUP_COLORS[groupName] || '#ffffff';
+    var row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = '<span class="stat-label"><span class="group-dot" style="background:' + color + '"></span>' + label + '</span>'
+      + '<span class="stat-value">' + contactGroupCounts[groupName] + '</span>';
+    container.appendChild(row);
+  });
+}
+
+function updateStats() {
+  var total = 0;
+  COT_SOURCES.forEach(function(src) {
+    var count = layerCounts[src.id] || 0;
+    total += count;
+    var el = document.getElementById('count-' + src.id);
+    if (el) el.textContent = count;
+  });
+  document.getElementById('count-total').textContent = total;
+}
+
+// ---------------------------------------------------------------------------
+// Fetch LINZ style, add our CoT icon sprite, then init map
+// ---------------------------------------------------------------------------
+var STYLE_URL = 'https://basemaps.linz.govt.nz/v1/tiles/topographic/EPSG:3857/style/topographic.json?api=d01hzxyc58t4tbxazm3h2jn7g26';
+var COT_SPRITE_URL = window.location.origin + '/static/sprite';
+var SPRITE_PROXY_BASE = window.location.origin + '/api/sprite';
+
+Promise.all([
+  fetch(STYLE_URL).then(function(r) { return r.json(); }),
+  fetch('/api/config').then(function(r) { return r.json(); }).catch(function() { return { iconsets: [], layers: [] }; })
+]).then(function(results) {
+  var style = results[0];
+  var config = results[1];
+
+  // Build COT_SOURCES from config layers
+  (config.layers || []).forEach(function(layer) {
+    COT_SOURCES.push({
+      id: layer.id,
+      label: layer.label || layer.id,
+      endpoint: '/api/cot/' + layer.id,
+    });
+  });
+
+  // Store contact group labels from config
+  CONTACT_GROUPS_CONFIG = config.contact_groups || {};
+
+  // Build stat rows for non-contacts layers only (contacts shown separately)
+  var layerContainer = document.getElementById('layer-rows');
+  COT_SOURCES.forEach(function(src) {
+    if (src.id === 'contacts') return; // contacts handled by renderContactGroups
+    var row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = '<span class="stat-label">' + src.label + '</span><span class="stat-value" id="count-' + src.id + '">--</span>';
+    layerContainer.appendChild(row);
+  });
+
+  var linzSprite = style.sprite;
+  var sprites = [
+    { id: 'default', url: COT_SPRITE_URL },
+    { id: 'linz-topographic', url: linzSprite }
+  ];
+
+  (config.iconsets || []).forEach(function(iconsetId) {
+    sprites.push({ id: iconsetId, url: SPRITE_PROXY_BASE + '/' + encodeURIComponent(iconsetId) + '/sprite' });
+  });
+
+  style.sprite = sprites;
+  initMap(style);
+}).catch(function(err) {
+  console.error('Failed to load style/config, falling back', err);
+  initMap(STYLE_URL);
+});
+
+function initMap(style) {
+// ---------------------------------------------------------------------------
+// Map
+// ---------------------------------------------------------------------------
+var map = window.map = new maplibregl.Map({
+  container:          'map',
+  style:              style,
+  center:             [LNG, LAT],
+  zoom:               ZOOM,
+  attributionControl: false,
+  interactive:        !LOCKED,
+});
+
+if (LOCKED) {
+  ['dragPan','scrollZoom','boxZoom','dragRotate','keyboard','doubleClickZoom','touchZoomRotate']
+    .forEach(function(m) { try { map[m].disable(); } catch(e) {} });
+}
+
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+
+map.on('load', function() {
+  addLayers();
+});
+
+function addLayers() {
+  COT_SOURCES.forEach(function(src) {
+    map.addSource(src.id, { type: 'geojson', data: emptyFC() });
+
+    if (src.id === 'contacts') {
+      // Contacts: colored circle based on group color
+      map.addLayer({
+        id: src.id, type: 'circle', source: src.id,
+        filter: ['==', ['geometry-type'], 'Point'],
+        paint: {
+          'circle-color':        ['string', ['get', 'marker-color'], '#ffffff'],
+          'circle-radius':       8,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 2,
+          'circle-opacity':      1,
+        },
+      });
+
+      // Contacts: callsign label
+      map.addLayer({
+        id: src.id + '-label', type: 'symbol', source: src.id,
+        filter: ['==', ['geometry-type'], 'Point'],
+        layout: {
+          'text-field':         ['coalesce', ['get', 'callsign'], ''],
+          'text-size':          11,
+          'text-offset':        [0, 1.8],
+          'text-anchor':        'top',
+          'text-font':          ['Open Sans Bold'],
+          'text-allow-overlap': false,
+        },
+        paint: {
+          'text-color':      '#ffffff',
+          'text-halo-color': '#000000',
+          'text-halo-width': 2,
+        },
+      });
+    } else {
+      // Standard layers: icon + course arrow + label
+
+      // Icon layer
+      map.addLayer({
+        id: src.id, type: 'symbol', source: src.id,
+        layout: {
+          'icon-image':            ['coalesce', ['get', 'icon'], ['get', 'type']],
+          'icon-size':             1.0,
+          'icon-allow-overlap':    true,
+          'icon-ignore-placement': true,
+        },
+      });
+
+      // Course arrow layer
+      map.addLayer({
+        id: src.id + '-course', type: 'symbol', source: src.id,
+        filter: ['all', ['==', ['geometry-type'], 'Point'], ['has', 'course']],
+        layout: {
+          'icon-image':            'course',
+          'icon-size':             0.33,
+          'icon-rotate':           ['get', 'course'],
+          'icon-allow-overlap':    true,
+          'icon-ignore-placement': true,
+          'icon-anchor':           'bottom',
+          'icon-offset':           [0, -42],
+        },
+      });
+
+      // Callsign text layer
+      map.addLayer({
+        id: src.id + '-label', type: 'symbol', source: src.id,
+        filter: ['==', ['geometry-type'], 'Point'],
+        layout: {
+          'text-field':            ['coalesce', ['get', 'callsign'], ['get', 'name'], ''],
+          'text-size':             11,
+          'text-offset':           [0, 2.2],
+          'text-anchor':           'top',
+          'text-font':             ['Open Sans Bold'],
+          'text-allow-overlap':    false,
+          'icon-allow-overlap':    true,
+        },
+        paint: {
+          'text-color':       '#ffffff',
+          'text-halo-color':  '#000000',
+          'text-halo-width':  2,
+        },
+      });
+    }
+  });
+
+  loadAll();
+  setInterval(refreshAll, COT_REFRESH_MS);
+}
+
+// ---------------------------------------------------------------------------
+// Data helpers
+// ---------------------------------------------------------------------------
+function emptyFC() { return { type: 'FeatureCollection', features: [] }; }
+
+function processFeature(f) {
+  if (f.geometry && f.geometry.type === 'Point' && f.geometry.coordinates.length === 3) {
+    f.geometry.coordinates = [f.geometry.coordinates[0], f.geometry.coordinates[1]];
+  }
+
+  // Extract useful metadata fields before flattening
+  var metadata = f.properties && f.properties.metadata;
+  var metaReg    = metadata && metadata.r;         // aircraft registration
+  var metaFlight = metadata && metadata.flight;    // flight callsign (may have trailing spaces)
+
+  var clean = {};
+  Object.keys(f.properties || {}).forEach(function(k) {
+    var v = f.properties[k];
+    if (v === null || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+      clean[k] = v;
+    }
+  });
+  f.properties = clean;
+
+  // Fix "UNKNOWN" callsign — use registration or flight metadata as fallback
+  if (f.properties.callsign === 'UNKNOWN' || !f.properties.callsign) {
+    var fallback = (metaFlight && metaFlight.trim()) || metaReg || '';
+    if (fallback) f.properties.callsign = fallback;
+  }
+
+  // Transform icon property from "uuid/path/icon.png" to "uuid:path/icon"
+  if (f.properties.icon && f.properties.icon.includes('/')) {
+    var icon = f.properties.icon;
+    var firstSlash = icon.indexOf('/');
+    var iconsetId = icon.substring(0, firstSlash);
+    var iconPath = icon.substring(firstSlash + 1).replace(/\.png$/, '');
+    f.properties.icon = iconsetId + ':' + iconPath;
+  }
+
+  return f;
+}
+
+function filterExpired(features) {
+  var now = Date.now();
+  return features.filter(function(f) {
+    var stale = f.properties && f.properties.stale;
+    if (!stale) return true;
+    return new Date(stale).getTime() > now;
+  });
+}
+
+function loadAll() {
+  COT_SOURCES.forEach(function(src) {
+    fetch(src.endpoint + '?key=' + encodeURIComponent(KEY))
+      .then(function(r) { return r.json(); })
+      .then(function(fc) {
+        fc.features = filterExpired(fc.features.map(processFeature));
+        layerCounts[src.id] = fc.features.length;
+        map.getSource(src.id).setData(fc);
+        if (src.id === 'contacts') updateContactGroups(fc.features);
+        updateStats();
+      })
+      .catch(function(err) { console.warn('[' + src.id + ']', err.message); });
+  });
+}
+
+function refreshAll() {
+  COT_SOURCES.forEach(function(src) {
+    fetch(src.endpoint + '?key=' + encodeURIComponent(KEY))
+      .then(function(r) { return r.json(); })
+      .then(function(fc) {
+        fc.features = filterExpired(fc.features.map(processFeature));
+        layerCounts[src.id] = fc.features.length;
+        map.getSource(src.id).setData(fc);
+        if (src.id === 'contacts') updateContactGroups(fc.features);
+        updateStats();
+      })
+      .catch(function(err) { console.warn('[' + src.id + ']', err.message); });
+  });
+}
+
+} // end initMap
+</script>
+</body>
+</html>
