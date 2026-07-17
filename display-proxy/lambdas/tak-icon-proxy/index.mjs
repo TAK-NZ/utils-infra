@@ -177,8 +177,22 @@ export async function handler(event) {
 
     // Forward the PNG body as base64
     const contentType = upstreamRes.headers.get('content-type') || 'image/png';
-    const buffer      = await upstreamRes.arrayBuffer();
-    const base64      = Buffer.from(buffer).toString('base64');
+
+    // CloudTAK returns JSON with a base64 data URI in the "data" field
+    let base64;
+    if (contentType.includes('application/json')) {
+        const json = await upstreamRes.json();
+        if (json.data && json.data.startsWith('data:')) {
+            // Extract base64 from data URI: "data:image/png;base64,<data>"
+            base64 = json.data.split(',')[1];
+        } else {
+            return errorResponse(502, 'Unexpected icon response format');
+        }
+    } else {
+        // Raw binary response (unlikely but handle it)
+        const buffer = await upstreamRes.arrayBuffer();
+        base64 = Buffer.from(buffer).toString('base64');
+    }
 
     return {
         statusCode: 200,

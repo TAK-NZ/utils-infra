@@ -1,7 +1,4 @@
 node_modules
 npm-debug.log
 *.local.json
-dev-server.mjs
-check-*.mjs
-test-*.mjs
 .git

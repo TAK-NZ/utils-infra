@@ -127,18 +127,33 @@ const server = http.createServer(async (req, res) => {
     const pathname = url.pathname;
 
     try {
-        // Health check
+        // Health check (unauthenticated — required for ALB/ECS health checks)
         if (pathname === '/health') {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'ok' }));
             return;
         }
 
+        // -------------------------------------------------------------------
+        // Auth: validate ?key= on page and API data requests.
+        // Static assets, /api/config, and sprite proxies are exempt — they
+        // contain no sensitive data and are fetched without query params.
+        // -------------------------------------------------------------------
+        if (!pathname.startsWith('/static/') && pathname !== '/api/config' && !pathname.startsWith('/api/sprite/') && pathname !== '/favicon.ico') {
+            const config = await getConfig();
+            const queryKey = url.searchParams.get('key') || '';
+            if (!queryKey || !Array.isArray(config.access_keys) || !config.access_keys.includes(queryKey)) {
+                res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
+                res.end('<!DOCTYPE html><html><head><title>Access Denied</title></head><body style="background:#111;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h1>Access Denied</h1><p style="color:#888">A valid <code>?key=</code> parameter is required.</p></div></body></html>');
+                return;
+            }
+        }
+
         // Public config (layers, iconsets — no secrets)
         if (pathname === '/api/config') {
-            const config = await getConfig();
+            const cfg = await getConfig();
             res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=60' });
-            res.end(JSON.stringify({ iconsets: config.iconsets || [], layers: config.layers || [], contact_groups: config.contact_groups || {} }));
+            res.end(JSON.stringify({ iconsets: cfg.iconsets || [], layers: cfg.layers || [], contact_groups: cfg.contact_groups || {}, view_loop: cfg.view_loop || [], overlays: cfg.overlays || [] }));
             return;
         }
 
@@ -186,6 +201,15 @@ const server = http.createServer(async (req, res) => {
         // Static files
         const filePath = pathname === '/' ? 'index.html' : pathname.slice(1);
         const fullPath = path.join(__dirname, filePath);
+
+        // Favicon
+        if (pathname === '/favicon.ico') {
+            const faviconPath = path.join(__dirname, 'static', 'tak-nz-logo.svg');
+            res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' });
+            fs.createReadStream(faviconPath).pipe(res);
+            return;
+        }
+
         if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
             const ext = path.extname(fullPath);
             const cacheControl = ext === '.html' ? 'no-cache' : 'public, max-age=86400';

@@ -9,6 +9,9 @@
 *.d.ts
 node_modules
 
+# Local dev config files (may contain real tokens)
+*.local.json
+
 # CDK asset staging directory
 .cdk.staging
 cdk.out
@@ -86,5 +89,6 @@ grg-output/
 # Display proxy config contains real API tokens — upload to S3, don't commit
 display-proxy/Utils-Display-Proxy-Config.json
 
-# Allow display-proxy JS source (excluded by *.js CDK rule above)
+# Allow display-proxy JS source and static assets (excluded by *.js CDK rule above)
 !display-proxy/*.js
+!display-proxy/static/*.js

@@ -97,13 +97,19 @@ async function connect() {
             if (msg.type === 'cot' && msg.data) {
                 const feat = msg.data;
                 const props = feat.properties || {};
-                // Only store features that have a group (= TAK users/contacts)
+                // Store contacts (features with a group property)
                 if (props.group && feat.geometry) {
-                    // Map group name to marker color (same as CloudTAK)
                     const groupName = typeof props.group === 'object' ? props.group.name : props.group;
                     props['marker-color'] = GROUP_COLORS[groupName] || '#ffffff';
                     props['group-name'] = groupName || '';
                     contacts.set(feat.id || props.callsign || JSON.stringify(feat.geometry.coordinates), feat);
+                }
+                // Store features for WebSocket-based layers (matched by ID prefix)
+                for (const [prefix, store] of wsLayers) {
+                    if (feat.id && feat.id.startsWith(prefix)) {
+                        store.set(feat.id, feat);
+                        break;
+                    }
                 }
             }
         } catch(e) { /* ignore parse errors */ }

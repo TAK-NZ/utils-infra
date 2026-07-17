@@ -159,6 +159,17 @@ function parseFilterValue(raw) {
 }
 
 function parseFilter(expr) {
+    // Handle compound "and" expressions: "expr1 and expr2"
+    if (expr.includes(' and ')) {
+        const parts = expr.split(/\s+and\s+/);
+        const parsed = parts.map(p => parseFilter(p.trim())).filter(Boolean);
+        if (parsed.length > 1) {
+            return { type: 'and', conditions: parsed };
+        } else if (parsed.length === 1) {
+            return parsed[0];
+        }
+        return null;
+    }
     // Handle $contains(path, value) expressions
     const containsMatch = expr.match(/^\$contains\(\s*(.+?)\s*,\s*(.+?)\s*\)$/);
     if (containsMatch) {
@@ -166,6 +177,16 @@ function parseFilter(expr) {
             type: 'contains',
             path: containsMatch[1].trim(),
             value: parseFilterValue(containsMatch[2].trim())
+        };
+    }
+    // Handle "in [...]" expressions: "path in [val1, val2, ...]"
+    const inMatch = expr.match(/^(.+?)\s+in\s+\[(.+)\]$/);
+    if (inMatch) {
+        const values = inMatch[2].split(',').map(v => parseFilterValue(v.trim()));
+        return {
+            type: 'in',
+            path: inMatch[1].trim(),
+            values: values
         };
     }
     // Handle modulo expressions: "path % divisor op value"
@@ -215,7 +236,14 @@ function evaluateComparison(actual, op, value) {
 
 function evaluateFilter(feature, parsed) {
     if (!parsed) return true;
+    if (parsed.type === 'and') {
+        return parsed.conditions.every(function(cond) { return evaluateFilter(feature, cond); });
+    }
     const actual = getNestedValue(feature, parsed.path);
+    if (parsed.type === 'in') {
+        if (actual === undefined || actual === null) return false;
+        return parsed.values.includes(actual);
+    }
     if (parsed.type === 'contains') {
         if (actual == null) return false;
         if (typeof actual === 'string') return actual.includes(parsed.value);
@@ -245,6 +273,72 @@ function applyFilters(feature, filters) {
         }
         return true;
     });
+}
+
+// ---------------------------------------------------------------------------
+// Query-based styling — applies default + query-matched styles to features.
+//
+// Style config format:
+//   {
+//     "point":   { "icon": "...", "marker-color": "#fff" },
+//     "polygon": { "fill": "#fff", "stroke": "#fff", "fill-opacity": 0.3, "stroke-width": 2 },
+//     "queries": [
+//       { "query": "properties.metadata.field = \"value\"", "styles": { "point": {...}, "polygon": {...} } }
+//     ]
+//   }
+//
+// Logic: apply default styles first, then first matching query overrides them.
+// ---------------------------------------------------------------------------
+function applyStyles(feature, layerStyles) {
+    if (!layerStyles) return feature;
+
+    const geomType = feature.geometry && feature.geometry.type;
+    const isPoint = (geomType === 'Point' || geomType === 'MultiPoint');
+    const isPoly = (geomType === 'Polygon' || geomType === 'MultiPolygon');
+    const isLine = (geomType === 'LineString' || geomType === 'MultiLineString');
+
+    // Determine which style category applies
+    let styleKey = isPoint ? 'point' : isPoly ? 'polygon' : isLine ? 'line' : null;
+    if (!styleKey) return feature;
+
+    // Apply default styles for this geometry type
+    const defaults = layerStyles[styleKey];
+    if (defaults) {
+        Object.entries(defaults).forEach(function([k, v]) {
+            if (v != null && feature.properties[k] == null) {
+                feature.properties[k] = v;
+            }
+        });
+    }
+
+    // Apply first matching query (overrides defaults)
+    const queries = layerStyles.queries;
+    if (queries && Array.isArray(queries)) {
+        for (const q of queries) {
+            if (!q.query || (!q.styles && !q.delete)) continue;
+            const parsed = parseFilter(q.query);
+            if (evaluateFilter(feature, parsed)) {
+                // "delete": true means exclude this feature entirely
+                if (q.delete) return null;
+                const qStyle = q.styles[styleKey];
+                if (qStyle) {
+                    Object.entries(qStyle).forEach(function([k, v]) {
+                        if (v != null) feature.properties[k] = v;
+                    });
+                }
+                break; // first match wins
+            }
+        }
+    }
+
+    // Ensure numeric types for opacity/width (may come as strings from config)
+    ['fill-opacity', 'stroke-opacity', 'stroke-width'].forEach(function(k) {
+        if (feature.properties[k] != null) {
+            feature.properties[k] = Number(feature.properties[k]);
+        }
+    });
+
+    return feature;
 }
 
 // ---------------------------------------------------------------------------
@@ -283,6 +377,9 @@ export async function handler(event) {
     const layerDef = layers.find(l => l.id === layerName);
     if (layerDef && layerDef.connection != null) {
         upstream = `${baseUrl}/api/connection/${layerDef.connection}/feature`;
+        if (layerDef.layer != null) {
+            upstream += `?layer=${layerDef.layer}`;
+        }
     } else if (conns[layerName]) {
         // Legacy "connections" object format
         upstream = `${baseUrl}/api/connection/${conns[layerName]}/feature`;
@@ -346,8 +443,20 @@ export async function handler(event) {
             if (!stale) return true;
             return new Date(stale).getTime() > Date.now();
         }).filter(function(f) {
+            // Filter by ID prefix if configured on the layer
+            if (layerDef && layerDef.id_prefix) {
+                return f.id && f.id.startsWith(layerDef.id_prefix);
+            }
+            return true;
+        }).filter(function(f) {
             // Apply config-defined filters for this layer
             return applyFilters(f, config.filters && config.filters[layerName]);
+        }).map(function(f) {
+            // Apply query-based styles for this layer
+            return applyStyles(f, config.styles && config.styles[layerName]);
+        }).filter(function(f) {
+            // Remove features marked for deletion by style queries
+            return f !== null;
         }),
     };
 
