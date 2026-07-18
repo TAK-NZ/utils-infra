@@ -69,5 +69,9 @@ export interface ContextEnvironmentConfig {
         health?: string;
       };
     };
+    display?: {
+      enabled: boolean;
+      hostname: string;
+    };
   };
 }

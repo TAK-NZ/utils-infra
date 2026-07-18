@@ -154,8 +154,7 @@ export class Alb extends Construct {
     
     // Configure ALB for larger request bodies (AIS uploads)
     this.loadBalancer.setAttribute('routing.http2.enabled', 'true');
-    // 3600s — required for persistent MJPEG connections (display-proxy)
-    this.loadBalancer.setAttribute('idle_timeout.timeout_seconds', '3600');
+    this.loadBalancer.setAttribute('idle_timeout.timeout_seconds', '60');
     this.loadBalancer.setAttribute('connection_logs.s3.enabled', 'false');
 
     // Create Route53 record
