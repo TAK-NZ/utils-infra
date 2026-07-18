@@ -102,7 +102,7 @@
           "cpu": 256,
           "memory": 512,
           "priority": 6,
-          "imageTag": "v1.0.0"
+          "imageTag": "v1.1.0"
         }
       },
       "general": {
@@ -122,7 +122,7 @@
           }
         },
         "display": {
-          "enabled": true,
+          "enabled": false,
           "hostname": "display"
         }
       }
@@ -209,7 +209,7 @@
           "cpu": 256,
           "memory": 512,
           "priority": 6,
-          "imageTag": "v1.0.0"
+          "imageTag": "v1.1.0"
         }
       },
       "general": {
@@ -229,7 +229,7 @@
           }
         },
         "display": {
-          "enabled": true,
+          "enabled": false,
           "hostname": "display"
         }
       }
