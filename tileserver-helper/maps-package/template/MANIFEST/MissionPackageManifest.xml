@@ -16,5 +16,9 @@
 		<Content ignore="false" zipEntry="GoogleMapsTransit.xml"/>
 		<Content ignore="false" zipEntry="NZ-National-Map-Emergency-Management.xml"/>
 		<Content ignore="false" zipEntry="LINZ-Marine-Charts.xml"/>
+		<Content ignore="false" zipEntry="LINZ-Aerial-Imagery.xml"/>
+		<Content ignore="false" zipEntry="ArcGIS-World-Topo-Map.xml"/>
+		<Content ignore="false" zipEntry="ArcGIS-World-Street-Map.xml"/>
+		<Content ignore="false" zipEntry="ArcGIS-World-Imagery.xml"/>
     </Contents>
 </MissionPackageManifest>
