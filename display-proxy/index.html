@@ -91,6 +91,54 @@
       text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.5vh;
     }
 
+    /* Highlight card — floating overlay on the map */
+    #highlight-card {
+      display: none; position: absolute; bottom: 46px; right: 12px;
+      width: clamp(280px, 22vw, 380px); z-index: 10;
+      background: rgba(17, 17, 17, 0.88); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 1.4vh 1.2vw;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    #highlight-card.visible { display: block; }
+    #highlight-header {
+      display: flex; align-items: center; gap: 0.6vw; margin-bottom: 0.8vh;
+    }
+    #highlight-icon {
+      width: 26px; height: 26px; object-fit: contain; flex-shrink: 0;
+    }
+    #highlight-title {
+      font-size: clamp(0.65rem, 0.85vw, 0.82rem); font-weight: 600;
+      color: #fff; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    #highlight-body {
+      font-size: clamp(0.65rem, 0.82vw, 0.78rem); color: #ddd;
+      line-height: 1.55; white-space: pre-wrap;
+    }
+    #highlight-progress {
+      display: flex; gap: 3px; margin-top: 1vh; flex-wrap: wrap;
+    }
+    .highlight-pip {
+      height: 3px; border-radius: 2px; flex: 1; min-width: 5px;
+      background: rgba(255,255,255,0.15); transition: background 0.3s;
+    }
+    .highlight-pip.active { background: #4fd1c5; }
+    .highlight-pip.done   { background: #2a6b66; }
+    #highlight-empty {
+      display: none; position: absolute; bottom: 46px; right: 12px;
+      z-index: 10; padding: 1vh 1.2vw;
+      background: rgba(17, 17, 17, 0.85); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      font-size: clamp(0.65rem, 0.82vw, 0.78rem); color: #555; font-style: italic;
+    }
+    #highlight-empty.visible { display: block; }
+
+    /* Pulsing ring — drawn via MapLibre circle layers, keyframe for CSS fallback indicator */
+    @keyframes pulse-ring {
+      0%   { transform: scale(1);   opacity: 0.8; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+
     /* Error overlay */
     #error-overlay {
       display: none; position: absolute; inset: 0; background: #111;
@@ -107,6 +155,16 @@
 <div id="layout">
   <div id="map-container">
     <div id="map"></div>
+    <!-- Highlight card (shown in highlight mode) -->
+    <div id="highlight-card">
+      <div id="highlight-header">
+        <img id="highlight-icon" src="" alt=""/>
+        <span id="highlight-title"></span>
+      </div>
+      <div id="highlight-body"></div>
+      <div id="highlight-progress"></div>
+    </div>
+    <div id="highlight-empty">Currently no events to display</div>
   </div>
   <div id="info-panel">
     <div id="branding">
@@ -149,11 +207,14 @@ var LNG           = parseFloat(params.get('lng')  || '174.77');
 var ZOOM          = parseFloat(params.get('zoom') || '5');
 var LOCKED        = params.get('locked') !== 'false';
 var LOOP          = params.get('loop') === 'true';
+var HIGHLIGHT     = params.get('highlight') === 'true' || params.get('highlight') === 'zoom' || params.get('highlight') === 'static';
+var HIGHLIGHT_FLY = params.get('highlight') === 'zoom';  // fly to item when true, stay in place when false/static
 
 var COT_SOURCES = []; // populated from config
 var COT_REFRESH_MS = 10 * 1000;
 var VIEW_LOOP = []; // populated from config
 var OVERLAYS = []; // populated from config
+var HIGHLIGHT_CONFIG = []; // populated from config — highlight layer definitions
 
 // Layer counts for the info panel
 var layerCounts = {};
@@ -282,6 +343,11 @@ Promise.all([
   // Store tile overlays from config
   OVERLAYS = config.overlays || [];
 
+  // Store highlight config
+  HIGHLIGHT_CONFIG = (config.highlight || []).slice().sort(function(a, b) {
+    return (a.priority || 99) - (b.priority || 99);
+  });
+
   // Build stat rows for non-contacts layers only (contacts shown separately)
   var layerContainer = document.getElementById('layer-rows');
   COT_SOURCES.forEach(function(src) {
@@ -313,6 +379,9 @@ Promise.all([
   console.error('Failed to load style/config, falling back', err);
   initMap(STYLE_URL);
 });
+
+// Utility — returns an empty GeoJSON FeatureCollection
+function emptyFC() { return { type: 'FeatureCollection', features: [] }; }
 
 function initMap(style) {
 // ---------------------------------------------------------------------------
@@ -602,22 +671,23 @@ function addLayers() {
 
   loadAll();
   setInterval(refreshAll, COT_REFRESH_MS);
+  // Init highlight mode after sources/layers are ready
+  if (HIGHLIGHT) initHighlight();
 }
 
 // ---------------------------------------------------------------------------
 // Data helpers
 // ---------------------------------------------------------------------------
-function emptyFC() { return { type: 'FeatureCollection', features: [] }; }
 
 function processFeature(f) {
   if (f.geometry && f.geometry.type === 'Point' && f.geometry.coordinates.length === 3) {
     f.geometry.coordinates = [f.geometry.coordinates[0], f.geometry.coordinates[1]];
   }
 
-  // Extract useful metadata fields before flattening
+  // Preserve raw metadata object for template rendering before flattening
   var metadata = f.properties && f.properties.metadata;
-  var metaReg    = metadata && metadata.r;         // aircraft registration
-  var metaFlight = metadata && metadata.flight;    // flight callsign (may have trailing spaces)
+  var metaReg    = metadata && metadata.r;
+  var metaFlight = metadata && metadata.flight;
 
   var clean = {};
   Object.keys(f.properties || {}).forEach(function(k) {
@@ -626,6 +696,10 @@ function processFeature(f) {
       clean[k] = v;
     }
   });
+  // Preserve raw metadata for template rendering (as _metadata, not flattened)
+  if (metadata && typeof metadata === 'object') {
+    clean._metadata = metadata;
+  }
   f.properties = clean;
 
   // Fix "UNKNOWN" callsign — use registration or flight metadata as fallback
@@ -670,8 +744,12 @@ function loadAll() {
         layerCounts[src.id] = src.count_geometry
           ? fc.features.filter(function(f) { return f.geometry && f.geometry.type === src.count_geometry; }).length
           : fc.features.length;
-        map.getSource(src.id).setData(fc);
+        window.map.getSource(src.id).setData(fc);
         if (src.id === 'contacts') updateContactGroups(fc.features);
+        if (HIGHLIGHT && HIGHLIGHT_CONFIG.some(function(h) { return h.layer === src.id; })) {
+          highlightFeatureStore[src.id] = fc.features;
+          console.log('[highlight] store loaded: ' + src.id + ' features=' + fc.features.length);
+        }
         updateStats();
       })
       .catch(function(err) { console.warn('[' + src.id + ']', err.message); });
@@ -687,8 +765,11 @@ function refreshAll() {
         layerCounts[src.id] = src.count_geometry
           ? fc.features.filter(function(f) { return f.geometry && f.geometry.type === src.count_geometry; }).length
           : fc.features.length;
-        map.getSource(src.id).setData(fc);
+        window.map.getSource(src.id).setData(fc);
         if (src.id === 'contacts') updateContactGroups(fc.features);
+        if (HIGHLIGHT && HIGHLIGHT_CONFIG.some(function(h) { return h.layer === src.id; })) {
+          highlightFeatureStore[src.id] = fc.features;
+        }
         updateStats();
       })
       .catch(function(err) { console.warn('[' + src.id + ']', err.message); });
@@ -696,6 +777,417 @@ function refreshAll() {
 }
 
 } // end initMap
+
+// ---------------------------------------------------------------------------
+// Highlight mode — mutually exclusive with view loop.
+
+// In-memory store of features per layer, kept fresh by the main refresh cycle
+var highlightFeatureStore = {}; // { layerId: [features] }
+var highlightItems = [];        // flat sorted list of { feature, layerCfg, sourceCfg }
+var highlightIndex = 0;
+var highlightTimer = null;
+var highlightRafHandle = null;
+var highlightRafStart = null;
+
+// ---------------------------------------------------------------------------
+// Template renderer — resolves {{field}} and {{metadata.field}} against a
+// processed feature's properties. Missing fields are omitted gracefully.
+// ---------------------------------------------------------------------------
+function renderTemplate(template, feature) {
+  var props = feature.properties || {};
+  // Re-inflate metadata from flat properties (processFeature flattens it)
+  // We keep a reference to the original metadata object on the feature if present
+  var meta = props._metadata || {};
+
+  return template.replace(/\{\{([^}]+)\}\}/g, function(_, expr) {
+    expr = expr.trim();
+    // Support pipe modifiers: {{field|modifier:arg}}
+    var parts = expr.split('|');
+    var path = parts[0].trim();
+    var modifier = parts.length > 1 ? parts[1].trim() : null;
+
+    // Resolve value
+    var value;
+    if (path.startsWith('metadata.')) {
+      var key = path.substring('metadata.'.length);
+      value = meta[key];
+    } else {
+      value = props[path];
+    }
+    if (value == null || value === '' || value === 'null' || value === 'undefined') return '';
+
+    // Apply modifier
+    if (modifier) {
+      var modParts = modifier.split(':');
+      var modName = modParts[0];
+      var modArg = modParts[1] !== undefined ? Number(modParts[1]) : undefined;
+      if (modName === 'fixed' && typeof value === 'number' && modArg !== undefined) {
+        return value.toFixed(modArg);
+      }
+      if (modName === 'round' && typeof value === 'number') {
+        return String(Math.round(value));
+      }
+      if (modName === 'upper' && typeof value === 'string') {
+        return value.toUpperCase();
+      }
+      if (modName === 'lower' && typeof value === 'string') {
+        return value.toLowerCase();
+      }
+      if (modName === 'date') {
+        // Format ISO timestamp as local NZ time: "6 Jul 2026, 10:21 PM"
+        var d = new Date(value);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleString('en-NZ', {
+            timeZone: 'Pacific/Auckland',
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: 'numeric', minute: '2-digit', hour12: false
+          });
+        }
+      }
+      if (modName === 'ago') {
+        // Show relative time: "3h ago", "45min ago"
+        var d = new Date(value);
+        if (!isNaN(d.getTime())) {
+          var diffMs = Date.now() - d.getTime();
+          var diffMin = Math.floor(diffMs / 60000);
+          if (diffMin < 1) return 'just now';
+          if (diffMin < 60) return diffMin + 'min ago';
+          var diffHrs = Math.floor(diffMin / 60);
+          if (diffHrs < 24) return diffHrs + 'h ago';
+          var diffDays = Math.floor(diffHrs / 24);
+          return diffDays + 'd ago';
+        }
+      }
+    }
+    return String(value);
+  }).replace(/\n{3,}/g, '\n\n').trim(); // collapse multiple blank lines
+}
+
+// ---------------------------------------------------------------------------
+// Build sorted item list from current feature stores — Points only.
+// Sorted geographically north-to-south (descending latitude) within priority.
+// ---------------------------------------------------------------------------
+function buildHighlightItems() {
+  var items = [];
+  HIGHLIGHT_CONFIG.forEach(function(hlCfg) {
+    var features = highlightFeatureStore[hlCfg.layer] || [];
+    var srcCfg = COT_SOURCES.find(function(s) { return s.id === hlCfg.layer; });
+    // Filter to highlightable geometries
+    var eligible = features.filter(function(f) {
+      if (!f.geometry) return false;
+      if (f.geometry.type === 'Point') return true;
+      if (hlCfg.include_lines && (f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString')) return true;
+      return false;
+    });
+    // Sort north to south (higher latitude first)
+    eligible.sort(function(a, b) {
+      var latA = getHighlightLat(a);
+      var latB = getHighlightLat(b);
+      return latB - latA;
+    });
+    eligible.forEach(function(f) {
+      items.push({ feature: f, layerCfg: hlCfg, sourceCfg: srcCfg });
+    });
+  });
+  return items;
+}
+
+// Get representative latitude for sorting (midpoint for lines)
+function getHighlightLat(f) {
+  if (f.geometry.type === 'Point') return f.geometry.coordinates[1] || 0;
+  if (f.geometry.type === 'LineString') return getLineMidpoint(f.geometry.coordinates)[1];
+  if (f.geometry.type === 'MultiLineString') return getLineMidpoint(f.geometry.coordinates[0] || [])[1];
+  return 0;
+}
+
+// Get midpoint of a LineString coordinate array
+function getLineMidpoint(coords) {
+  if (!coords || coords.length === 0) return [0, 0];
+  var midIdx = Math.floor(coords.length / 2);
+  return [coords[midIdx][0], coords[midIdx][1]];
+}
+
+// Get bounding box of a LineString for fitBounds
+function getLineBounds(coords) {
+  var minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  for (var i = 0; i < coords.length; i++) {
+    if (coords[i][0] < minLng) minLng = coords[i][0];
+    if (coords[i][0] > maxLng) maxLng = coords[i][0];
+    if (coords[i][1] < minLat) minLat = coords[i][1];
+    if (coords[i][1] > maxLat) maxLat = coords[i][1];
+  }
+  return [[minLng, minLat], [maxLng, maxLat]];
+}
+
+// ---------------------------------------------------------------------------
+// Get bounding box of a polygon feature's coordinates
+// ---------------------------------------------------------------------------
+function getPolygonBounds(coords) {
+  var minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  var rings = Array.isArray(coords[0][0]) ? coords : [coords]; // handle nested
+  rings.forEach(function(ring) {
+    ring.forEach(function(pt) {
+      if (pt[0] < minLng) minLng = pt[0];
+      if (pt[0] > maxLng) maxLng = pt[0];
+      if (pt[1] < minLat) minLat = pt[1];
+      if (pt[1] > maxLat) maxLat = pt[1];
+    });
+  });
+  return [[minLng, minLat], [maxLng, maxLat]];
+}
+
+// ---------------------------------------------------------------------------
+// Find the polygon associated with a -center Point feature
+// (polygon ID = center ID with '-center' suffix stripped)
+// ---------------------------------------------------------------------------
+function findAssociatedPolygon(centerFeature, layerId) {
+  var centerId = centerFeature.id || (centerFeature.properties && centerFeature.properties.id) || '';
+  if (!centerId.endsWith('-center')) return null;
+  var polygonId = centerId.replace(/-center$/, '');
+  var features = highlightFeatureStore[layerId] || [];
+  return features.find(function(f) {
+    var fid = f.id || (f.properties && f.properties.id) || '';
+    return fid === polygonId && f.geometry && f.geometry.type === 'Polygon';
+  }) || null;
+}
+
+// ---------------------------------------------------------------------------
+// Pulsing ring — MapLibre animation using requestAnimationFrame on a
+// dedicated 'highlight-pulse' source with a single Point feature.
+// For static mode: large static halo circle instead.
+// ---------------------------------------------------------------------------
+function initHighlightLayers() {
+  var m = window.map;
+  m.addSource('highlight-point', { type: 'geojson', data: emptyFC() });
+
+  m.addLayer({
+    id: 'highlight-halo-outer', type: 'circle', source: 'highlight-point',
+    paint: {
+      'circle-radius':         20,
+      'circle-color':          'transparent',
+      'circle-stroke-color':   '#4fd1c5',
+      'circle-stroke-width':   3,
+      'circle-opacity':        0.8,
+      'circle-stroke-opacity': 0.8,
+      'circle-pitch-alignment': 'map',
+    },
+  });
+  m.addLayer({
+    id: 'highlight-halo-inner', type: 'circle', source: 'highlight-point',
+    paint: {
+      'circle-radius':          32,
+      'circle-color':           'transparent',
+      'circle-stroke-color':    '#4fd1c5',
+      'circle-stroke-width':    3,
+      'circle-pitch-alignment': 'map',
+    },
+  });
+}
+
+function animatePulse(timestamp) {
+  if (!highlightRafStart) highlightRafStart = timestamp;
+  var elapsed = (timestamp - highlightRafStart) % 1800;
+  var progress = elapsed / 1800;
+  var outerRadius   = 20 + progress * 36;
+  var outerOpacity  = 0.8 * (1 - progress);
+  var strokeOpacity = 0.9 * (1 - progress);
+  try {
+    window.map.setPaintProperty('highlight-halo-outer', 'circle-radius', outerRadius);
+    window.map.setPaintProperty('highlight-halo-outer', 'circle-opacity', outerOpacity);
+    window.map.setPaintProperty('highlight-halo-outer', 'circle-stroke-opacity', strokeOpacity);
+  } catch(e) {}
+  highlightRafHandle = requestAnimationFrame(animatePulse);
+}
+
+function startPulse() {
+  stopPulse();
+  highlightRafStart = null;
+  highlightRafHandle = requestAnimationFrame(animatePulse);
+}
+
+function stopPulse() {
+  if (highlightRafHandle) {
+    cancelAnimationFrame(highlightRafHandle);
+    highlightRafHandle = null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Set highlighted feature on map
+// ---------------------------------------------------------------------------
+function setHighlightFeature(feature) {
+  var src = window.map.getSource('highlight-point');
+  if (!src) return;
+  if (!feature || !feature.geometry) {
+    src.setData(emptyFC());
+    stopPulse();
+    return;
+  }
+  // Derive a point for the highlight ring
+  var pointGeom;
+  if (feature.geometry.type === 'Point') {
+    pointGeom = feature.geometry;
+  } else if (feature.geometry.type === 'LineString') {
+    var mid = getLineMidpoint(feature.geometry.coordinates);
+    pointGeom = { type: 'Point', coordinates: mid };
+  } else if (feature.geometry.type === 'MultiLineString') {
+    var mid = getLineMidpoint(feature.geometry.coordinates[0] || []);
+    pointGeom = { type: 'Point', coordinates: mid };
+  } else {
+    src.setData(emptyFC());
+    stopPulse();
+    return;
+  }
+  src.setData({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: pointGeom, properties: {} }] });
+  startPulse();
+}
+
+// ---------------------------------------------------------------------------
+// Render the detail card in the info panel
+// ---------------------------------------------------------------------------
+function renderHighlightCard(item) {
+  var card  = document.getElementById('highlight-card');
+  var empty = document.getElementById('highlight-empty');
+
+  if (!item) {
+    card.classList.remove('visible');
+    empty.classList.add('visible');
+    stopPulse();
+    var src = window.map && window.map.getSource('highlight-point');
+    if (src) src.setData(emptyFC());
+    return;
+  }
+
+  empty.classList.remove('visible');
+  card.classList.add('visible');
+
+  // Icon — show the layer category icon (same as info panel)
+  var iconEl = document.getElementById('highlight-icon');
+  var srcIcon = item.sourceCfg && item.sourceCfg.icon;
+  if (srcIcon) {
+    iconEl.src = '/api/icons/' + encodeURIComponent(srcIcon + '.png') + '?key=' + encodeURIComponent(KEY);
+    iconEl.style.display = '';
+  } else {
+    iconEl.style.display = 'none';
+  }
+
+  // Title — layer label
+  document.getElementById('highlight-title').textContent = item.sourceCfg ? item.sourceCfg.label : item.layerCfg.layer;
+
+  // Body — rendered template
+  var body = renderTemplate(item.layerCfg.template || '{{callsign}}', item.feature);
+  document.getElementById('highlight-body').textContent = body || item.feature.properties.callsign || '';
+
+  // Progress pips
+  var pipContainer = document.getElementById('highlight-progress');
+  pipContainer.innerHTML = '';
+  highlightItems.forEach(function(_, i) {
+    var pip = document.createElement('div');
+    pip.className = 'highlight-pip' + (i < highlightIndex ? ' done' : i === highlightIndex ? ' active' : '');
+    pipContainer.appendChild(pip);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Advance to next highlight item
+// ---------------------------------------------------------------------------
+function highlightNext() {
+  if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
+
+  // Rebuild item list from latest data on each cycle
+  highlightItems = buildHighlightItems();
+
+  if (highlightItems.length === 0) {
+    renderHighlightCard(null);
+    // Retry after 5s
+    highlightTimer = setTimeout(highlightNext, 5000);
+    return;
+  }
+
+  // Wrap index
+  if (highlightIndex >= highlightItems.length) highlightIndex = 0;
+
+  var item = highlightItems[highlightIndex];
+
+  // Update map highlight
+  setHighlightFeature(item.feature);
+
+  // Map navigation in zoom mode — duration scales with distance
+  if (HIGHLIGHT_FLY) {
+    var flyDuration = 3500; // default
+    var targetCoords = null;
+
+    if (item.feature.geometry.type === 'Point') {
+      targetCoords = item.feature.geometry.coordinates;
+    } else if (item.feature.geometry.type === 'LineString') {
+      targetCoords = getLineMidpoint(item.feature.geometry.coordinates);
+    } else if (item.feature.geometry.type === 'MultiLineString') {
+      targetCoords = getLineMidpoint(item.feature.geometry.coordinates[0] || []);
+    }
+
+    if (targetCoords) {
+      var currentCenter = window.map.getCenter();
+      var dLat = targetCoords[1] - currentCenter.lat;
+      var dLng = targetCoords[0] - currentCenter.lng;
+      var distDeg = Math.sqrt(dLat * dLat + dLng * dLng);
+      // Scale: ~1500ms for nearby (<1°), up to ~5000ms for far (>8°)
+      flyDuration = Math.max(1500, Math.min(5000, 1500 + distDeg * 450));
+    }
+
+    if (item.layerCfg.fit_polygon) {
+      var polygon = findAssociatedPolygon(item.feature, item.layerCfg.layer);
+      if (polygon && polygon.geometry && polygon.geometry.coordinates) {
+        var bounds = getPolygonBounds(polygon.geometry.coordinates);
+        window.map.fitBounds(bounds, { padding: 80, duration: flyDuration, essential: true, maxZoom: 14 });
+      } else if (targetCoords) {
+        window.map.flyTo({ center: [targetCoords[0], targetCoords[1]], zoom: item.layerCfg.zoom || 9, duration: flyDuration, essential: true });
+      }
+    } else if (item.feature.geometry.type === 'LineString' || item.feature.geometry.type === 'MultiLineString') {
+      var lineCoords = item.feature.geometry.type === 'LineString' ? item.feature.geometry.coordinates : item.feature.geometry.coordinates[0] || [];
+      var lineBounds = getLineBounds(lineCoords);
+      window.map.fitBounds(lineBounds, { padding: 80, duration: flyDuration, essential: true, maxZoom: 14 });
+    } else if (targetCoords) {
+      window.map.flyTo({ center: [targetCoords[0], targetCoords[1]], zoom: item.layerCfg.zoom || 9, duration: flyDuration, essential: true });
+    }
+  }
+
+  // Render card
+  renderHighlightCard(item);
+
+  // Schedule next
+  var dwell = (item.layerCfg.dwell || 10) * 1000;
+  highlightIndex = (highlightIndex + 1) % highlightItems.length;
+  highlightTimer = setTimeout(highlightNext, dwell);
+}
+
+// ---------------------------------------------------------------------------
+// Init highlight mode — called after map loads
+// ---------------------------------------------------------------------------
+function initHighlight() {
+  if (!HIGHLIGHT || HIGHLIGHT_CONFIG.length === 0) {
+    console.log('[highlight] disabled — HIGHLIGHT=' + HIGHLIGHT + ' config length=' + HIGHLIGHT_CONFIG.length);
+    return;
+  }
+  console.log('[highlight] init — mode=' + (HIGHLIGHT_FLY ? 'zoom' : 'static') + ' layers=' + HIGHLIGHT_CONFIG.map(function(h){return h.layer;}).join(','));
+  initHighlightLayers();
+
+  // Poll until the feature store has data, then start cycling
+  function waitForData() {
+    var total = 0;
+    HIGHLIGHT_CONFIG.forEach(function(h) {
+      total += (highlightFeatureStore[h.layer] || []).length;
+    });
+    if (total === 0) {
+      console.log('[highlight] waiting for data...');
+      setTimeout(waitForData, 1000);
+      return;
+    }
+    highlightItems = buildHighlightItems();
+    console.log('[highlight] starting cycle — ' + highlightItems.length + ' items');
+    try { highlightNext(); } catch(e) { console.error('[highlight] error:', e); }
+  }
+  waitForData();
+}
 </script>
 </body>
 </html>
