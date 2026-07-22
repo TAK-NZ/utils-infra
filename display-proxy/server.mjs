@@ -153,7 +153,7 @@ const server = http.createServer(async (req, res) => {
         if (pathname === '/api/config') {
             const cfg = await getConfig();
             res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=60' });
-            res.end(JSON.stringify({ iconsets: cfg.iconsets || [], layers: cfg.layers || [], contact_groups: cfg.contact_groups || {}, view_loop: cfg.view_loop || [], overlays: cfg.overlays || [] }));
+            res.end(JSON.stringify({ iconsets: cfg.iconsets || [], layers: cfg.layers || [], contact_groups: cfg.contact_groups || {}, view_loop: cfg.view_loop || [], overlays: cfg.overlays || [], highlight: cfg.highlight || [] }));
             return;
         }
 

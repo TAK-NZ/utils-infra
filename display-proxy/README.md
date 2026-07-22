@@ -75,6 +75,8 @@ Each layer entry defines a data source displayed on the map:
 | `id` | Yes | Unique identifier. Used in the API path (`/api/cot/<id>`) and filter keys. |
 | `label` | No | Display name shown in the info panel. Defaults to `id`. |
 | `connection` | No | CloudTAK connection ID. Omit for the special `contacts` layer. |
+| `icon` | No | Iconset icon path for the layer (shown in info panel and highlight card). |
+| `count_geometry` | No | If set, only count features with this geometry type (e.g. `"Point"`, `"Polygon"`) to avoid double-counting polygon + centroid pairs. |
 
 The `contacts` layer is special — it gets its data from a live WebSocket connection rather than the REST API.
 
@@ -99,6 +101,56 @@ Maps TAK group color names to organisation display names shown in the info panel
 
 Array of CloudTAK iconset UUIDs. Their spritesheets are loaded as additional MapLibre sprites, enabling custom icons for features that have a `properties.icon` field.
 
+### Highlight
+
+The `highlight` array configures a rotating feature-highlight mode. When enabled, the display cycles through features from specified layers, showing a detail card as a floating overlay on the map and optionally flying to each feature's location.
+
+```json
+{
+    "highlight": [
+        {
+            "layer": "ema",
+            "priority": 1,
+            "dwell": 10,
+            "fit_polygon": true,
+            "template": "{{metadata.headline}}\nArea: {{metadata.areaDesc}}"
+        },
+        {
+            "layer": "quakes",
+            "priority": 4,
+            "dwell": 15,
+            "zoom": 8,
+            "template": "Magnitude: {{metadata.magnitude|fixed:1}} (Intensity: {{metadata.intensity}})\nLocation: {{metadata.locality}}\n{{time|date}} ({{time|ago}})"
+        }
+    ]
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `layer` | Yes | Layer ID to source features from (must match a layer in `layers`). |
+| `priority` | No | Sort order — lower numbers appear first. Default `99`. |
+| `dwell` | No | Seconds to display each feature before advancing. Default `10`. |
+| `zoom` | No | Zoom level to fly to when highlighting a point feature. Default `9`. |
+| `fit_polygon` | No | If `true`, fit the map to the associated polygon's bounding box instead of flying to a fixed zoom. Used for area-based features like weather warnings. |
+| `include_lines` | No | If `true`, include LineString features (using their midpoint for the highlight ring and fitBounds for navigation). Default `false`. |
+| `template` | No | Template string for the detail card body. Supports `{{field}}` and `{{metadata.field}}` placeholders with optional format modifiers. Defaults to `{{callsign}}`. |
+
+Features are sorted geographically north-to-south (descending latitude) within each priority layer.
+
+### Template Modifiers
+
+Templates support pipe-based format modifiers:
+
+| Modifier | Input | Example Output |
+|----------|-------|----------------|
+| `fixed:N` | number | `{{metadata.magnitude\|fixed:1}}` → `6.3` |
+| `round` | number | `{{metadata.depth\|round}}` → `52` |
+| `date` | ISO string | `{{time\|date}}` → `16 Jul 2026, 21:14` (NZ 24h) |
+| `ago` | ISO string | `{{time\|ago}}` → `6d ago`, `45min ago`, `just now` |
+| `upper` | string | `{{metadata.severity\|upper}}` → `SEVERE` |
+| `lower` | string | `{{metadata.event\|lower}}` → `snow` |
+
 ## URL Parameters
 
 ### Query Parameters (page load)
@@ -110,6 +162,8 @@ Array of CloudTAK iconset UUIDs. Their spritesheets are loaded as additional Map
 | `lng` | `174.77` | Initial longitude |
 | `zoom` | `5` | Initial zoom level |
 | `locked` | `true` | Disable map interaction (`false` to enable pan/zoom) |
+| `loop` | `false` | Enable view loop animation (cycles through `view_loop` waypoints) |
+| `highlight` | `false` | Enable highlight mode. Values: `true` or `static` (stay in place with halo), `zoom` (fly to each feature). Mutually exclusive with `loop`. |
 
 ### Hash Parameters (fly-to without reload)
 
@@ -183,3 +237,26 @@ The right 1/4 of the screen shows:
 - Layer feature counts (Aircraft, Vessels)
 - Total feature count
 - Live clock with date (NZST)
+
+## Highlight Mode
+
+Highlight mode cycles through active events/features and displays a detail card as a semi-transparent floating overlay in the lower-right corner of the map. An animated pulsing ring marks the current feature on the map.
+
+There are two sub-modes controlled by the `highlight` query parameter:
+
+| Value | Behaviour |
+|-------|-----------|
+| `true` or `static` | Animated pulsing ring on the feature's location; map does not move. |
+| `zoom` | Animated fly-to each feature's location (or `fitBounds` to the polygon when `fit_polygon` is set), with distance-based animation speed. Includes animated pulsing ring. |
+
+The highlight cycle:
+1. Builds a list of features from configured highlight layers (Points, and LineStrings if `include_lines` is set), sorted by priority then geographically north-to-south.
+2. Shows each feature for `dwell` seconds, rendering the template into the overlay card.
+3. Progress pips at the bottom of the card show position in the cycle.
+4. Fly-to speed scales with distance (1.5s for nearby features, up to 5s for far ones).
+5. If no features are available, a placeholder message is shown and the system retries every 5 seconds.
+
+Example URL for zoom-mode highlights:
+```
+http://localhost:3000?key=<key>&highlight=zoom&lat=-41.19&lng=174.78&zoom=5.3
+```
