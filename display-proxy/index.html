@@ -535,7 +535,10 @@ map.on('load', function() {
 });
 
 function addLayers() {
-  COT_SOURCES.forEach(function(src) {
+  // Add layers in reverse config order so that the first (most important)
+  // layer renders on top. Info panel uses config order (first = top of list).
+  var reversedSources = COT_SOURCES.slice().reverse();
+  reversedSources.forEach(function(src) {
     map.addSource(src.id, { type: 'geojson', data: emptyFC() });
 
     if (src.id === 'contacts') {
