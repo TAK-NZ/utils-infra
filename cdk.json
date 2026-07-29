@@ -102,7 +102,7 @@
           "cpu": 256,
           "memory": 512,
           "priority": 6,
-          "imageTag": "v1.2.0"
+          "imageTag": "v1.2.1"
         }
       },
       "general": {
@@ -209,7 +209,7 @@
           "cpu": 256,
           "memory": 512,
           "priority": 6,
-          "imageTag": "v1.2.0"
+          "imageTag": "v1.2.1"
         }
       },
       "general": {
