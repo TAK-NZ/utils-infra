@@ -136,8 +136,8 @@ function startSubscriptionPolling() {
 // ---------------------------------------------------------------------------
 // Channel filter — checks if a contact is allowed based on config
 // ---------------------------------------------------------------------------
-function isContactAllowed(feat) {
-    const requiredChannels = config.contact_channels && config.contact_channels.require_any;
+function isContactAllowed(feat, cfg) {
+    const requiredChannels = cfg && cfg.contact_channels && cfg.contact_channels.require_any;
     if (!requiredChannels || !Array.isArray(requiredChannels) || requiredChannels.length === 0) {
         return true; // no filter configured — show all
     }
@@ -236,7 +236,9 @@ export async function init(cfg) {
     startSubscriptionPolling();
 }
 
-export function getFeatures() {
+export function getFeatures(currentConfig) {
+    // Use fresh config if provided (allows picking up S3 config changes)
+    const cfg = currentConfig || config;
     const now = Date.now();
     const features = [];
 
@@ -247,8 +249,8 @@ export function getFeatures() {
             contacts.delete(id);
             continue;
         }
-        // Apply channel filter
-        if (!isContactAllowed(feat)) continue;
+        // Apply channel filter using fresh config
+        if (!isContactAllowed(feat, cfg)) continue;
 
         features.push(feat);
     }

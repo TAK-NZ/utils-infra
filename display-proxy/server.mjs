@@ -160,7 +160,8 @@ const server = http.createServer(async (req, res) => {
         // CoT endpoints
         if (pathname.startsWith('/api/cot/')) {
             if (pathname === '/api/cot/contacts') {
-                const fc = getContactFeatures();
+                const cfg = await getConfig();
+                const fc = getContactFeatures(cfg);
                 res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
                 res.end(JSON.stringify(fc));
                 return;
