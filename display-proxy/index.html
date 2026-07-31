@@ -212,6 +212,11 @@ var HIGHLIGHT_FLY = params.get('highlight') === 'zoom';  // fly to item when tru
 
 var COT_SOURCES = []; // populated from config
 var COT_REFRESH_MS = 10 * 1000;
+// Server (weather-proxy) only regenerates radar tiles every 10 min and the
+// client has no way to know when the last update happened server-side, so
+// polling at the same 10 min cadence risks showing data up to ~19 min old.
+// Refreshing at 5 min (half the server interval) bounds that risk to ~14 min.
+var OVERLAY_REFRESH_MS = 5 * 60 * 1000; // weather radar overlay tiles refreshed every 5 min
 var VIEW_LOOP = []; // populated from config
 var OVERLAYS = []; // populated from config
 var HIGHLIGHT_CONFIG = []; // populated from config — highlight layer definitions
@@ -513,12 +518,25 @@ if (LOOP && VIEW_LOOP.length > 0) {
   });
 }
 
+// Weather radar (and similar) overlay tiles are dynamic data, not static
+// basemap imagery. Both the browser's HTTP cache and MapLibre's internal
+// tile cache would otherwise keep showing the tiles fetched on map load
+// forever, since the {z}/{x}/{y} URL never changes. We bust the cache with
+// a query param that changes every OVERLAY_REFRESH_MS, and periodically
+// call setTiles() to force MapLibre to re-request tiles for the current
+// view with the new cache-buster.
+function overlayUrlWithCacheBust(url) {
+  var bucket = Math.floor(Date.now() / OVERLAY_REFRESH_MS) * OVERLAY_REFRESH_MS;
+  var sep = url.indexOf('?') === -1 ? '?' : '&';
+  return url + sep + '_t=' + bucket;
+}
+
 map.on('load', function() {
   // Add tile overlays (above basemap, below CoT layers)
   OVERLAYS.forEach(function(overlay) {
     map.addSource(overlay.id, {
       type: 'raster',
-      tiles: [overlay.url],
+      tiles: [overlayUrlWithCacheBust(overlay.url)],
       tileSize: 256,
     });
     map.addLayer({
@@ -532,6 +550,17 @@ map.on('load', function() {
   });
 
   addLayers();
+
+  if (OVERLAYS.length > 0) {
+    setInterval(function() {
+      OVERLAYS.forEach(function(overlay) {
+        var source = map.getSource(overlay.id);
+        if (source && typeof source.setTiles === 'function') {
+          source.setTiles([overlayUrlWithCacheBust(overlay.url)]);
+        }
+      });
+    }, OVERLAY_REFRESH_MS);
+  }
 });
 
 function addLayers() {

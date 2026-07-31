@@ -202,7 +202,7 @@ For detailed specifications:
 
 ## Integration Notes
 
-- **Caching**: Tiles are cached for 10 minutes
+- **Caching**: Tiles are cached server-side for 10 minutes (`Cache-Control: max-age=600`), matching provider update frequency. Client polling faster than this (e.g. the display kiosk polls every 5 minutes) reduces the worst-case staleness of displayed data but does not get newer tiles than the last provider update
 - **Zoom Limits**: RainViewer natively supports z0-7; zoom levels 8-9 are served by cropping and upscaling the z7 ancestor tile. Rainbow.ai supports all zoom levels natively
 - **Attribution**: Weather data provided by RainViewer.com or Rainbow.ai
 - **CORS**: Cross-origin requests are supported
