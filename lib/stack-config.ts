@@ -60,6 +60,13 @@ export interface ContextEnvironmentConfig {
   docker: {
     usePreBuiltImages: boolean;
   };
+  sitrep?: {
+    enabled: boolean;
+    /** Bare Bedrock model id, e.g. "anthropic.claude-opus-5" — no region-profile
+     * prefix (us./au./etc). The SitRep Lambda resolves the correct prefix for
+     * its own deploy region at runtime, so this works unchanged in any region. */
+    modelId?: string;
+  };
   cloudfront?: {
     tileserver?: {
       enabled: boolean;

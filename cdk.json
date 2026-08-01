@@ -102,7 +102,7 @@
           "cpu": 256,
           "memory": 512,
           "priority": 6,
-          "imageTag": "v1.2.2"
+          "imageTag": "v1.3.0"
         }
       },
       "general": {
@@ -111,6 +111,10 @@
       },
       "docker": {
         "usePreBuiltImages": false
+      },
+      "sitrep": {
+        "enabled": true,
+        "modelId": "anthropic.claude-opus-5"
       },
       "cloudfront": {
         "tileserver": {
@@ -209,7 +213,7 @@
           "cpu": 256,
           "memory": 512,
           "priority": 6,
-          "imageTag": "v1.2.2"
+          "imageTag": "v1.3.0"
         }
       },
       "general": {
@@ -218,6 +222,10 @@
       },
       "docker": {
         "usePreBuiltImages": true
+      },
+      "sitrep": {
+        "enabled": true,
+        "modelId": "anthropic.claude-opus-5"
       },
       "cloudfront": {
         "tileserver": {

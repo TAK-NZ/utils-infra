@@ -70,6 +70,52 @@ async function getConfig() {
     throw new Error('No config available. Set CONFIG_BUCKET or provide --config / LOCAL_CONFIG_FILE');
 }
 
+// ---------------------------------------------------------------------------
+// SitRep — reads sitrep/latest.json (written by the SitRep Lambda, see
+// SITREP_DESIGN.md Component 1) from the same bucket/dir as the main config.
+// Convention over configuration: if the object doesn't exist, /api/sitrep
+// just returns null and the frontend hides the ticker/card.
+// ---------------------------------------------------------------------------
+const SITREP_KEY = process.env.SITREP_KEY || 'sitrep/latest.json';
+const SITREP_TTL_MS = 60 * 1000; // matches config refresh cadence
+
+let cachedSitrep = null;
+let sitrepLoadedAt = 0;
+
+async function getSitrep() {
+    const now = Date.now();
+    if (cachedSitrep !== null && (now - sitrepLoadedAt) < SITREP_TTL_MS) return cachedSitrep;
+
+    // Local dev: sitrep.json next to the local config file, if present
+    if (fs.existsSync(CONFIG_FILE)) {
+        const localSitrepFile = path.join(path.dirname(CONFIG_FILE), 'sitrep.json');
+        if (fs.existsSync(localSitrepFile)) {
+            cachedSitrep = JSON.parse(fs.readFileSync(localSitrepFile, 'utf8'));
+        } else {
+            cachedSitrep = null;
+        }
+        sitrepLoadedAt = now;
+        return cachedSitrep;
+    }
+
+    if (CONFIG_BUCKET) {
+        try {
+            const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+            const s3 = new S3Client({ region: process.env.AWS_REGION || 'ap-southeast-2' });
+            const res = await s3.send(new GetObjectCommand({ Bucket: CONFIG_BUCKET, Key: SITREP_KEY }));
+            const body = await res.Body.transformToString();
+            cachedSitrep = JSON.parse(body);
+        } catch (err) {
+            // No SitRep yet (NoSuchKey) or transient error — treat as "not available"
+            cachedSitrep = null;
+        }
+        sitrepLoadedAt = now;
+        return cachedSitrep;
+    }
+
+    return null;
+}
+
 // Ensure config is available at startup
 const startupConfig = await getConfig();
 
@@ -147,6 +193,14 @@ const server = http.createServer(async (req, res) => {
                 res.end('<!DOCTYPE html><html><head><title>Access Denied</title></head><body style="background:#111;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h1>Access Denied</h1><p style="color:#888">A valid <code>?key=</code> parameter is required.</p></div></body></html>');
                 return;
             }
+        }
+
+        // SitRep — summary_line + full_report + assessment, or null if not yet generated
+        if (pathname === '/api/sitrep') {
+            const sitrep = await getSitrep();
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=60' });
+            res.end(JSON.stringify(sitrep));
+            return;
         }
 
         // Public config (layers, iconsets — no secrets)

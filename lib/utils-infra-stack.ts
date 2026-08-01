@@ -9,6 +9,7 @@ import * as route53_targets from 'aws-cdk-lib/aws-route53-targets';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as efs from 'aws-cdk-lib/aws-efs';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 // Construct imports
 import { SecurityGroups } from './constructs/security-groups';
 import { Alb } from './constructs/alb';
@@ -17,6 +18,7 @@ import { CloudFront } from './constructs/cloudfront';
 import { TerrainCloudFront } from './constructs/terrain-cloudfront';
 import { DisplayCloudFront } from './constructs/display-cloudfront';
 import { ApiAuth } from './constructs/api-auth';
+import { SitRepLambda } from './constructs/sitrep-lambda';
 
 // Utility imports
 import { ContextEnvironmentConfig } from './stack-config';
@@ -327,6 +329,7 @@ export class UtilsInfraStack extends cdk.Stack {
       } else if (containerName === 'display-proxy') {
         environmentVariables.CONFIG_BUCKET = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
         environmentVariables.CONFIG_KEY = 'Utils-Display-Proxy-Config.json';
+        environmentVariables.SITREP_KEY = 'sitrep/latest.json';
       }
 
       // Create container service
@@ -511,6 +514,31 @@ export class UtilsInfraStack extends cdk.Stack {
         value:       `https://${displayConfig.hostname}.${hostedZone.zoneName}`,
         description: 'Display web app URL',
         exportName:  `${id}-DisplayUrl`,
+      });
+    }
+
+    // =================
+    // SITREP LAMBDA (Component 1 — scheduled AI SitRep generator)
+    // =================
+    // Reuses the display-proxy S3 config (cloudtak_url/token/layers) and
+    // writes sitrep/latest.json to the same bucket for display-proxy
+    // for display-proxy to serve via GET /api/sitrep. See display-proxy/README.md ("SitRep" section).
+    if (envConfig.sitrep?.enabled && displayContainerEnabled) {
+      const configBucketName = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
+      const sitrepConfigBucket = s3.Bucket.fromBucketName(this, 'SitRepConfigBucket', configBucketName);
+
+      const sitrepLambda = new SitRepLambda(this, 'SitRepLambda', {
+        configBucket: sitrepConfigBucket,
+        kmsKeyArn: cdk.Token.asString(kmsKeyArn),
+        configKey: 'Utils-Display-Proxy-Config.json',
+        modelId: envConfig.sitrep.modelId,
+        removalPolicy: envConfig.general.removalPolicy === 'DESTROY' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
+      });
+
+      new cdk.CfnOutput(this, 'SitRepLambdaArn', {
+        value: sitrepLambda.fn.functionArn,
+        description: 'SitRep generator Lambda ARN',
+        exportName: `${id}-SitRepLambdaArn`,
       });
     }
 
