@@ -12,6 +12,8 @@ Single Node.js HTTP server that:
 - Maintains a WebSocket to CloudTAK for live contact/user positions
 - Proxies iconset sprites from CloudTAK
 - Reads configuration from S3 (production) or a local JSON file (dev)
+- Serves the AI-generated SitRep (`GET /api/sitrep`), written by a separate
+  scheduled Lambda — see [SitRep](#sitrep) below
 
 ## Quick Start (Local Development)
 
@@ -164,6 +166,8 @@ Templates support pipe-based format modifiers:
 | `locked` | `true` | Disable map interaction (`false` to enable pan/zoom) |
 | `loop` | `false` | Enable view loop animation (cycles through `view_loop` waypoints) |
 | `highlight` | `false` | Enable highlight mode. Values: `true` or `static` (stay in place with halo), `zoom` (fly to each feature). Mutually exclusive with `loop`. |
+| `sitrep` | `false` | Show the SitRep brief report in the info panel (`true` to enable). See [SitRep](#sitrep). |
+| `ticker` | `false` | Show the SitRep summary line as a scrolling ticker at the bottom of the map (`true` to enable). Independent of `sitrep` — either, both, or neither can be enabled. |
 
 ### Hash Parameters (fly-to without reload)
 
@@ -206,6 +210,7 @@ The container is deployed as part of the utils-infra ECS cluster with hostname-b
 Environment variables:
 - `CONFIG_BUCKET` — S3 bucket containing the config file
 - `CONFIG_KEY` — S3 key (default: `Utils-Display-Proxy-Config.json`)
+- `SITREP_KEY` — S3 key the SitRep Lambda writes to (default: `sitrep/latest.json`) — see [SitRep](#sitrep)
 - `PORT` — HTTP port (default: `3000`)
 
 The CDK stack entry in `cdk.json`:
@@ -233,10 +238,85 @@ The CDK stack entry in `cdk.json`:
 
 The right 1/4 of the screen shows:
 - TAK.NZ logo + "Common Operational Picture" heading
-- Contact groups with colored dots and online count (sorted by count)
-- Layer feature counts (Aircraft, Vessels)
-- Total feature count
+- SitRep brief report (only with `?sitrep=true`, see [SitRep](#sitrep))
+- Contacts: total online count + a condensed row of colour-dot chips per
+  group (always fully visible — this is a non-interactive kiosk display,
+  so nothing here requires a click to reveal)
+- Layer feature counts, one row per configured layer with an active
+  count; layers currently at zero are collapsed into a single "No
+  activity: ..." footnote instead of each showing their own zeroed row
+- Total feature count (all layers + contacts)
 - Live clock with date (NZST)
+
+## SitRep
+
+An AI-generated Situational Report summarising active events across all
+configured CloudTAK layers (weather, flooding, earthquakes, volcanic alerts,
+road closures, fire detections, avalanche risk).
+
+### How it works
+
+A separate scheduled Lambda (`lambda/sitrep-generator`, deployed via
+`lib/constructs/sitrep-lambda.ts`) runs every 15 minutes:
+
+1. Reads `cloudtak_url` / `cloudtak_token` / `layers` from the same
+   `Utils-Display-Proxy-Config.json` this container reads — no separate
+   credentials are stored.
+2. Fetches non-stale features from the layers listed in `SITREP_LAYER_IDS`
+   (ema, weather, flooding, quakes, volcano, nzta, fires, avalanche).
+3. Sends a compact JSON context to Bedrock (Claude) with a prompt asking
+   for three outputs at different levels of detail.
+4. Writes the result to `s3://<config-bucket>/sitrep/latest.json`.
+
+This container polls that same S3 key every 60 seconds and serves it via
+`GET /api/sitrep` (requires `?key=`, same as other data endpoints). If no
+SitRep has been generated yet, the endpoint returns `null` and the frontend
+simply doesn't show anything — no configuration is needed on the
+display-proxy side to enable it.
+
+### Output format
+
+```json
+{
+  "generated_at": "2026-08-01T00:35:00Z",
+  "model": "au.anthropic.claude-opus-5",
+  "summary_line": "Stable | High avalanche danger Arthur's Pass & Aoraki/Mt Cook | ...",
+  "brief_report": "Stable — Post-storm winter conditions dominate...\n(3-4 lines total)",
+  "full_report": "SITUATIONAL REPORT — 1 August 2026, 12:36 NZST\n\nOVERVIEW:\n...",
+  "feature_counts": { "quakes": 0, "volcano": 12, "avalanche": 13, "...": 0 },
+  "assessment": "stable"
+}
+```
+
+Three text fields, all describing the same situation at different lengths:
+- `summary_line` — single line (max ~200 chars) for the ticker
+- `brief_report` — 3-4 lines: assessment + overview, then the 2-3 most
+  significant active items ranked by severity. Used for the info panel
+  card since this is a non-interactive display with no way to scroll.
+- `full_report` — full multi-section report. Not shown anywhere in
+  display-proxy (no scrolling available); intended for other consumers
+  (e.g. an on-demand chat bot reading the same S3 key).
+
+`assessment` is one of `stable`, `improving`, `deteriorating`, `escalating`,
+used to colour-code the ticker border and card label.
+
+### Display modes
+
+Independently toggled via URL parameters (both off by default):
+
+- `?sitrep=true` — shows `brief_report` in the info panel, above Contacts
+- `?ticker=true` — scrolls `summary_line` across the bottom of the map,
+  colour-coded by `assessment`
+
+### Local testing
+
+Drop a `sitrep.json` file next to your local config
+(`display-proxy/sitrep.json`, alongside `Utils-Display-Proxy-Config.local.json`)
+and the server reads it directly instead of hitting S3. To generate one using
+the real Lambda logic (not a hand-written fixture), run
+`lambda/sitrep-generator/index.py`'s `build_context()` / `call_bedrock()`
+against your local config from a throwaway script — this exercises the exact
+same code path production uses, just swapping S3 I/O for local file I/O.
 
 ## Highlight Mode
 

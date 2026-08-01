@@ -30,7 +30,7 @@
 
     /* Branding */
     #branding {
-      display: flex; align-items: center; gap: 1.2vw; margin-bottom: 3vh;
+      display: flex; align-items: center; gap: 1.2vw; margin-bottom: clamp(8px, 1.2vh, 18px);
     }
     #branding img { height: clamp(2.8rem, 4.5vw, 4.2rem); width: auto; flex-shrink: 0; }
     #branding-text { display: flex; flex-direction: column; }
@@ -45,14 +45,14 @@
 
     /* Dividers */
     .divider {
-      border: 0; border-top: 1px solid #2a2a2a; margin: 2vh 0;
+      border: 0; border-top: 1px solid #2a2a2a; margin: clamp(6px, 0.9vh, 14px) 0;
     }
 
     /* Stats section */
     #stats { flex: 1; }
     .stat-row {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 0.8vh 0; border-bottom: 1px solid #1a1a1a;
+      padding: clamp(4px, 0.55vh, 9px) 0; border-bottom: 1px solid #1a1a1a;
     }
     .stat-row:last-child { border-bottom: none; }
     .stat-label {
@@ -74,10 +74,31 @@
       display: inline-block; width: 10px; height: 10px; border-radius: 50%;
       margin-right: 6px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.3);
     }
-    #contacts-section .stat-label { font-size: clamp(0.7rem, 1vw, 0.9rem); }
+    /* Contacts — condensed chip breakdown (always visible, no interaction —
+       this display has no input device, so nothing here is clickable) */
+    #contacts-breakdown {
+      display: flex; flex-wrap: wrap; gap: 5px; margin: clamp(4px, 0.5vh, 8px) 0 clamp(5px, 0.6vh, 10px);
+    }
+    .contact-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: clamp(0.62rem, 0.85vw, 0.78rem); color: #ccc;
+      background: rgba(255,255,255,0.05); border-radius: 4px;
+      padding: clamp(2px, 0.25vh, 5px) 0.6vw; white-space: nowrap;
+    }
+    .contact-chip .group-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.3); flex-shrink: 0;
+    }
+
+    /* Quiet-layers footnote — sits below the Total row, styled as a caption
+       rather than a data row so it can't be mistaken for report content. */
+    .quiet-summary {
+      font-size: clamp(0.6rem, 0.8vw, 0.72rem); color: #555;
+      padding-top: clamp(4px, 0.5vh, 8px); line-height: 1.4;
+    }
 
     /* Clock */
-    #clock-section { text-align: center; margin-top: 2vh; }
+    #clock-section { text-align: center; margin-top: clamp(4px, 0.6vh, 10px); }
     #clock {
       font-size: clamp(1.1rem, 2vw, 1.8rem); font-weight: 700;
       color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 0.05em;
@@ -139,6 +160,62 @@
       100% { transform: scale(2.5); opacity: 0; }
     }
 
+    /* SitRep ticker — fixed at bottom of map area, above attribution */
+    #sitrep-ticker {
+      display: none; position: absolute; bottom: 0; left: 0; right: 0; z-index: 9;
+      background: rgba(17, 17, 17, 0.85); border-top: 3px solid #4fd1c5;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      padding: 0.6vh 1vw; align-items: center; gap: 1vw;
+      color: #eee; font-size: clamp(0.7rem, 1vw, 0.9rem);
+      overflow: hidden; white-space: nowrap;
+    }
+    #sitrep-ticker.visible { display: flex; }
+    #sitrep-ticker.assessment-stable        { border-top-color: #4fd1c5; }
+    #sitrep-ticker.assessment-improving     { border-top-color: #4299e1; }
+    #sitrep-ticker.assessment-deteriorating { border-top-color: #f76707; }
+    #sitrep-ticker.assessment-escalating    { border-top-color: #d63939; }
+    #sitrep-ticker .ticker-label {
+      flex-shrink: 0; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #4fd1c5; font-size: 0.85em;
+    }
+    #sitrep-ticker .ticker-scroll {
+      flex: 1; overflow: hidden; position: relative;
+    }
+    #sitrep-ticker .ticker-text {
+      display: inline-block; white-space: nowrap; will-change: transform;
+    }
+    #sitrep-ticker .ticker-text.scrolling {
+      animation: ticker-scroll linear infinite;
+    }
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    #sitrep-ticker .ticker-time {
+      flex-shrink: 0; color: #888; font-variant-numeric: tabular-nums;
+    }
+
+    /* SitRep info panel card — brief_report (3-4 lines). This display is a
+       non-interactive kiosk/media screen (no mouse/touch/keyboard), so the
+       full multi-section report (full_report) is never shown here — there
+       would be no way to scroll to read the rest of it. */
+    #sitrep-card {
+      display: none;
+    }
+    #sitrep-card.visible { display: block; }
+    #sitrep-card-label {
+      font-size: clamp(0.6rem, 0.8vw, 0.72rem); color: #666;
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.6vh;
+    }
+    #sitrep-card-body {
+      font-size: clamp(0.65rem, 0.85vw, 0.8rem); color: #ddd;
+      line-height: 1.5; white-space: pre-wrap;
+    }
+    #sitrep-card.assessment-stable        #sitrep-card-label { color: #4fd1c5; }
+    #sitrep-card.assessment-improving     #sitrep-card-label { color: #4299e1; }
+    #sitrep-card.assessment-deteriorating #sitrep-card-label { color: #f76707; }
+    #sitrep-card.assessment-escalating    #sitrep-card-label { color: #d63939; }
+
     /* Error overlay */
     #error-overlay {
       display: none; position: absolute; inset: 0; background: #111;
@@ -165,6 +242,12 @@
       <div id="highlight-progress"></div>
     </div>
     <div id="highlight-empty">Currently no events to display</div>
+    <!-- SitRep ticker (shown with ?ticker=true) -->
+    <div id="sitrep-ticker">
+      <span class="ticker-label">SitRep</span>
+      <span class="ticker-scroll"><span class="ticker-text" id="sitrep-ticker-text"></span></span>
+      <span class="ticker-time" id="sitrep-ticker-time"></span>
+    </div>
   </div>
   <div id="info-panel">
     <div id="branding">
@@ -175,8 +258,19 @@
       </div>
     </div>
     <hr class="divider"/>
+    <!-- SitRep card (shown with ?sitrep=true) — brief_report (3-4 lines);
+         see #sitrep-card CSS comment above. -->
+    <div id="sitrep-card">
+      <div id="sitrep-card-label">SitRep</div>
+      <div id="sitrep-card-body"></div>
+      <hr class="divider"/>
+    </div>
     <div id="stats">
-      <div id="contacts-section"></div>
+      <div id="contacts-header" class="stat-row">
+        <span class="stat-label">Contacts</span>
+        <span class="stat-value" id="count-contacts">--</span>
+      </div>
+      <div id="contacts-breakdown"></div>
       <hr class="divider" id="contacts-divider" style="display:none"/>
       <div id="layer-rows"></div>
       <hr class="divider"/>
@@ -184,6 +278,7 @@
         <span class="stat-label">Total</span>
         <span class="stat-value" id="count-total">--</span>
       </div>
+      <div id="quiet-layers-summary" class="quiet-summary" style="display:none"></div>
     </div>
     <hr class="divider"/>
     <div id="clock-section">
@@ -209,6 +304,11 @@ var LOCKED        = params.get('locked') !== 'false';
 var LOOP          = params.get('loop') === 'true';
 var HIGHLIGHT     = params.get('highlight') === 'true' || params.get('highlight') === 'zoom' || params.get('highlight') === 'static';
 var HIGHLIGHT_FLY = params.get('highlight') === 'zoom';  // fly to item when true, stay in place when false/static
+// SitRep: two independent toggles, both off by default.
+//   sitrep=true  — brief_report shown in the info panel card
+//   ticker=true  — summary_line scrolls across the bottom of the map
+var SITREP_CARD   = params.get('sitrep') === 'true';
+var SITREP_TICKER = params.get('ticker') === 'true';
 
 var COT_SOURCES = []; // populated from config
 var COT_REFRESH_MS = 10 * 1000;
@@ -251,6 +351,79 @@ updateClock();
 setInterval(updateClock, 1000);
 
 // ---------------------------------------------------------------------------
+// SitRep — ticker (map overlay, ?ticker=true) and info panel card
+// (?sitrep=true) are independent toggles, both off by default. Polled
+// every 60s to match the display-proxy's own S3 read cache TTL.
+// ---------------------------------------------------------------------------
+var SITREP_REFRESH_MS = 60 * 1000;
+
+function formatSitrepTime(iso) {
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland', hour12: false, hour: '2-digit', minute: '2-digit' });
+}
+
+function renderSitrep(sitrep) {
+  var ticker = document.getElementById('sitrep-ticker');
+  var card = document.getElementById('sitrep-card');
+
+  if (!sitrep || !sitrep.summary_line) {
+    ticker.classList.remove('visible');
+    card.classList.remove('visible');
+    return;
+  }
+
+  var assessment = sitrep.assessment || 'stable';
+
+  // Ticker (map overlay) — independent of the card, controlled by ?ticker=true
+  if (SITREP_TICKER) {
+    ticker.className = 'visible assessment-' + assessment;
+    var textEl = document.getElementById('sitrep-ticker-text');
+    if (textEl.textContent !== sitrep.summary_line) {
+      textEl.textContent = sitrep.summary_line;
+      // Only scroll if the text is wider than its container
+      textEl.classList.remove('scrolling');
+      requestAnimationFrame(function() {
+        var container = textEl.parentElement;
+        if (textEl.scrollWidth > container.clientWidth) {
+          // Duplicate text for seamless loop, scale duration to length
+          textEl.textContent = sitrep.summary_line + '     •     ' + sitrep.summary_line;
+          var duration = Math.max(15, textEl.scrollWidth / 60);
+          textEl.style.animationDuration = duration + 's';
+          textEl.classList.add('scrolling');
+        }
+      });
+    }
+    document.getElementById('sitrep-ticker-time').textContent = formatSitrepTime(sitrep.generated_at);
+  } else {
+    ticker.classList.remove('visible');
+  }
+
+  // Info panel card — independent of the ticker, controlled by ?sitrep=true.
+  // Shows brief_report (3-4 lines): long enough to be useful, short enough
+  // to fit without scrolling — this is a non-interactive kiosk display, so
+  // full_report (many lines, multiple sections) is never shown here.
+  if (SITREP_CARD) {
+    card.className = 'visible assessment-' + assessment;
+    document.getElementById('sitrep-card-body').textContent = sitrep.brief_report || sitrep.summary_line;
+  } else {
+    card.classList.remove('visible');
+  }
+}
+
+function loadSitrep() {
+  fetch('/api/sitrep?key=' + encodeURIComponent(KEY))
+    .then(function(r) { return r.json(); })
+    .then(renderSitrep)
+    .catch(function(err) { console.warn('[sitrep]', err.message); });
+}
+
+if (KEY) {
+  loadSitrep();
+  setInterval(loadSitrep, SITREP_REFRESH_MS);
+}
+
+// ---------------------------------------------------------------------------
 // Stats update
 // ---------------------------------------------------------------------------
 var CONTACT_GROUPS_CONFIG = {}; // populated from config
@@ -276,42 +449,81 @@ function updateContactGroups(features) {
   renderContactGroups();
 }
 
+// This is a non-interactive kiosk/media display — no mouse or touch input —
+// so the contacts breakdown is always fully visible as a condensed row of
+// chips rather than anything requiring a click to reveal.
 function renderContactGroups() {
-  var container = document.getElementById('contacts-section');
-  var divider = document.getElementById('contacts-divider');
-  container.innerHTML = '';
+  var header    = document.getElementById('contacts-header');
+  var breakdown = document.getElementById('contacts-breakdown');
+  var divider   = document.getElementById('contacts-divider');
+  var countEl   = document.getElementById('count-contacts');
+  breakdown.innerHTML = '';
 
   // Build sorted array of groups with counts > 0
   var groups = Object.keys(contactGroupCounts)
     .filter(function(g) { return contactGroupCounts[g] > 0; })
     .sort(function(a, b) { return contactGroupCounts[b] - contactGroupCounts[a]; });
 
-  if (groups.length === 0) {
+  var total = groups.reduce(function(sum, g) { return sum + contactGroupCounts[g]; }, 0);
+  countEl.textContent = total;
+
+  // No contacts online — hide the whole section
+  if (total === 0) {
+    header.style.display = 'none';
     divider.style.display = 'none';
     return;
   }
+  header.style.display = '';
   divider.style.display = '';
 
   groups.forEach(function(groupName) {
     var label = CONTACT_GROUPS_CONFIG[groupName] || groupName;
     var color = GROUP_COLORS[groupName] || '#ffffff';
-    var row = document.createElement('div');
-    row.className = 'stat-row';
-    row.innerHTML = '<span class="stat-label"><span class="group-dot" style="background:' + color + '"></span>' + label + '</span>'
-      + '<span class="stat-value">' + contactGroupCounts[groupName] + '</span>';
-    container.appendChild(row);
+    var chip = document.createElement('span');
+    chip.className = 'contact-chip';
+    chip.innerHTML = '<span class="group-dot" style="background:' + color + '"></span>' + label + ': ' + contactGroupCounts[groupName];
+    breakdown.appendChild(chip);
   });
 }
 
+// Per-layer row elements, keyed by layer id, and their labels — built once
+// config loads so updateStats() can toggle visibility without rebuilding DOM.
+var layerRowEls = {};
+
 function updateStats() {
   var total = 0;
+  var quietLabels = [];
+
   COT_SOURCES.forEach(function(src) {
+    if (src.id === 'contacts') return; // handled by updateContactGroups
     var count = layerCounts[src.id] || 0;
     total += count;
     var el = document.getElementById('count-' + src.id);
     if (el) el.textContent = count;
+
+    // Hide rows for layers with nothing to report — keeps the panel from
+    // being crammed with a long list of zero-count layers.
+    var row = layerRowEls[src.id];
+    if (row) {
+      if (count > 0) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+        quietLabels.push(src.label);
+      }
+    }
   });
-  document.getElementById('count-total').textContent = total;
+
+  var contactsTotal = Object.keys(contactGroupCounts).reduce(function(sum, g) { return sum + contactGroupCounts[g]; }, 0);
+  document.getElementById('count-total').textContent = total + contactsTotal;
+
+  var quietEl = document.getElementById('quiet-layers-summary');
+  if (quietLabels.length > 0) {
+    quietEl.textContent = 'No activity: ' + quietLabels.join(', ');
+    quietEl.style.display = '';
+  } else {
+    quietEl.style.display = 'none';
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -353,7 +565,9 @@ Promise.all([
     return (a.priority || 99) - (b.priority || 99);
   });
 
-  // Build stat rows for non-contacts layers only (contacts shown separately)
+  // Build stat rows for non-contacts layers only (contacts shown separately).
+  // Rows start visible ("--") until the first fetch resolves; updateStats()
+  // then hides any row whose layer has zero active features.
   var layerContainer = document.getElementById('layer-rows');
   COT_SOURCES.forEach(function(src) {
     if (src.id === 'contacts') return; // contacts handled by renderContactGroups
@@ -366,6 +580,7 @@ Promise.all([
     row.className = 'stat-row';
     row.innerHTML = '<span class="stat-label">' + iconHtml + src.label + '</span><span class="stat-value" id="count-' + src.id + '">--</span>';
     layerContainer.appendChild(row);
+    layerRowEls[src.id] = row;
   });
 
   var linzSprite = style.sprite;
