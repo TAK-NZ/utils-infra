@@ -279,7 +279,7 @@ display-proxy side to enable it.
 ```json
 {
   "generated_at": "2026-08-01T00:35:00Z",
-  "model": "au.anthropic.claude-opus-5",
+  "model": "au.anthropic.claude-sonnet-5",
   "summary_line": "Stable | High avalanche danger Arthur's Pass & Aoraki/Mt Cook | ...",
   "brief_report": "Stable — Post-storm winter conditions dominate...\n(3-4 lines total)",
   "full_report": "SITUATIONAL REPORT — 1 August 2026, 12:36 NZST\n\nOVERVIEW:\n...",

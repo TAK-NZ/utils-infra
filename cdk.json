@@ -114,7 +114,7 @@
       },
       "sitrep": {
         "enabled": true,
-        "modelId": "anthropic.claude-opus-5"
+        "modelId": "anthropic.claude-sonnet-5"
       },
       "cloudfront": {
         "tileserver": {
@@ -225,7 +225,7 @@
       },
       "sitrep": {
         "enabled": true,
-        "modelId": "anthropic.claude-opus-5"
+        "modelId": "anthropic.claude-sonnet-5"
       },
       "cloudfront": {
         "tileserver": {
