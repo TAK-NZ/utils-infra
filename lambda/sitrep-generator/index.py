@@ -22,7 +22,7 @@ Config (via environment variables, set by CDK):
   SITREP_KEY           S3 key to write the SitRep result to
                        (default: sitrep/latest.json)
   MODEL_ID             Bedrock model id, without a region-profile prefix
-                       (default: anthropic.claude-opus-5). The correct
+                       (default: anthropic.claude-sonnet-5). The correct
                        us./au./eu. prefix is resolved at runtime from
                        BEDROCK_REGION/AWS_REGION — see resolve_model_id() —
                        so this Lambda deploys to any region unmodified.
@@ -72,10 +72,10 @@ def resolve_model_id(base_model_id: str, region: str) -> str:
     return f"{prefix}.{base_model_id}"
 
 
-# MODEL_ID env var holds the bare model name (e.g. "anthropic.claude-opus-5"),
+# MODEL_ID env var holds the bare model name (e.g. "anthropic.claude-sonnet-5"),
 # set via cdk.json's sitrep.modelId — no region prefix, so the same config
 # value works no matter which region this Lambda gets deployed to.
-MODEL_ID = resolve_model_id(os.environ.get("MODEL_ID", "anthropic.claude-opus-5"), BEDROCK_REGION)
+MODEL_ID = resolve_model_id(os.environ.get("MODEL_ID", "anthropic.claude-sonnet-5"), BEDROCK_REGION)
 
 # Layer IDs pulled from the display-proxy config's "layers" array for the
 # SitRep context. Any of these missing from the config (or with no
@@ -126,6 +126,8 @@ OVERVIEW:
 
 SEISMIC:
 - Bullet points for earthquakes (magnitude, location, time, MMI)
+- State only these fields — do not add damage/injury/impact commentary,
+  since that information is not provided in the context
 
 VOLCANIC:
 - Only volcanoes at Level 1+ (skip Level 0)
@@ -163,6 +165,22 @@ Rules:
 - Be concise — this is for operational awareness, not detailed analysis
 - If nothing significant is happening, say so clearly
 - For relative time use: "Xh ago", "Xd ago"
+- The context below is the ONLY source of truth. Every field you state as
+  fact must come directly from a field in the context — never add details,
+  outcomes, or status information that are not present in the data, no
+  matter how plausible or conventional they sound. This applies to ANY
+  claim beyond what a field literally states, including but not limited to:
+  - Outcomes or follow-up not in the data (e.g. do not add "no damage
+    reported", "no injuries", "under control", "resolved", or similar,
+    unless a field in the context actually says so)
+  - Status changes, corrections, retractions (e.g. do not claim an
+    earthquake was "later revised", "flagged deleted", or "downgraded"
+    unless a field in the context actually says so)
+  - If two features look unusual together (near-duplicate times/locations,
+    etc.), report both as given rather than speculating about why
+  - If you have nothing to add beyond a feature's given fields, simply
+    state those fields and stop — do not pad the sentence with a
+    plausible-sounding but unsupported detail
 
 Respond with a JSON object, with "assessment" first so it's decided before
 the text fields that must agree with it:
@@ -229,6 +247,20 @@ def is_stale(feature: dict) -> bool:
         return stale_dt < datetime.now(timezone.utc)
     except Exception:
         return False
+
+
+def is_deleted_quake(feature: dict) -> bool:
+    """
+    GeoNet occasionally flags an auto-detected earthquake as deleted after
+    further review (e.g. reclassified as a quarry blast, or a duplicate
+    detection) — CloudTAK's earthquake feed passes this through as
+    metadata.quality == "deleted" but does not remove the feature itself.
+    Filter these out before they reach the model; a retracted event should
+    not be reported as an active one. See metadata.quality values: "best",
+    "deleted", etc. (GeoNet's own quality field, not TAK-specific).
+    """
+    quality = ((feature.get("properties") or {}).get("metadata") or {}).get("quality")
+    return quality == "deleted"
 
 
 def fetch_layer_features(base_url: str, token: str, connection: int, layer: int | None = None) -> list[dict]:
@@ -318,6 +350,14 @@ def build_context(config: dict) -> tuple[dict, dict[str, int]]:
         if not layer_def:
             continue
         features = fetch_layer_features(base_url, token, layer_def["connection"], layer_def.get("layer"))
+
+        # Earthquakes: drop any GeoNet has flagged as deleted/retracted —
+        # see is_deleted_quake(). Note this filtering does not exist in the
+        # display-proxy map config either (no filters.quakes entry), so a
+        # deleted quake may still show on the live map even after this fix.
+        if layer_id == "quakes":
+            features = [f for f in features if not is_deleted_quake(f)]
+
         # Points always included — they carry the same metadata as the
         # polygon/line shapes they're paired with, keeping the prompt compact.
         points = [f for f in features if (f.get("geometry") or {}).get("type") == "Point"]
@@ -365,6 +405,12 @@ def call_bedrock(context: dict) -> dict:
         # mid-JSON before the closing brace, causing extract_json() to fail.
         # Bumped again to cover the added brief_report field.
         "max_tokens": 3500,
+        # Some models (e.g. Sonnet 5) default to emitting an extended
+        # "thinking" block, which counts against max_tokens — observed
+        # 3210 of 3500 output tokens spent on thinking, cutting the actual
+        # JSON answer off mid-field. We don't need visible reasoning here,
+        # just the structured output, so disable it explicitly.
+        "thinking": {"type": "disabled"},
         "messages": [{"role": "user", "content": user_content}],
     }
 
