@@ -127,7 +127,7 @@ if (fs.existsSync(CONFIG_FILE)) {
 // ---------------------------------------------------------------------------
 // Import handlers
 // ---------------------------------------------------------------------------
-const { handler: cotHandler, getSessionJwt } = await import('./lambdas/tak-cot-proxy/index.mjs');
+const { handler: cotHandler } = await import('./lambdas/tak-cot-proxy/index.mjs');
 const { handler: iconHandler } = await import('./lambdas/tak-icon-proxy/index.mjs');
 import { init as initContacts, getFeatures as getContactFeatures } from './lambdas/tak-contacts-ws/index.mjs';
 
@@ -235,7 +235,9 @@ const server = http.createServer(async (req, res) => {
         if (spriteMatch) {
             const config = await getConfig();
             const baseUrl = (config.cloudtak_url || '').replace(/\/$/, '');
-            const token = await getSessionJwt(config);
+            // CloudTAK accepts the profile-scoped etl.<jwt> token directly as a
+            // Bearer token — no session exchange needed.
+            const token = config.cloudtak_token;
             const iconsetId = decodeURIComponent(spriteMatch[1]);
             const spriteFile = spriteMatch[2];
             const upstream = `${baseUrl}/api/iconset/${encodeURIComponent(iconsetId)}/${spriteFile}`;

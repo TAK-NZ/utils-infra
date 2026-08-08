@@ -21,8 +21,6 @@ let ws = null;
 let reconnectTimer = null;
 let subscriptionTimer = null;
 let config = null;
-let sessionJwt = null;
-let sessionExpiresAt = 0;
 
 // In-memory store of contacts: Map<uid, GeoJSON Feature>
 const contacts = new Map();
@@ -49,29 +47,15 @@ const GROUP_COLORS = {
 };
 
 // ---------------------------------------------------------------------------
-// Session JWT (same logic as cot-proxy)
+// Decode the profile-scoped etl.<jwt> API token to pull out the profile
+// username, without needing to exchange it for a session JWT first.
+// CloudTAK accepts this token directly as a Bearer token / WS ?token=
+// param (see api/lib/auth.ts tokenParser).
 // ---------------------------------------------------------------------------
-async function getToken() {
-    const now = Date.now();
-    if (sessionJwt && now < sessionExpiresAt - 30 * 60 * 1000) {
-        return sessionJwt;
-    }
-
-    const baseUrl = (config.cloudtak_url || '').replace(/\/$/, '');
-    const res = await fetch(`${baseUrl}/api/login/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: config.cloudtak_token }),
-        signal: AbortSignal.timeout(10000),
-    });
-
-    if (!res.ok) throw new Error(`Token exchange failed: ${res.status}`);
-
-    const data = await res.json();
-    sessionJwt = data.token;
-    const payload = JSON.parse(Buffer.from(sessionJwt.split('.')[1], 'base64').toString());
-    sessionExpiresAt = (payload.exp || (Date.now() / 1000 + 16 * 3600)) * 1000;
-    return sessionJwt;
+function decodeEtlToken(token) {
+    const jwtPart = token.startsWith('etl.') ? token.slice('etl.'.length) : token;
+    const payload = JSON.parse(Buffer.from(jwtPart.split('.')[1], 'base64').toString());
+    return payload; // { id, access, internal? }
 }
 
 // ---------------------------------------------------------------------------
@@ -81,7 +65,7 @@ const SUBSCRIPTION_POLL_MS = 60 * 1000; // poll every 60 seconds
 
 async function pollSubscriptions() {
     try {
-        const token = await getToken();
+        const token = config.cloudtak_token;
         const baseUrl = (config.cloudtak_url || '').replace(/\/$/, '');
         const res = await fetch(`${baseUrl}/api/marti/subscription`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -164,11 +148,12 @@ async function connect() {
         ws = null;
     }
 
-    const token = await getToken();
+    const token = config.cloudtak_token;
     const baseUrl = (config.cloudtak_url || '').replace(/\/$/, '');
-    // Derive the WebSocket connection username from the JWT
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-    const connection = payload.email || payload.id || 'admin';
+    // Derive the WebSocket connection username from the etl token's payload
+    // (profile-scoped tokens carry the profile username in `id`).
+    const payload = decodeEtlToken(token);
+    const connection = payload.id || 'admin';
 
     const wsUrl = baseUrl.replace('https://', 'wss://').replace('http://', 'ws://')
         + `/api?format=geojson&connection=${encodeURIComponent(connection)}&token=${token}`;
