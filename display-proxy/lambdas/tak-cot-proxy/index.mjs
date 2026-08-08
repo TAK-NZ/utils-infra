@@ -28,10 +28,6 @@ const CONFIG_BUCKET = process.env.CONFIG_BUCKET;
 const CONFIG_KEY    = process.env.CONFIG_KEY || 'Utils-Display-Proxy-Config.json';
 const CONFIG_TTL_MS = 5 * 60 * 1000;  // re-read config every 5 minutes
 
-// Session JWT cache — exchanged from the ETL token, expires in 16h
-let sessionJwt       = null;
-let sessionExpiresAt = 0;
-
 let cachedConfig    = null;
 let configLoadedAt  = 0;
 
@@ -60,38 +56,6 @@ async function getConfig() {
     cachedConfig   = JSON.parse(body);
     configLoadedAt = now;
     return cachedConfig;
-}
-
-// ---------------------------------------------------------------------------
-// Session JWT — exchange ETL token for a session JWT before it expires.
-// The session JWT lasts 16h; refresh 30 minutes before expiry.
-// ---------------------------------------------------------------------------
-export async function getSessionJwt(config) {
-    const now = Date.now();
-    if (sessionJwt && now < sessionExpiresAt - 30 * 60 * 1000) {
-        return sessionJwt;
-    }
-
-    const baseUrl = (config.cloudtak_url || '').replace(/\/$/, '');
-    const res = await fetch(`${baseUrl}/api/login/token`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ token: config.cloudtak_token }),
-        signal:  AbortSignal.timeout(10000),
-    });
-
-    if (!res.ok) {
-        throw new Error(`Token exchange failed: ${res.status}`);
-    }
-
-    const data     = await res.json();
-    sessionJwt     = data.token;
-
-    // Decode exp from JWT payload (middle segment)
-    const payload  = JSON.parse(Buffer.from(sessionJwt.split('.')[1], 'base64').toString());
-    sessionExpiresAt = (payload.exp || (Date.now() / 1000 + 16 * 3600)) * 1000;
-
-    return sessionJwt;
 }
 
 // ---------------------------------------------------------------------------
@@ -363,7 +327,10 @@ export async function handler(event) {
     }
 
     const baseUrl = (config.cloudtak_url || '').replace(/\/$/, '');
-    const token   = await getSessionJwt(config);
+    // CloudTAK accepts the profile-scoped etl.<jwt> API token directly as a
+    // Bearer token on every protected route (see api/lib/auth.ts tokenParser) —
+    // no session exchange needed.
+    const token   = config.cloudtak_token;
     const layers  = config.layers || [];
     // Support legacy "connections" format
     const conns   = config.connections || {};
