@@ -364,11 +364,21 @@ def build_context(config: dict) -> tuple[dict, dict[str, int]]:
 # Bedrock invocation
 # ---------------------------------------------------------------------------
 def extract_json(text: str) -> dict:
-    """Pull the first {...} JSON object out of the model's response text."""
+    """Pull the first {...} JSON object out of the model's response text.
+
+    Claude's full_report field is multi-line prose, and the model frequently
+    emits literal control characters (raw newlines/tabs) inside that JSON
+    string value instead of the escaped \\n / \\t — technically invalid per
+    strict JSON, but extremely common LLM output behaviour. json.loads()
+    defaults to strict=True and rejects these with "Invalid control
+    character at: ...", which was the dominant SitRep failure mode in
+    practice. strict=False permits control characters inside strings while
+    still enforcing the rest of the JSON grammar.
+    """
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if not match:
         raise ValueError(f"No JSON object found in model response: {text[:200]}")
-    return json.loads(match.group(0))
+    return json.loads(match.group(0), strict=False)
 
 
 def call_bedrock(context: dict) -> dict:
