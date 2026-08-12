@@ -32,7 +32,6 @@ Config (via environment variables, set by CDK):
 import json
 import os
 import re
-import time
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
@@ -207,34 +206,6 @@ def get_config() -> dict:
     return config
 
 
-def get_session_jwt(config: dict) -> str:
-    """Exchange the long-lived ETL token for a session JWT (16h lifetime)."""
-    now = time.time()
-    cached = _cache.get("session_jwt")
-    if cached and now < cached["expires_at"] - 30 * 60:
-        return cached["token"]
-
-    base_url = config.get("cloudtak_url", "").rstrip("/")
-    body = json.dumps({"token": config.get("cloudtak_token")}).encode()
-    req = urllib.request.Request(
-        f"{base_url}/api/login/token", data=body, method="POST",
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        data = json.loads(resp.read())
-
-    token = data["token"]
-    try:
-        import base64
-        payload = json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "=="))
-        expires_at = payload.get("exp", now + 16 * 3600)
-    except Exception:
-        expires_at = now + 16 * 3600
-
-    _cache["session_jwt"] = {"token": token, "expires_at": expires_at}
-    return token
-
-
 # ---------------------------------------------------------------------------
 # CloudTAK feature fetching
 # ---------------------------------------------------------------------------
@@ -338,7 +309,13 @@ def feature_to_line_context(feature: dict) -> dict:
 
 def build_context(config: dict) -> tuple[dict, dict[str, int]]:
     base_url = config.get("cloudtak_url", "").rstrip("/")
-    token = get_session_jwt(config)
+    # CloudTAK accepts the profile-scoped etl.<jwt> API token directly as a
+    # Bearer token on every protected route (see api/lib/auth.ts tokenParser)
+    # — no session exchange needed. The old /api/login/token session-JWT
+    # exchange this Lambda used to do was removed upstream and now 404s;
+    # this mirrors display-proxy/lambdas/tak-cot-proxy/index.mjs, which
+    # already uses the token directly.
+    token = config.get("cloudtak_token")
 
     layer_defs = {l["id"]: l for l in config.get("layers", []) if l.get("connection") is not None}
 
@@ -387,11 +364,21 @@ def build_context(config: dict) -> tuple[dict, dict[str, int]]:
 # Bedrock invocation
 # ---------------------------------------------------------------------------
 def extract_json(text: str) -> dict:
-    """Pull the first {...} JSON object out of the model's response text."""
+    """Pull the first {...} JSON object out of the model's response text.
+
+    Claude's full_report field is multi-line prose, and the model frequently
+    emits literal control characters (raw newlines/tabs) inside that JSON
+    string value instead of the escaped \\n / \\t — technically invalid per
+    strict JSON, but extremely common LLM output behaviour. json.loads()
+    defaults to strict=True and rejects these with "Invalid control
+    character at: ...", which was the dominant SitRep failure mode in
+    practice. strict=False permits control characters inside strings while
+    still enforcing the rest of the JSON grammar.
+    """
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if not match:
         raise ValueError(f"No JSON object found in model response: {text[:200]}")
-    return json.loads(match.group(0))
+    return json.loads(match.group(0), strict=False)
 
 
 def call_bedrock(context: dict) -> dict:
