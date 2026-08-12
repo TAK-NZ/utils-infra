@@ -52,7 +52,7 @@
           "imageTag": "v1.2.3"
         },
         "power-outages": {
-          "enabled": true,
+          "enabled": false,
           "path": "/power-outages",
           "healthCheckPath": "/power-outages/health",
           "port": 3000,
@@ -163,7 +163,7 @@
           "imageTag": "v1.2.3"
         },
         "power-outages": {
-          "enabled": true,
+          "enabled": false,
           "path": "/power-outages",
           "healthCheckPath": "/power-outages/health",
           "port": 3000,

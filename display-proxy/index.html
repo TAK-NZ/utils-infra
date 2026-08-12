@@ -1037,6 +1037,24 @@ var highlightRafHandle = null;
 var highlightRafStart = null;
 
 // ---------------------------------------------------------------------------
+// Parse an ISO-8601 timestamp robustly across browsers.
+//
+// Some upstream sources (e.g. FloodHub forecast issuedTime) emit Python-style
+// microsecond precision like "2026-07-06T22:21:33.843479Z" — 6 fractional
+// digits. Per the ECMA-262 Date Time String Format only exactly 3 fractional
+// digits are spec-valid; V8 (Chrome/Node) parses the extra digits leniently,
+// but Firefox and Safari return Invalid Date. Truncate to milliseconds before
+// parsing so the result is consistent everywhere.
+// ---------------------------------------------------------------------------
+function parseTimestamp(value) {
+  if (typeof value === 'string') {
+    value = value.replace(/(\.\d{3})\d+(Z|[+-]\d{2}:?\d{2})?$/, '$1$2');
+  }
+  var d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// ---------------------------------------------------------------------------
 // Template renderer — resolves {{field}} and {{metadata.field}} against a
 // processed feature's properties. Missing fields are omitted gracefully.
 // ---------------------------------------------------------------------------
@@ -1082,8 +1100,8 @@ function renderTemplate(template, feature) {
       }
       if (modName === 'date') {
         // Format ISO timestamp as local NZ time: "6 Jul 2026, 10:21 PM"
-        var d = new Date(value);
-        if (!isNaN(d.getTime())) {
+        var d = parseTimestamp(value);
+        if (d) {
           return d.toLocaleString('en-NZ', {
             timeZone: 'Pacific/Auckland',
             day: 'numeric', month: 'short', year: 'numeric',
@@ -1093,8 +1111,8 @@ function renderTemplate(template, feature) {
       }
       if (modName === 'ago') {
         // Show relative time: "3h ago", "45min ago"
-        var d = new Date(value);
-        if (!isNaN(d.getTime())) {
+        var d = parseTimestamp(value);
+        if (d) {
           var diffMs = Date.now() - d.getTime();
           var diffMin = Math.floor(diffMs / 60000);
           if (diffMin < 1) return 'just now';
