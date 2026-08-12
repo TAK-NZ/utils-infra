@@ -201,7 +201,7 @@ def get_config() -> dict:
         return _cache["config"]
     s3 = boto3.client("s3")
     obj = s3.get_object(Bucket=CONFIG_BUCKET, Key=CONFIG_KEY)
-    config = json.loads(obj["Body"].read())
+    config = json.loads(obj["Body"].read(), strict=False)
     _cache["config"] = config
     return config
 
@@ -250,7 +250,14 @@ def fetch_layer_features(base_url: str, token: str, connection: int, layer: int 
         req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read())
+                # strict=False: CloudTAK feature text fields (weather warning
+                # headlines, NZTA closure remarks, etc.) are sourced from
+                # upstream feeds we don't control and occasionally carry raw
+                # embedded control characters. Same rationale as
+                # extract_json() below — this was still using the strict-mode
+                # default and is exactly as likely to hit "Invalid control
+                # character" as the model-output parser was before that fix.
+                data = json.loads(resp.read(), strict=False)
         except urllib.error.HTTPError as e:
             print(f"CloudTAK error {e.code} for {url}")
             break
@@ -407,7 +414,7 @@ def call_bedrock(context: dict) -> dict:
         contentType="application/json",
         accept="application/json",
     )
-    payload = json.loads(response["body"].read())
+    payload = json.loads(response["body"].read(), strict=False)
     text = "".join(block.get("text", "") for block in payload.get("content", []))
     return extract_json(text)
 
