@@ -18,9 +18,10 @@ https://utils.{domain}/weather-radar/
 ### Rainbow.ai (Premium)
 - **Access**: Requires API key
 - **Coverage**: Enhanced global radar data
+- **Layers**: `precip` (default), `precip-global`, `clouds`, `radars` (see [Rainbow.ai Layers](#rainbowai-layers) below)
 - **Update Frequency**: 10 minutes
 - **Rate Limit**: Based on API key configuration
-- **Fallback**: Automatically falls back to RainViewer if unavailable
+- **Fallback**: Precipitation layers (`precip`, `precip-global`) automatically fall back to RainViewer if unavailable. `clouds` and `radars` have no RainViewer equivalent, so they return a transparent tile on failure instead
 
 ## Endpoints
 
@@ -32,22 +33,27 @@ GET /weather-radar/{z}/{x}/{y}.png
 **Parameters:**
 - `z` - Zoom level (0-9)
   - RainViewer: native data at z0-7, z8-9 are upscaled from z7
-  - Rainbow.ai: native data at all zoom levels
+  - Rainbow.ai `precip` / `precip-global`: native data up to z12 (we cap requests at z9)
+  - Rainbow.ai `clouds` / `radars`: native data at z0-7, z8-9 are upscaled from z7
 - `x` - Tile X coordinate
 - `y` - Tile Y coordinate
 
 **Query Parameters:**
 - `provider` - Data provider: `rainviewer` (default) or `rainbow`
+- `layer` - Rainbow.ai layer: `precip` (default), `precip-global`, `clouds`, or `radars`. Only valid when `provider=rainbow`; RainViewer always serves precipitation radar. See [Rainbow.ai Layers](#rainbowai-layers) below for per-layer parameter support
 - `api` - API key (required for Rainbow.ai provider)
 - `size` - Tile size: `256` (default) or `512`
-- `smooth` - Smoothing: `0` (default, no smoothing) or `1` (smoothed)
-- `snow` - Snow overlay: `0` (default, no snow) or `1` (with snow)
-- `forecast` - Forecast minutes ahead: `0-240` (Rainbow.ai only, default: `0`)
+- `smooth` - Smoothing: `0` (default, no smoothing) or `1` (smoothed) - RainViewer only
+- `snow` - Snow overlay: `0` (default, no snow) or `1` (with snow) - RainViewer only
+- `forecast` - Forecast minutes ahead: `0-240` (Rainbow.ai `precip`/`precip-global` only, default: `0`)
+- `coverage` - Coverage mask overlay: `0` (default) or `1` (Rainbow.ai `precip`, `precip-global`, `radars` only)
+- `use_precip_type` - Precipitation-type visualization instead of reflectivity: `0` (default) or `1` (Rainbow.ai `radars` only)
 - `color` - Color scheme (default: `2`)
-  - `0` - dBZ values with automatic MetService color mapping (both providers)
+  - `0` - dBZ values with automatic MetService color mapping (both providers; not applicable to `layer=clouds`)
   - `2` - Universal Blue (default, RainViewer's only supported scheme)
   - `1, 3-8` - Additional schemes (Rainbow.ai only; mapped to Universal Blue on RainViewer)
   - `10` - Rainbow.ai native color scheme (Rainbow.ai only)
+  - Not accepted at all when `layer=clouds` (Rainbow.ai's clouds layer has no color palette)
 
   > **Note**: As of 2025, RainViewer only supports color scheme `2` (Universal Blue). Color values `1, 3-8` are still accepted but will render as Universal Blue when using the RainViewer provider. These schemes remain fully functional with the Rainbow.ai provider.
 
@@ -88,7 +94,32 @@ https://utils.tak.nz/weather-radar/5/10/15.png?provider=rainbow&api=your-key&col
 
 # All options combined with Rainbow.ai
 https://utils.tak.nz/weather-radar/5/10/15.png?provider=rainbow&api=your-key&size=512&smooth=1&snow=1&color=0&forecast=60
+
+# Rainbow.ai global precipitation layer
+https://utils.tak.nz/weather-radar/5/10/15.png?provider=rainbow&api=your-key&layer=precip-global
+
+# Rainbow.ai cloud cover layer (no color/forecast/coverage params)
+https://utils.tak.nz/weather-radar/5/10/15.png?provider=rainbow&api=your-key&layer=clouds
+
+# Rainbow.ai radars layer with precipitation-type visualization
+https://utils.tak.nz/weather-radar/5/10/15.png?provider=rainbow&api=your-key&layer=radars&use_precip_type=1
+
+# Rainbow.ai precip-global with coverage mask overlay
+https://utils.tak.nz/weather-radar/5/10/15.png?provider=rainbow&api=your-key&layer=precip-global&coverage=1
 ```
+
+### Rainbow.ai Layers
+
+The `layer` parameter selects which Rainbow.ai data product to serve. It only applies to `provider=rainbow`; RainViewer has no equivalent for `clouds` or `radars`.
+
+| Layer | Description | Native Zoom | `color` | `forecast` | `coverage` | `use_precip_type` |
+|-------|--------------|-------------|---------|-------------|------------|--------------------|
+| `precip` (default) | Precipitation map, regional coverage | 0-12 | ✅ | ✅ (0-240 min) | ✅ | ❌ |
+| `precip-global` | Precipitation map, global coverage | 0-12 | ✅ | ✅ (0-240 min) | ✅ | ❌ |
+| `clouds` | Cloud cover map | 0-7 (upscaled to z9) | ❌ | ❌ | ❌ | ❌ |
+| `radars` | Radar reflectivity map | 0-7 (upscaled to z9) | ✅ | ❌ | ✅ | ✅ |
+
+Requesting a parameter that a layer doesn't support returns a `400 Bad Request` (e.g. `?layer=clouds&color=0` or `?layer=precip&use_precip_type=1`).
 
 ### Health Check
 ```
@@ -111,6 +142,13 @@ Returns service status and cache statistics.
 {
   "error": "Invalid parameter",
   "message": "color parameter must be 0-8, 10 (0=MetService, 2=Universal Blue, 1/3-8=Rainbow.ai only, 10=Rainbow.ai native)"
+}
+```
+
+```json
+{
+  "error": "Invalid parameter",
+  "message": "layer=clouds is only supported with provider=rainbow"
 }
 ```
 
@@ -203,13 +241,14 @@ For detailed specifications:
 ## Integration Notes
 
 - **Caching**: Tiles are cached server-side for 10 minutes (`Cache-Control: max-age=600`), matching provider update frequency. Client polling faster than this (e.g. the display kiosk polls every 5 minutes) reduces the worst-case staleness of displayed data but does not get newer tiles than the last provider update
-- **Zoom Limits**: RainViewer natively supports z0-7; zoom levels 8-9 are served by cropping and upscaling the z7 ancestor tile. Rainbow.ai supports all zoom levels natively
+- **Zoom Limits**: RainViewer natively supports z0-7; zoom levels 8-9 are served by cropping and upscaling the z7 ancestor tile. Rainbow.ai `precip`/`precip-global` support up to z12 natively (requests are capped at z9). Rainbow.ai `clouds`/`radars` natively support z0-7, with z8-9 upscaled the same way as RainViewer
 - **Attribution**: Weather data provided by RainViewer.com or Rainbow.ai
 - **CORS**: Cross-origin requests are supported
 - **Retry Logic**: Service automatically retries failed requests
-- **Fallback**: Rainbow.ai automatically falls back to RainViewer on failure
+- **Fallback**: Rainbow.ai `precip`/`precip-global` automatically fall back to RainViewer on failure. `clouds`/`radars` have no RainViewer equivalent and return a transparent tile on failure instead
 - **Transparent Tiles**: Returns transparent tiles on data unavailability
 - **Provider Selection**: Use `provider` parameter to choose data source
+- **Layer Selection**: Use `layer` parameter (Rainbow.ai only) to choose between `precip`, `precip-global`, `clouds`, and `radars`
 
 ## API Key Configuration
 
@@ -292,12 +331,14 @@ https://utils.tak.nz/weather-radar/5/10/15.png?api=basic-key
 | **Access** | Public | API Key Required |
 | **Rate Limit** | 600/min per IP | Custom per key |
 | **Coverage** | Global | Enhanced Global |
+| **Layers** | Precipitation radar only | `precip`, `precip-global`, `clouds`, `radars` |
 | **Native Resolution** | 256x256, 512x512 | 256x256 only |
 | **Size Support** | Native 512x512 | Upscaled to 512x512 |
+| **Native Zoom** | z0-7 (z8-9 upscaled) | `precip`/`precip-global`: z0-12; `clouds`/`radars`: z0-7 (z8-9 upscaled) |
 | **Update Frequency** | 10 minutes | 10 minutes |
-| **Fallback** | None | Falls back to RainViewer |
+| **Fallback** | None | `precip`/`precip-global` fall back to RainViewer; `clouds`/`radars` do not |
 | **Cost** | Free | Premium |
-| **MetService Colors** | ✅ | ✅ |
-| **Forecast Capability** | None | 0-240 minutes ahead |
+| **MetService Colors** | ✅ | ✅ (not applicable to `clouds`) |
+| **Forecast Capability** | None | 0-240 minutes ahead (`precip`/`precip-global` only) |
 | **Color Schemes** | Universal Blue only (color=2) | Numeric (0-8, 10) |
 | **Color System** | Single scheme (Universal Blue) | 0=dbz_u8, 1-8=numeric, 10=native |

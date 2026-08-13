@@ -16,6 +16,8 @@ const CONFIG_BUCKET = process.env.CONFIG_BUCKET;
 const CONFIG_KEY = process.env.CONFIG_KEY || 'ETL-Util-Weather-Proxy-Api-Keys.json';
 const MAX_ZOOM_LEVEL = 9;
 const RAINVIEWER_MAX_ZOOM = 7; // RainViewer only supports zoom 0-7, higher zooms are upscaled
+const RAINBOW_LAYER_MAX_ZOOM = 7; // Rainbow.ai clouds/radars only support zoom 0-7, higher zooms are upscaled; precip/precip-global support native zoom up to 12
+const RAINBOW_LAYERS = ['precip', 'precip-global', 'clouds', 'radars'];
 const RATE_LIMIT_PER_MINUTE = 600; // RainViewer allows 600 requests per minute
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -304,6 +306,29 @@ async function applyMetServiceColors(buffer) {
     }
 }
 
+// Generic tile upscaling: derive a target-zoom tile by fetching its native-zoom ancestor
+// (the closest zoom level the upstream provider actually supports), then cropping out
+// the quadrant that corresponds to the requested tile and resizing it back up.
+// fetchNativeTile(nativeZoom, ancestorX, ancestorY) must resolve to a 256x256 PNG buffer.
+async function upscaleTile(fetchNativeTile, nativeMaxZoom, z, x, y, size) {
+  const zoomDiff = z - nativeMaxZoom;
+  const scale = Math.pow(2, zoomDiff);
+  const ancestorX = Math.floor(x / scale);
+  const ancestorY = Math.floor(y / scale);
+
+  const ancestorBuffer = await fetchNativeTile(nativeMaxZoom, ancestorX, ancestorY);
+
+  const cropSize = Math.floor(256 / scale);
+  const offsetX = (x % scale) * cropSize;
+  const offsetY = (y % scale) * cropSize;
+
+  return await sharp(ancestorBuffer)
+    .extract({ left: offsetX, top: offsetY, width: cropSize, height: cropSize })
+    .resize(size, size, { kernel: 'nearest' })
+    .png()
+    .toBuffer();
+}
+
 // Weather provider abstraction layer
 class WeatherProvider {
   async getTile(z, x, y, options) {
@@ -334,23 +359,11 @@ class RainViewerProvider extends WeatherProvider {
   
   async getUpscaledTile(z, x, y, options) {
     const { size = 256 } = options;
-    const zoomDiff = z - RAINVIEWER_MAX_ZOOM;
-    const scale = Math.pow(2, zoomDiff);
-    const ancestorX = Math.floor(x / scale);
-    const ancestorY = Math.floor(y / scale);
-    
-    // Fetch ancestor tile at native 256 to crop precisely
-    const ancestorBuffer = await this.fetchTile(RAINVIEWER_MAX_ZOOM, ancestorX, ancestorY, { ...options, size: 256 });
-    
-    const cropSize = Math.floor(256 / scale);
-    const offsetX = (x % scale) * cropSize;
-    const offsetY = (y % scale) * cropSize;
-    
-    return await sharp(ancestorBuffer)
-      .extract({ left: offsetX, top: offsetY, width: cropSize, height: cropSize })
-      .resize(size, size, { kernel: 'nearest' })
-      .png()
-      .toBuffer();
+    return await upscaleTile(
+      (nativeZoom, ax, ay) => this.fetchTile(nativeZoom, ax, ay, { ...options, size: 256 }),
+      RAINVIEWER_MAX_ZOOM,
+      z, x, y, size
+    );
   }
   
   async fetchTile(z, x, y, options) {
@@ -469,19 +482,64 @@ class RainbowProvider extends WeatherProvider {
   }
   
   async getTile(z, x, y, options) {
-    const { color = 2, size = 256, forecast = 0 } = options;
+    const { layer = 'precip' } = options;
+    
+    // clouds/radars are only natively available up to zoom 7; higher zooms are upscaled.
+    // precip/precip-global support up to zoom 12 natively, well beyond our MAX_ZOOM_LEVEL, so no upscaling is needed.
+    if ((layer === 'clouds' || layer === 'radars') && z > RAINBOW_LAYER_MAX_ZOOM) {
+      return await this.getUpscaledTile(z, x, y, options);
+    }
+    
+    return await this.fetchTile(z, x, y, options);
+  }
+  
+  async getUpscaledTile(z, x, y, options) {
+    const { size = 256 } = options;
+    return await upscaleTile(
+      (nativeZoom, ax, ay) => this.fetchTile(nativeZoom, ax, ay, { ...options, size: 256 }),
+      RAINBOW_LAYER_MAX_ZOOM,
+      z, x, y, size
+    );
+  }
+  
+  // Build the Rainbow.ai tile URL for a given layer. Each layer has a distinct path shape
+  // and its own subset of supported query parameters.
+  buildUrl(layer, timestamp, z, x, y, options) {
+    const { color = 2, forecast = 0, coverage = 0, usePrecipType = 0 } = options;
+    const base = `https://api.rainbow.ai/tiles/v1`;
+    
+    switch (layer) {
+      case 'precip':
+      case 'precip-global': {
+        const forecastSeconds = Math.min(14400, Math.max(0, forecast * 60));
+        const rainbowColor = mapColorToProvider(color, 'rainbow');
+        const params = new URLSearchParams({ color: rainbowColor });
+        if (coverage) params.set('coverage', '1');
+        return `${base}/${layer}/${timestamp}/${forecastSeconds}/${z}/${x}/${y}?${params}`;
+      }
+      case 'clouds':
+        // No query parameters supported for clouds
+        return `${base}/clouds/${timestamp}/${z}/${x}/${y}`;
+      case 'radars': {
+        const rainbowColor = mapColorToProvider(color, 'rainbow');
+        const params = new URLSearchParams({ color: rainbowColor });
+        if (coverage) params.set('coverage', '1');
+        if (usePrecipType) params.set('use_precip_type', '1');
+        return `${base}/radars/${timestamp}/${z}/${x}/${y}?${params}`;
+      }
+      default:
+        throw new Error(`Unsupported Rainbow.ai layer: ${layer}`);
+    }
+  }
+  
+  async fetchTile(z, x, y, options) {
+    const { size = 256, layer = 'precip' } = options;
     const apiKey = await this.loadRainbowApiKey();
     
     return await retryWithBackoff(async () => {
-      const rainbowColor = mapColorToProvider(color, 'rainbow');
-      
       // Get a valid timestamp from Rainbow.ai
       const timestamp = await this.getLatestTimestamp();
-      
-      // Convert forecast minutes to seconds and validate range
-      const forecastSeconds = Math.min(14400, Math.max(0, forecast * 60));
-      
-      const url = `https://api.rainbow.ai/tiles/v1/precip/${timestamp}/${forecastSeconds}/${z}/${x}/${y}?color=${rainbowColor}`;
+      const url = this.buildUrl(layer, timestamp, z, x, y, options);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -548,7 +606,7 @@ function getProvider(providerName) {
 
 // Fetch tile with provider and failover
 async function fetchTileWithProvider(z, x, y, options) {
-  const { provider = 'rainviewer', api } = options;
+  const { provider = 'rainviewer', api, layer = 'precip' } = options;
   
   // Rainbow.ai requires API key
   if (provider === 'rainbow' && !api) {
@@ -559,8 +617,9 @@ async function fetchTileWithProvider(z, x, y, options) {
     const providerInstance = getProvider(provider);
     return await providerInstance.getTile(z, x, y, options);
   } catch (error) {
-    // Only fallback to RainViewer if Rainbow.ai fails
-    if (provider === 'rainbow') {
+    // Only fallback to RainViewer for precipitation layers, since RainViewer has no
+    // equivalent for clouds/radars - falling back there would silently mislabel the data.
+    if (provider === 'rainbow' && (layer === 'precip' || layer === 'precip-global')) {
       console.warn('Rainbow.ai failed, falling back to RainViewer:', error.message);
       return await rainviewerProvider.getTile(z, x, y, options);
     }
@@ -575,8 +634,8 @@ async function fetchRadarTile(z, x, y, smooth = 0, size = 256, snow = 0, color =
 
 // Generate radar tile with enhanced parameters and provider support
 async function generateRadarTile(z, x, y, options = {}) {
-    const { smooth = 0, size = 256, snow = 0, color = 2, provider = 'rainviewer', api, forecast = 0 } = options;
-    const cacheKey = `radar-${provider}-${z}-${x}-${y}-${smooth}-${size}-${snow}-${color}-${forecast}`;
+    const { smooth = 0, size = 256, snow = 0, color = 2, provider = 'rainviewer', api, forecast = 0, layer = 'precip', coverage = 0, usePrecipType = 0 } = options;
+    const cacheKey = `radar-${provider}-${layer}-${z}-${x}-${y}-${smooth}-${size}-${snow}-${color}-${forecast}-${coverage}-${usePrecipType}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
@@ -584,8 +643,9 @@ async function generateRadarTile(z, x, y, options = {}) {
         let buffer = await fetchTileWithProvider(z, x, y, options);
         
         // Apply MetService color mapping if using dBZ color scheme (0)
-        if (color === 0) {
-            console.log(`Applying MetService color mapping for tile ${z}/${x}/${y} (provider: ${provider})`);
+        // Not applicable to 'clouds', which has no color palette concept
+        if (color === 0 && layer !== 'clouds') {
+            console.log(`Applying MetService color mapping for tile ${z}/${x}/${y} (provider: ${provider}, layer: ${layer})`);
             buffer = await applyMetServiceColors(buffer);
         }
         
@@ -635,16 +695,28 @@ app.get('/weather-radar/health', async (req, res) => {
             supported_parameters: {
                 provider: ['rainviewer', 'rainbow'],
                 provider_default: 'rainviewer',
+                layer: RAINBOW_LAYERS,
+                layer_default: 'precip',
+                layer_provider: 'rainbow',
+                layer_note: 'layer is only applicable to provider=rainbow; rainviewer always serves precipitation radar. clouds/radars max native zoom is 7 (upscaled to 9); precip/precip-global support native zoom up to 12.',
                 size: [256, 512],
                 smooth: [0, 1],
+                smooth_note: 'rainviewer only',
                 snow: [0, 1],
+                snow_note: 'rainviewer only',
                 color: [0, 2],
-                color_note: 'RainViewer only supports color=2 (Universal Blue); other values (1,3-8,10) only apply to Rainbow.ai provider',
+                color_note: 'RainViewer only supports color=2 (Universal Blue); other values (1,3-8,10) only apply to Rainbow.ai provider. Not applicable to layer=clouds.',
                 color_default: 2,
+                coverage: [0, 1],
+                coverage_default: 0,
+                coverage_note: 'Rainbow.ai only; applies to layer=precip, precip-global, radars. Not applicable to layer=clouds.',
+                use_precip_type: [0, 1],
+                use_precip_type_default: 0,
+                use_precip_type_note: 'Rainbow.ai only; applies to layer=radars only',
                 forecast: [0, 240],
                 forecast_default: 0,
-                forecast_provider: 'rainbow',
-                metservice_mapping: 'Applied automatically for color=0',
+                forecast_note: 'Rainbow.ai only; applies to layer=precip, precip-global only',
+                metservice_mapping: 'Applied automatically for color=0 (not applicable to layer=clouds)',
                 rainbow_native: 'Use color=10 for Rainbow.ai native color=0 scheme',
                 api_key_parameter: 'api'
             }
@@ -668,8 +740,11 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
     const provider = req.query.provider || 'rainviewer';
     const apiKey = req.query.api || req.query.key; // Support both 'api' and 'key' parameters
     const forecast = parseInt(req.query.forecast) || 0;
+    const layer = req.query.layer || 'precip';
+    const coverage = parseInt(req.query.coverage) || 0;
+    const usePrecipType = parseInt(req.query.use_precip_type) || 0;
     
-    console.log(`Request: ${z}/${x}/${y}.png?provider=${provider}&color=${color}&size=${size}&smooth=${smooth}&snow=${snow}&forecast=${forecast}`);
+    console.log(`Request: ${z}/${x}/${y}.png?provider=${provider}&layer=${layer}&color=${color}&size=${size}&smooth=${smooth}&snow=${snow}&forecast=${forecast}&coverage=${coverage}&use_precip_type=${usePrecipType}`);
     
     // Rainbow.ai requires API key
     if (provider === 'rainbow' && !apiKey) {
@@ -684,6 +759,22 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
         return res.status(400).json({
             error: 'Invalid parameter',
             message: 'provider parameter must be "rainviewer" or "rainbow"'
+        });
+    }
+    
+    // Validate layer
+    if (!RAINBOW_LAYERS.includes(layer)) {
+        return res.status(400).json({
+            error: 'Invalid parameter',
+            message: `layer parameter must be one of: ${RAINBOW_LAYERS.join(', ')}`
+        });
+    }
+    
+    // layer is a Rainbow.ai-only concept; RainViewer has no clouds/radars equivalent
+    if (layer !== 'precip' && provider !== 'rainbow') {
+        return res.status(400).json({
+            error: 'Invalid parameter',
+            message: `layer=${layer} is only supported with provider=rainbow`
         });
     }
     
@@ -772,8 +863,54 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
         });
     }
     
+    // Forecast is only meaningful for precip/precip-global; clouds/radars are current-observation only
+    if (forecast > 0 && layer !== 'precip' && layer !== 'precip-global') {
+        return res.status(400).json({
+            error: 'Invalid parameter',
+            message: 'forecast parameter is only supported with layer=precip or layer=precip-global'
+        });
+    }
+    
+    // clouds has no color palette concept
+    if (layer === 'clouds' && req.query.color !== undefined) {
+        return res.status(400).json({
+            error: 'Invalid parameter',
+            message: 'color parameter is not supported with layer=clouds'
+        });
+    }
+    
+    if (coverage < 0 || coverage > 1) {
+        return res.status(400).json({
+            error: 'Invalid parameter',
+            message: 'coverage parameter must be 0 or 1'
+        });
+    }
+    
+    // coverage is not supported for clouds
+    if (coverage > 0 && layer === 'clouds') {
+        return res.status(400).json({
+            error: 'Invalid parameter',
+            message: 'coverage parameter is not supported with layer=clouds'
+        });
+    }
+    
+    if (usePrecipType < 0 || usePrecipType > 1) {
+        return res.status(400).json({
+            error: 'Invalid parameter',
+            message: 'use_precip_type parameter must be 0 or 1'
+        });
+    }
+    
+    // use_precip_type only applies to radars
+    if (usePrecipType > 0 && layer !== 'radars') {
+        return res.status(400).json({
+            error: 'Invalid parameter',
+            message: 'use_precip_type parameter is only supported with layer=radars'
+        });
+    }
+    
     try {
-        const options = { smooth, size, snow, color, provider, api: apiKey, forecast };
+        const options = { smooth, size, snow, color, provider, api: apiKey, forecast, layer, coverage, usePrecipType };
         const tileBuffer = await generateRadarTile(zoom, tileX, tileY, options);
         
         const attribution = provider === 'rainbow' 
@@ -785,7 +922,8 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
             'Cache-Control': 'public, max-age=600',
             'Access-Control-Allow-Origin': '*',
             'Attribution': attribution,
-            'X-Weather-Provider': provider
+            'X-Weather-Provider': provider,
+            'X-Weather-Layer': layer
         });
         
         res.send(tileBuffer);
@@ -818,7 +956,8 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Weather radar proxy server running on port ${PORT}`);
-    console.log(`Max zoom: ${MAX_ZOOM_LEVEL}, RainViewer max native zoom: ${RAINVIEWER_MAX_ZOOM} (z${RAINVIEWER_MAX_ZOOM+1}-${MAX_ZOOM_LEVEL} upscaled), Rate limit: ${RATE_LIMIT_PER_MINUTE}/min`);
+    console.log(`Max zoom: ${MAX_ZOOM_LEVEL}, RainViewer max native zoom: ${RAINVIEWER_MAX_ZOOM} (z${RAINVIEWER_MAX_ZOOM+1}-${MAX_ZOOM_LEVEL} upscaled), Rainbow clouds/radars max native zoom: ${RAINBOW_LAYER_MAX_ZOOM}, Rate limit: ${RATE_LIMIT_PER_MINUTE}/min`);
     console.log(`Providers: RainViewer (public), Rainbow.ai (API key required)`);
-    console.log(`Supports: ?provider=rainviewer|rainbow, ?size=256|512, ?smooth=0|1, ?snow=0|1, ?color=0-8, ?forecast=0-240`);
+    console.log(`Rainbow.ai layers: ${RAINBOW_LAYERS.join(', ')}`);
+    console.log(`Supports: ?provider=rainviewer|rainbow, ?layer=precip|precip-global|clouds|radars, ?size=256|512, ?smooth=0|1, ?snow=0|1, ?color=0-8, ?forecast=0-240, ?coverage=0|1, ?use_precip_type=0|1`);
 });
