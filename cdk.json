@@ -39,7 +39,7 @@
           "cpu": 256,
           "memory": 512,
           "priority": 1,
-          "imageTag": "v1.2.3"
+          "imageTag": "v1.3.0"
         },
         "ais-proxy": {
           "enabled": true,
@@ -150,7 +150,7 @@
           "cpu": 512,
           "memory": 1024,
           "priority": 1,
-          "imageTag": "v1.2.3"
+          "imageTag": "v1.3.0"
         },
         "ais-proxy": {
           "enabled": true,
