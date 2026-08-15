@@ -15,7 +15,7 @@ jobs:
     environment: demo
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: Setup CDK Environment
         uses: ./.github/actions/setup-cdk
@@ -110,7 +110,7 @@ jobs:
     if: vars.PROD_DEPLOYED == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check if tileserver-gl is enabled
         id: check

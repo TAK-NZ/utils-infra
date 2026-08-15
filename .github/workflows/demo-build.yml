@@ -42,7 +42,7 @@ jobs:
       image-tags-json: ${{ steps.build.outputs.image-tags-json }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: Setup CDK Environment
         uses: ./.github/actions/setup-cdk
