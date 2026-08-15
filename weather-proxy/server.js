@@ -201,111 +201,6 @@ async function getLatestPath() {
     }
 }
 
-// MetService dBZ color mapping based on actual MetService scale
-const METSERVICE_DBZ_COLORS = [
-    // 0-20 dBZ: Light rain - 3 shades of yellow
-    [251, 255, 0],   // Bright yellow (0-7 dBZ)
-    [253, 244, 0],   // Golden yellow (7-13 dBZ)
-    [254, 224, 0],   // Orange-yellow (13-20 dBZ)
-    
-    // 20-40 dBZ: Moderate rain - blue to turquoise
-    [79, 120, 255],  // Blue (20-30 dBZ)
-    [0, 191, 255],   // Turquoise (30-40 dBZ)
-    
-    // 40-45 dBZ: Heavy rain - 2 shades of red
-    [255, 72, 0],    // Bright red (40-42.5 dBZ)
-    [229, 56, 0],    // Dark red (42.5-45 dBZ)
-    
-    // 45-50 dBZ: Very heavy rain - 2 shades of purple
-    [194, 55, 227],  // Purple (45-47.5 dBZ)
-    [111, 7, 158],   // Dark purple (47.5-50 dBZ)
-    
-    // 50-55 dBZ: Extreme - white
-    [255, 255, 255], // White (50-55 dBZ)
-    
-    // 55-60 dBZ: Hail - 2 shades of green
-    [105, 253, 0],   // Bright green (55-57.5 dBZ)
-    [57, 178, 0],    // Dark green (57.5-60 dBZ)
-    
-    // >60 dBZ: Severe hail - purple
-    [255, 63, 255]   // Bright magenta (>60 dBZ)
-];
-
-// Convert RainViewer pixel value to actual dBZ
-// RainViewer spec: pixel 1 = -31 dBZ, pixel 127 = 95 dBZ
-// Formula: dBZ = pixel_value - 32
-function rainviewerToDbz(pixelValue) {
-    // Handle snow mask if present (bit 7 set)
-    const intensity = pixelValue & 127; // Remove snow bit
-    return intensity - 32; // Convert to dBZ
-}
-
-// Get MetService color for dBZ value
-function getMetServiceColor(dbz) {
-    // Handle negative dBZ (no precipitation)
-    if (dbz < 0) return [0, 0, 0, 0]; // Transparent
-    
-    if (dbz < 7) return METSERVICE_DBZ_COLORS[0];        // 0-7: Bright yellow
-    if (dbz < 13) return METSERVICE_DBZ_COLORS[1];       // 7-13: Golden yellow
-    if (dbz < 20) return METSERVICE_DBZ_COLORS[2];       // 13-20: Orange-yellow
-    if (dbz < 30) return METSERVICE_DBZ_COLORS[3];       // 20-30: Blue
-    if (dbz < 40) return METSERVICE_DBZ_COLORS[4];       // 30-40: Turquoise
-    if (dbz < 42.5) return METSERVICE_DBZ_COLORS[5];     // 40-42.5: Bright red
-    if (dbz < 45) return METSERVICE_DBZ_COLORS[6];       // 42.5-45: Dark red
-    if (dbz < 47.5) return METSERVICE_DBZ_COLORS[7];     // 45-47.5: Purple
-    if (dbz < 50) return METSERVICE_DBZ_COLORS[8];       // 47.5-50: Dark purple
-    if (dbz < 55) return METSERVICE_DBZ_COLORS[9];       // 50-55: White
-    if (dbz < 57.5) return METSERVICE_DBZ_COLORS[10];    // 55-57.5: Bright green
-    if (dbz < 60) return METSERVICE_DBZ_COLORS[11];      // 57.5-60: Dark green
-    return METSERVICE_DBZ_COLORS[12];                    // >60: Bright magenta
-}
-
-// Apply MetService color mapping to dBZ tile
-async function applyMetServiceColors(buffer) {
-    try {
-        const image = sharp(buffer);
-        const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
-        
-        // Create new buffer for RGBA output
-        const newData = Buffer.alloc(info.width * info.height * 4);
-        
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
-            
-            // If pixel is transparent, keep it transparent
-            if (a === 0 || r === 0) {
-                newData[i] = 0;
-                newData[i + 1] = 0;
-                newData[i + 2] = 0;
-                newData[i + 3] = 0;
-            } else {
-                // Convert RainViewer intensity to dBZ and get MetService color
-                const dbz = rainviewerToDbz(r);
-                const color = getMetServiceColor(dbz);
-                
-                newData[i] = color[0];     // R
-                newData[i + 1] = color[1]; // G
-                newData[i + 2] = color[2]; // B
-                newData[i + 3] = a;        // A (preserve alpha)
-            }
-        }
-        
-        return await sharp(newData, {
-            raw: {
-                width: info.width,
-                height: info.height,
-                channels: 4
-            }
-        }).png().toBuffer();
-    } catch (error) {
-        console.error('Error applying MetService colors:', error.message);
-        return buffer; // Return original on error
-    }
-}
-
 // Generic tile upscaling: derive a target-zoom tile by fetching its native-zoom ancestor
 // (the closest zoom level the upstream provider actually supports), then cropping out
 // the quadrant that corresponds to the requested tile and resizing it back up.
@@ -347,8 +242,6 @@ class WeatherProvider {
 // RainViewer provider implementation
 class RainViewerProvider extends WeatherProvider {
   async getTile(z, x, y, options) {
-    const { smooth = 0, size = 256, snow = 0, color = 2 } = options;
-    
     // Upscale from z=7 ancestor for zoom levels 8-9
     if (z > RAINVIEWER_MAX_ZOOM) {
       return await this.getUpscaledTile(z, x, y, options);
@@ -367,15 +260,15 @@ class RainViewerProvider extends WeatherProvider {
   }
   
   async fetchTile(z, x, y, options) {
-    const { smooth = 0, size = 256, snow = 0, color = 2 } = options;
+    const { smooth = 0, size = 256, snow = 0 } = options;
     
     return await retryWithBackoff(async () => {
       // Fetch the new path hash instead of the timestamp
       const path = await this.getLatestPath();
-      const rainviewerColor = mapColorToProvider(color, 'rainviewer');
       
-      // The path variable already includes '/v2/radar/[hash]'
-      const url = `https://tilecache.rainviewer.com${path}/${size}/${z}/${x}/${y}/${rainviewerColor}/${smooth}_${snow}.png`;
+      // RainViewer only supports a single color scheme (Universal Blue) as of 2025;
+      // the `color` param is a Rainbow.ai-only concept and has no effect here.
+      const url = `https://tilecache.rainviewer.com${path}/${size}/${z}/${x}/${y}/2/${smooth}_${snow}.png`;
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -417,30 +310,11 @@ class RainViewerProvider extends WeatherProvider {
   }
 }
 
-// Provider-aware color mapping
-// Maps our unified color scheme to provider-specific values
-function mapColorToProvider(color, provider) {
-  if (provider === 'rainbow') {
-    // Rainbow.ai color mapping
-    const rainbowMap = {
-      0: 'dbz_u8',    // MetService colors (raw dBZ)
-      1: '5',         // Original -> RainViewer (closest match)
-      2: '8',         // Universal Blue -> RainViewer Universal Blue
-      3: '7',         // TITAN -> Titan
-      4: '1',         // TWC -> TWC (Rainbow's primary TWC)
-      5: '3',         // Meteored -> Meteored
-      6: '4',         // NEXRAD -> Nexrad
-      7: '6',         // RAINBOW @ SELEX-SI -> Selex
-      8: '2',         // Dark Sky -> Dark Sky
-      10: '0'         // Rainbow.ai native -> Rainbow
-    };
-    return rainbowMap[color] || '8'; // Default to Universal Blue
-  } else {
-    // RainViewer now only supports color scheme 2 (Universal Blue)
-    // All non-MetService colors map to 2; color=0 is handled separately via applyMetServiceColors
-    return '2';
-  }
-}
+// Rainbow.ai's own tile color palette codes (https://doc.rainbow.ai/tile_colors/).
+// `color` is a direct pass-through of these values for provider=rainbow - no translation
+// layer. RainViewer ignores `color` entirely; it only renders Universal Blue as of 2025.
+const RAINBOW_COLORS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'dbz_u8'];
+const RAINBOW_COLOR_DEFAULT = '0'; // Rainbow's own default palette
 
 // Rainbow.ai provider implementation
 class RainbowProvider extends WeatherProvider {
@@ -505,15 +379,14 @@ class RainbowProvider extends WeatherProvider {
   // Build the Rainbow.ai tile URL for a given layer. Each layer has a distinct path shape
   // and its own subset of supported query parameters.
   buildUrl(layer, timestamp, z, x, y, options) {
-    const { color = 2, forecast = 0, coverage = 0, usePrecipType = 0 } = options;
+    const { color = RAINBOW_COLOR_DEFAULT, forecast = 0, coverage = 0, usePrecipType = 0 } = options;
     const base = `https://api.rainbow.ai/tiles/v1`;
     
     switch (layer) {
       case 'precip':
       case 'precip-global': {
         const forecastSeconds = Math.min(14400, Math.max(0, forecast * 60));
-        const rainbowColor = mapColorToProvider(color, 'rainbow');
-        const params = new URLSearchParams({ color: rainbowColor });
+        const params = new URLSearchParams({ color: String(color) });
         if (coverage) params.set('coverage', '1');
         return `${base}/${layer}/${timestamp}/${forecastSeconds}/${z}/${x}/${y}?${params}`;
       }
@@ -521,8 +394,7 @@ class RainbowProvider extends WeatherProvider {
         // No query parameters supported for clouds
         return `${base}/clouds/${timestamp}/${z}/${x}/${y}`;
       case 'radars': {
-        const rainbowColor = mapColorToProvider(color, 'rainbow');
-        const params = new URLSearchParams({ color: rainbowColor });
+        const params = new URLSearchParams({ color: String(color) });
         if (coverage) params.set('coverage', '1');
         if (usePrecipType) params.set('use_precip_type', '1');
         return `${base}/radars/${timestamp}/${z}/${x}/${y}?${params}`;
@@ -628,27 +500,19 @@ async function fetchTileWithProvider(z, x, y, options) {
 }
 
 // Legacy function for backward compatibility
-async function fetchRadarTile(z, x, y, smooth = 0, size = 256, snow = 0, color = 2) {
-  return await rainviewerProvider.getTile(z, x, y, { smooth, size, snow, color });
+async function fetchRadarTile(z, x, y, smooth = 0, size = 256, snow = 0) {
+  return await rainviewerProvider.getTile(z, x, y, { smooth, size, snow });
 }
 
 // Generate radar tile with enhanced parameters and provider support
 async function generateRadarTile(z, x, y, options = {}) {
-    const { smooth = 0, size = 256, snow = 0, color = 2, provider = 'rainviewer', api, forecast = 0, layer = 'precip', coverage = 0, usePrecipType = 0 } = options;
+    const { smooth = 0, size = 256, snow = 0, color = RAINBOW_COLOR_DEFAULT, provider = 'rainviewer', api, forecast = 0, layer = 'precip', coverage = 0, usePrecipType = 0 } = options;
     const cacheKey = `radar-${provider}-${layer}-${z}-${x}-${y}-${smooth}-${size}-${snow}-${color}-${forecast}-${coverage}-${usePrecipType}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
     try {
-        let buffer = await fetchTileWithProvider(z, x, y, options);
-        
-        // Apply MetService color mapping if using dBZ color scheme (0)
-        // Not applicable to 'clouds', which has no color palette concept
-        if (color === 0 && layer !== 'clouds') {
-            console.log(`Applying MetService color mapping for tile ${z}/${x}/${y} (provider: ${provider}, layer: ${layer})`);
-            buffer = await applyMetServiceColors(buffer);
-        }
-        
+        const buffer = await fetchTileWithProvider(z, x, y, options);
         cache.set(cacheKey, buffer);
         return buffer;
         
@@ -704,9 +568,9 @@ app.get('/weather-radar/health', async (req, res) => {
                 smooth_note: 'rainviewer only',
                 snow: [0, 1],
                 snow_note: 'rainviewer only',
-                color: [0, 2],
-                color_note: 'RainViewer only supports color=2 (Universal Blue); other values (1,3-8,10) only apply to Rainbow.ai provider. Not applicable to layer=clouds.',
-                color_default: 2,
+                color: RAINBOW_COLORS,
+                color_note: 'Rainbow.ai only; see https://doc.rainbow.ai/tile_colors/ for a preview of each palette. Ignored by RainViewer, which only renders Universal Blue. Not applicable to layer=clouds.',
+                color_default: RAINBOW_COLOR_DEFAULT,
                 coverage: [0, 1],
                 coverage_default: 0,
                 coverage_note: 'Rainbow.ai only; applies to layer=precip, precip-global, radars. Not applicable to layer=clouds.',
@@ -716,8 +580,6 @@ app.get('/weather-radar/health', async (req, res) => {
                 forecast: [0, 240],
                 forecast_default: 0,
                 forecast_note: 'Rainbow.ai only; applies to layer=precip, precip-global only',
-                metservice_mapping: 'Applied automatically for color=0 (not applicable to layer=clouds)',
-                rainbow_native: 'Use color=10 for Rainbow.ai native color=0 scheme',
                 api_key_parameter: 'api'
             }
         });
@@ -736,7 +598,7 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
     const smooth = parseInt(req.query.smooth) || 0;
     const size = parseInt(req.query.size) || 256;
     const snow = parseInt(req.query.snow) || 0;
-    const color = req.query.color !== undefined ? parseInt(req.query.color) : 2;
+    const color = req.query.color !== undefined ? req.query.color : RAINBOW_COLOR_DEFAULT;
     const provider = req.query.provider || 'rainviewer';
     const apiKey = req.query.api || req.query.key; // Support both 'api' and 'key' parameters
     const forecast = parseInt(req.query.forecast) || 0;
@@ -840,10 +702,10 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
         });
     }
     
-    if (color < 0 || color > 10) {
+    if (!RAINBOW_COLORS.includes(String(color))) {
         return res.status(400).json({
             error: 'Invalid parameter',
-            message: 'color parameter must be 0-8, 10 (0=MetService, 1-8=RainViewer schemes, 10=Rainbow.ai native)'
+            message: `color parameter must be one of: ${RAINBOW_COLORS.join(', ')} (Rainbow.ai palette codes, see https://doc.rainbow.ai/tile_colors/). Ignored by RainViewer.`
         });
     }
     
@@ -959,5 +821,5 @@ app.listen(PORT, () => {
     console.log(`Max zoom: ${MAX_ZOOM_LEVEL}, RainViewer max native zoom: ${RAINVIEWER_MAX_ZOOM} (z${RAINVIEWER_MAX_ZOOM+1}-${MAX_ZOOM_LEVEL} upscaled), Rainbow clouds/radars max native zoom: ${RAINBOW_LAYER_MAX_ZOOM}, Rate limit: ${RATE_LIMIT_PER_MINUTE}/min`);
     console.log(`Providers: RainViewer (public), Rainbow.ai (API key required)`);
     console.log(`Rainbow.ai layers: ${RAINBOW_LAYERS.join(', ')}`);
-    console.log(`Supports: ?provider=rainviewer|rainbow, ?layer=precip|precip-global|clouds|radars, ?size=256|512, ?smooth=0|1, ?snow=0|1, ?color=0-8, ?forecast=0-240, ?coverage=0|1, ?use_precip_type=0|1`);
+    console.log(`Supports: ?provider=rainviewer|rainbow, ?layer=precip|precip-global|clouds|radars, ?size=256|512, ?smooth=0|1, ?snow=0|1, ?color=${RAINBOW_COLORS.join('|')}, ?forecast=0-240, ?coverage=0|1, ?use_precip_type=0|1`);
 });
