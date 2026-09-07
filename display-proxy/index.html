@@ -1150,11 +1150,147 @@ function buildHighlightItems() {
       var latB = getHighlightLat(b);
       return latB - latA;
     });
-    eligible.forEach(function(f) {
-      items.push({ feature: f, layerCfg: hlCfg, sourceCfg: srcCfg });
-    });
+
+    // Optional proximity aggregation: collapse clusters of nearby features
+    // (e.g. many flooding forecasts for one region) into a single summary
+    // card so the cycle doesn't grind through 8+ near-identical items.
+    // Enabled per-layer via `aggregate: true`. Clusters with at least
+    // `group_min` (default 3) members become one synthetic item; smaller
+    // clusters and lone features pass through as normal individual cards.
+    if (hlCfg.aggregate) {
+      var clusters = clusterFeatures(eligible, hlCfg.group_radius_km || 25);
+      clusters.forEach(function(cluster) {
+        if (cluster.length >= (hlCfg.group_min || 3)) {
+          items.push(makeAggregateItem(cluster, hlCfg, srcCfg));
+        } else {
+          cluster.forEach(function(f) {
+            items.push({ feature: f, layerCfg: hlCfg, sourceCfg: srcCfg });
+          });
+        }
+      });
+    } else {
+      eligible.forEach(function(f) {
+        items.push({ feature: f, layerCfg: hlCfg, sourceCfg: srcCfg });
+      });
+    }
   });
   return items;
+}
+
+// ---------------------------------------------------------------------------
+// Great-circle distance between two [lng, lat] points, in kilometres.
+// ---------------------------------------------------------------------------
+function haversineKm(a, b) {
+  var R = 6371;
+  var toRad = function(d) { return d * Math.PI / 180; };
+  var dLat = toRad(b[1] - a[1]);
+  var dLng = toRad(b[0] - a[0]);
+  var lat1 = toRad(a[1]);
+  var lat2 = toRad(b[1]);
+  var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+// Representative [lng, lat] for a feature (Point coords, or line/poly midpoint).
+function getFeaturePoint(f) {
+  if (!f.geometry) return [0, 0];
+  if (f.geometry.type === 'Point') return [f.geometry.coordinates[0], f.geometry.coordinates[1]];
+  if (f.geometry.type === 'LineString') return getLineMidpoint(f.geometry.coordinates);
+  if (f.geometry.type === 'MultiLineString') return getLineMidpoint(f.geometry.coordinates[0] || []);
+  return [f.geometry.coordinates[0] || 0, f.geometry.coordinates[1] || 0];
+}
+
+// ---------------------------------------------------------------------------
+// Single-link proximity clustering: features within `radiusKm` of any member
+// of a cluster join that cluster. Order-independent enough for our purposes
+// (small feature counts, coarse radius). Returns an array of clusters, each an
+// array of features.
+// ---------------------------------------------------------------------------
+function clusterFeatures(features, radiusKm) {
+  var clusters = [];
+  features.forEach(function(f) {
+    var pt = getFeaturePoint(f);
+    var target = null;
+    for (var i = 0; i < clusters.length; i++) {
+      var near = clusters[i].some(function(m) {
+        return haversineKm(pt, getFeaturePoint(m)) <= radiusKm;
+      });
+      if (near) { target = clusters[i]; break; }
+    }
+    if (target) target.push(f);
+    else clusters.push([f]);
+  });
+  return clusters;
+}
+
+// ---------------------------------------------------------------------------
+// Build one synthetic "summary" highlight item from a cluster of features.
+// The synthetic feature carries a centroid Point (for the pulse ring / flyTo)
+// and a synthesized _metadata block (count, latest issued time, area names) so
+// the aggregate template renders. `clusterBounds` lets zoom mode frame the
+// whole group. A per-item `title`/`template` override the layer defaults.
+// ---------------------------------------------------------------------------
+function makeAggregateItem(cluster, hlCfg, srcCfg) {
+  // Centroid + bounds
+  var sumLng = 0, sumLat = 0;
+  var minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  cluster.forEach(function(f) {
+    var p = getFeaturePoint(f);
+    sumLng += p[0]; sumLat += p[1];
+    if (p[0] < minLng) minLng = p[0];
+    if (p[0] > maxLng) maxLng = p[0];
+    if (p[1] < minLat) minLat = p[1];
+    if (p[1] > maxLat) maxLat = p[1];
+  });
+  var centroid = [sumLng / cluster.length, sumLat / cluster.length];
+
+  // Latest issued time across the cluster (used by the summary template).
+  var latest = null;
+  var areaNames = {};
+  cluster.forEach(function(f) {
+    var meta = (f.properties && f.properties._metadata) || {};
+    var t = parseTimestamp(meta.issuedTimeUTC || f.properties.time || meta.issuedTime);
+    if (t && (!latest || t.getTime() > latest.getTime())) latest = t;
+    var name = meta.areaDesc || meta.region || meta.locality || f.properties.callsign;
+    if (name) areaNames[name] = true;
+  });
+
+  var names = Object.keys(areaNames);
+  var label = (srcCfg && srcCfg.label) || hlCfg.layer;
+
+  var synthetic = {
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: centroid },
+    properties: {
+      callsign: label + ' (' + cluster.length + ')',
+      _metadata: {
+        count: cluster.length,
+        areaNames: names.join(', '),
+        latestIssuedUTC: latest ? latest.toISOString() : null,
+      },
+    },
+  };
+
+  var defaultTemplate = '{{metadata.count}} active in this area' +
+    '\n{{metadata.areaNames}}' +
+    '\nLatest: {{metadata.latestIssuedUTC|date}} ({{metadata.latestIssuedUTC|ago}})';
+
+  return {
+    feature: synthetic,
+    // Shallow-clone the layer config so per-item template/title overrides
+    // don't leak into other (non-aggregate) items sharing the same hlCfg.
+    layerCfg: {
+      layer: hlCfg.layer,
+      priority: hlCfg.priority,
+      dwell: hlCfg.dwell,
+      zoom: hlCfg.zoom,
+      template: hlCfg.aggregate_template || defaultTemplate,
+    },
+    sourceCfg: srcCfg,
+    title: label + ' — ' + cluster.length + ' nearby',
+    clusterBounds: [[minLng, minLat], [maxLng, maxLat]],
+  };
 }
 
 // Get representative latitude for sorting (midpoint for lines)
@@ -1336,8 +1472,9 @@ function renderHighlightCard(item) {
     iconEl.style.display = 'none';
   }
 
-  // Title — layer label
-  document.getElementById('highlight-title').textContent = item.sourceCfg ? item.sourceCfg.label : item.layerCfg.layer;
+  // Title — per-item override (aggregate summary), else layer label
+  document.getElementById('highlight-title').textContent =
+    item.title || (item.sourceCfg ? item.sourceCfg.label : item.layerCfg.layer);
 
   // Body — rendered template
   var body = renderTemplate(item.layerCfg.template || '{{callsign}}', item.feature);
@@ -1399,7 +1536,19 @@ function highlightNext() {
       flyDuration = Math.max(1500, Math.min(5000, 1500 + distDeg * 450));
     }
 
-    if (item.layerCfg.fit_polygon) {
+    if (item.clusterBounds) {
+      // Aggregate summary card — frame the whole cluster. If all members sit
+      // at (nearly) the same spot, fitBounds would over-zoom, so fall back to
+      // a plain flyTo at the layer's zoom.
+      var cb = item.clusterBounds;
+      var spanLng = cb[1][0] - cb[0][0];
+      var spanLat = cb[1][1] - cb[0][1];
+      if (spanLng < 0.02 && spanLat < 0.02 && targetCoords) {
+        window.map.flyTo({ center: [targetCoords[0], targetCoords[1]], zoom: item.layerCfg.zoom || 9, duration: flyDuration, essential: true });
+      } else {
+        window.map.fitBounds(cb, { padding: 100, duration: flyDuration, essential: true, maxZoom: 12 });
+      }
+    } else if (item.layerCfg.fit_polygon) {
       var polygon = findAssociatedPolygon(item.feature, item.layerCfg.layer);
       if (polygon && polygon.geometry && polygon.geometry.coordinates) {
         var bounds = getPolygonBounds(polygon.geometry.coordinates);
