@@ -29,14 +29,14 @@ Upload to CloudTAK
         --upload \\
         --url https://map.demo.tak.nz \\
         --token etl.<jwt> \\
-        --channels "UTL - Utilities"
+        --channels "XtraTools - Data Packages"
 
     # Upload already-created ZIPs (skip package creation)
     python3 create_tak_package.py \\
         --input-dir flooding/packages --upload-only \\
         --url https://map.demo.tak.nz \\
         --token etl.<jwt> \\
-        --channels "UTL - Utilities"
+        --channels "XtraTools - Data Packages"
 
 Upload notes
 ------------
@@ -64,7 +64,9 @@ Arguments
     --url URL               CloudTAK base URL, e.g. https://map.demo.tak.nz
     --token TOKEN           API token (etl.<jwt>).
     --keywords KW [KW ...]  Tags to apply to each uploaded package.
-    --channels CH [CH ...]  TAK channels/groups to assign (e.g. "UTL - Utilities").
+    --channels CH [CH ...]  TAK channels/groups to assign (e.g. "XtraTools - Data Packages").
+    --replace               Delete any existing package with the same exact name
+                            before uploading (idempotent re-runs). Default off.
 
 Requirements
 ------------
@@ -153,13 +155,60 @@ def create_package(files: list[Path], output_zip: Path,
 # CloudTAK uploader
 # ---------------------------------------------------------------------------
 
+def delete_existing_by_name(base_url: str, token: str, package_name: str) -> int:
+    """
+    Delete every existing package whose display name EXACTLY equals
+    `package_name`. Used by --replace to make re-runs idempotent (CloudTAK does
+    not de-duplicate by name, and package names are immutable, so replacing a
+    package means delete + re-upload).
+
+    Matches on the exact name only — never a prefix — so it can't remove
+    unrelated packages. Returns the number deleted.
+    """
+    import requests
+
+    base_url = base_url.rstrip("/")
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        resp = requests.get(f"{base_url}/api/marti/package",
+                            headers=headers, params={"limit": 1000}, timeout=30)
+        resp.ok or resp.raise_for_status()
+        items = resp.json().get("items", [])
+    except Exception as e:
+        print(f"    WARNING: could not list packages for --replace ({e}); skipping delete.",
+              file=sys.stderr)
+        return 0
+
+    victims = [it for it in items if it.get("name") == package_name]
+    deleted = 0
+    for it in victims:
+        uid = it.get("uid") or it.get("hash")
+        if not uid:
+            continue
+        try:
+            d = requests.delete(f"{base_url}/api/marti/package/{uid}",
+                                headers=headers, timeout=30)
+            if d.ok:
+                print(f"    Replaced: deleted existing '{package_name}' ({uid[:12]}…)")
+                deleted += 1
+            else:
+                print(f"    WARNING: delete failed for {uid[:12]}… HTTP {d.status_code}",
+                      file=sys.stderr)
+        except Exception as e:
+            print(f"    WARNING: delete errored for {uid[:12]}… ({e})", file=sys.stderr)
+    return deleted
+
+
 def upload_package(zip_path: Path, package_name: str, base_url: str,
                    token: str, keywords: list[str],
-                   channels: list[str]) -> str | None:
+                   channels: list[str], replace: bool = False) -> str | None:
     """
     Upload a ZIP to CloudTAK via POST /api/marti/package.
     Keywords and channels are both set as query parameters on the POST,
     matching exactly what the CloudTAK UI does.
+
+    If `replace` is True, any existing package with the same exact name is
+    deleted first (delete-first semantics), so re-running is idempotent.
 
     Returns the package UID/hash on success, or None on failure.
     """
@@ -172,6 +221,9 @@ def upload_package(zip_path: Path, package_name: str, base_url: str,
 
     base_url = base_url.rstrip("/")
     headers = {"Authorization": f"Bearer {token}"}
+
+    if replace:
+        delete_existing_by_name(base_url, token, package_name)
 
     # --- Upload with channels and keywords set as repeated query params ---
     # This matches exactly what the CloudTAK UI sends:
@@ -291,7 +343,10 @@ def main():
     parser.add_argument("--keywords", metavar="KW", nargs="+",
                         help="Tags to apply to each uploaded package.")
     parser.add_argument("--channels", metavar="CH", nargs="+",
-                        help='TAK channels to assign (e.g. "UTL - Utilities").')
+                        help='TAK channels to assign (e.g. "XtraTools - Data Packages").')
+    parser.add_argument("--replace", action="store_true",
+                        help="Before uploading, delete any existing package with the "
+                             "same exact name (makes re-runs idempotent). Default off.")
 
     args = parser.parse_args()
 
@@ -311,7 +366,7 @@ def main():
             pkg_name = args.name or zip_path.stem.replace("_", " ")
             print(f"\n  Package: {pkg_name}")
             upload_package(zip_path, pkg_name, args.url, args.token,
-                           keywords, channels)
+                           keywords, channels, replace=args.replace)
         print("\nDone.")
         return
 
@@ -349,7 +404,7 @@ def main():
 
             if upload_required(args):
                 upload_package(out_zip, pkg_name, args.url, args.token,
-                               per_file_keywords, channels)
+                               per_file_keywords, channels, replace=args.replace)
     else:
         if args.output:
             out_zip = Path(args.output)
@@ -363,7 +418,7 @@ def main():
 
         if upload_required(args):
             upload_package(out_zip, pkg_name, args.url, args.token,
-                           keywords, channels)
+                           keywords, channels, replace=args.replace)
 
     print("\nDone.")
 

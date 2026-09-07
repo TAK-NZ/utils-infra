@@ -60,7 +60,7 @@ $EDITOR data-packages/hazards/flooding/.env
 | `AWS_REGION`        | Region of the source bucket (e.g. `ap-southeast-2`).               |
 | `CLOUDTAK_URL`      | CloudTAK base URL (e.g. `https://map.demo.tak.nz`).                |
 | `CLOUDTAK_TOKEN`    | CloudTAK API token (`etl.<jwt>`). Secret — rotate if leaked.       |
-| `CLOUDTAK_CHANNELS` | TAK channel(s) to assign packages to (e.g. `UTL - Utilities`).     |
+| `CLOUDTAK_CHANNELS` | TAK channel(s) to assign packages to (e.g. `XtraTools - Data Packages`). |
 
 ---
 
@@ -115,12 +115,14 @@ A summary at the end reports regions processed, packages built, and any failures
 Each catchment map is published as its own Data Package named:
 
 ```
-Hazards - Flood - 100y Inundation - <Region> - <Map Name>
+Hazards - <Region> - Flood - <Map Name> (100yr)
 ```
 
-For example `Hazards - Flood - 100y Inundation - Nelson - Waimea`. The `<Map Name>`
+For example `Hazards - Nelson - Flood - Waimea (100yr)`. The `<Map Name>`
 is the catchment name taken from the filename (the token before `_100y`, with
 underscores turned into spaces, e.g. `North_Banks_Peninsula` → `North Banks Peninsula`).
+This follows the repo-wide package naming schema — see
+[`../../NAMING-SCHEMA.md`](../../NAMING-SCHEMA.md).
 
 Each package is tagged with the keywords `Hazards`, `Flood`, `100y Inundation`,
 `<Region>`, and `<Map Name>`, and assigned to the channel(s) in `CLOUDTAK_CHANNELS`.
@@ -165,9 +167,9 @@ python3 data-packages/hazards/flooding/create_tak_package.py \
     --upload \
     --url "$CLOUDTAK_URL" \
     --token "$CLOUDTAK_TOKEN" \
-    --channels "UTL - Utilities" \
-    --name "Hazards - Flood - 100y Inundation - <Region> - {location}" \
-    --keywords Hazards Flood "100y Inundation" "<Region>" "{location}"
+    --channels "XtraTools - Data Packages" \
+    --name "Hazards - <Region> - Flood - {location} (100yr)" \
+    --keywords Hazards "<Region>" Flood "{location}" "100y Inundation"
 ```
 
 The `{location}` placeholder is replaced per file with the catchment name.
@@ -196,10 +198,10 @@ The 16 NZ regional source archives are staged in the demo artifacts bucket under
 | Tasman | Waikato | Wellington | West Coast |
 
 Pipeline last validated end-to-end against the demo CloudTAK
-(`https://map.demo.tak.nz`, channel `UTL - Utilities`) with the **Nelson** region:
+(`https://map.demo.tak.nz`, channel `XtraTools - Data Packages`) with the **Nelson** region:
 download → extract `hmax` → convert → package → upload → cleanup all succeeded,
 and the four Nelson catchments (Nelson, Waimea, Wakapuaka, Whangamoa) appeared in
-CloudTAK named `Hazards - Flood - 100y Inundation - Nelson - <Map>` with the
+CloudTAK named `Hazards - Nelson - Flood - <Map> (100yr)` with the
 expected keywords and channel.
 
 To publish (or re-publish) all regions:
