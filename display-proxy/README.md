@@ -137,8 +137,57 @@ The `highlight` array configures a rotating feature-highlight mode. When enabled
 | `fit_polygon` | No | If `true`, fit the map to the associated polygon's bounding box instead of flying to a fixed zoom. Used for area-based features like weather warnings. |
 | `include_lines` | No | If `true`, include LineString features (using their midpoint for the highlight ring and fitBounds for navigation). Default `false`. |
 | `template` | No | Template string for the detail card body. Supports `{{field}}` and `{{metadata.field}}` placeholders with optional format modifiers. Defaults to `{{callsign}}`. |
+| `aggregate` | No | If `true`, collapse clusters of nearby features into a single summary card instead of cycling through each one. Useful for layers that can produce many near-identical events in one region (e.g. flooding forecasts). Default `false`. |
+| `group_radius_km` | No | Proximity threshold in kilometres for aggregation. Features within this distance of any cluster member join that cluster. Default `25`. Only used when `aggregate` is `true`. |
+| `group_min` | No | Minimum cluster size to collapse into a summary card. Clusters smaller than this (and lone features) still show as individual cards. Default `3`. Only used when `aggregate` is `true`. |
+| `aggregate_template` | No | Template string for the summary card body. In addition to `{{field}}`/`{{metadata.field}}`, aggregate summaries expose `{{metadata.count}}` (features in the cluster), `{{metadata.areaNames}}` (comma-joined area/region names), and `{{metadata.latestIssuedUTC}}` (most recent issued time in the cluster). Only used when `aggregate` is `true`. |
 
 Features are sorted geographically north-to-south (descending latitude) within each priority layer.
+
+When `aggregate` is enabled, nearby features are grouped by single-link proximity clustering (any feature within `group_radius_km` of a cluster member joins it). A cluster with at least `group_min` members becomes one summary card whose title is `<layer label> — <N> nearby` and whose map view frames the whole group (in `zoom` mode). Smaller clusters and isolated features continue to cycle as individual cards, so a lone forecast far from the others still gets its own card.
+
+Example — aggregate flooding forecasts within 100 km once there are 3 or more:
+
+```json
+{
+    "layer": "flooding",
+    "priority": 3,
+    "dwell": 10,
+    "zoom": 9,
+    "aggregate": true,
+    "group_radius_km": 100,
+    "group_min": 3,
+    "template": "{{callsign}}\nIssued: {{metadata.issuedTimeUTC|date}} ({{metadata.issuedTimeUTC|ago}})",
+    "aggregate_template": "{{metadata.count}} active flooding forecasts in this area\n{{metadata.areaNames}}\nLatest issued: {{metadata.latestIssuedUTC|date}} ({{metadata.latestIssuedUTC|ago}})"
+}
+```
+
+#### Volcano change badge
+
+The `volcano` layer's features are enriched by `tak-cot-proxy` with recent
+alert-level change info drawn from `volcano/state.json` (maintained by the
+SitRep Lambda — see [Volcano alert-level change tracking](#volcano-alert-level-change-tracking)).
+Three extra fields are available to the volcano template:
+
+- `{{metadata.changed_24h}}` — `true`/`false`, level changed in the last 24h
+- `{{metadata.change}}` — `up` / `down` / `none`
+- `{{metadata.changeBadge}}` — display-ready string: `↑ raised 3h ago`,
+  `↓ lowered 12h ago`, or `no change`
+
+This lets the card distinguish a fresh escalation from a long-standing level:
+
+```json
+{
+    "layer": "volcano",
+    "priority": 5,
+    "dwell": 15,
+    "zoom": 9,
+    "template": "{{metadata.volcanoTitle}} — Alert Level {{metadata.level}} ({{metadata.changeBadge}})\nAviation: {{metadata.acc}}\n{{metadata.activity}}"
+}
+```
+
+If the state file is missing (e.g. before the first SitRep run) the fields
+default to `no change` / `false` / `none`, so the template still renders.
 
 ### Template Modifiers
 
@@ -267,6 +316,42 @@ A separate scheduled Lambda (`lambda/sitrep-generator`, deployed via
 3. Sends a compact JSON context to Bedrock (Claude) with a prompt asking
    for three outputs at different levels of detail.
 4. Writes the result to `s3://<config-bucket>/sitrep/latest.json`.
+
+#### Volcano alert-level change tracking
+
+A volcano feature is a *current-state* snapshot (level, aviation colour) with
+no reliable "when did this level change" timestamp, so a long-standing level
+(e.g. White Island at Level 2 for months) would otherwise be repeated in every
+SitRep as if it were news. To avoid that, the Lambda persists the last seen
+level per volcano in `s3://<config-bucket>/volcano/state.json`:
+
+```json
+{
+  "White Island": { "level": 2, "since": "2025-11-02T09:00:00Z", "last_seen": "2026-09-07T06:00:00Z" },
+  "Ruapehu":      { "level": 1, "since": "2026-06-14T21:00:00Z", "last_seen": "2026-09-07T06:00:00Z" }
+}
+```
+
+On each run it compares the current level against the stored one:
+
+- **Level changed** — records the new level, resets `since` to now, and tags
+  the volcano as changed (`up`/`down`) for the model.
+- **Level unchanged** — keeps the stored `since`; the change is only "recent"
+  while `now - since` is within 24 hours.
+- **First time seen** — recorded as a baseline, *not* flagged as a change
+  (avoids a false "changed!" on first deploy).
+- **Dropped off the feed** — a volcano previously at Level 1+ that is now
+  absent (de-escalated to Level 0, which the `level > 0` map filter removes)
+  is reported as a one-time `down` change, then ages out of the state file.
+
+Each volcano item in the model context carries `changed_24h` (bool), `change`
+(`up`/`down`/`null`) and `level_change_since`. The prompt instructs the model
+to lead with changed volcanoes and treat steady levels as background — so a
+long-standing Level 2 no longer clutters `summary_line` / `brief_report`.
+
+The state file needs no manual setup; it is created on the first run. It is
+also read by `tak-cot-proxy` to badge the volcano card (see
+[Highlight](#highlight)).
 
 This container polls that same S3 key every 60 seconds and serves it via
 `GET /api/sitrep` (requires `?key=`, same as other data endpoints). If no

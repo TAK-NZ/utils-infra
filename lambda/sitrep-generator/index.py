@@ -34,7 +34,7 @@ import os
 import re
 import urllib.request
 import urllib.error
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 import boto3
@@ -42,7 +42,16 @@ import boto3
 CONFIG_BUCKET = os.environ.get("CONFIG_BUCKET", "")
 CONFIG_KEY = os.environ.get("CONFIG_KEY", "Utils-Display-Proxy-Config.json")
 SITREP_KEY = os.environ.get("SITREP_KEY", "sitrep/latest.json")
+# Persisted volcano alert-level history, keyed by volcano name. Lets us detect
+# whether a level changed in the last 24h instead of repeating a long-standing
+# level (e.g. White Island Level 2) every cycle. Also read by the display's
+# tak-cot-proxy to badge the volcano card. See reconcile_volcano_state().
+VOLCANO_STATE_KEY = os.environ.get("VOLCANO_STATE_KEY", "volcano/state.json")
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION") or os.environ.get("AWS_REGION", "us-west-2")
+
+# Window within which an alert-level change is considered "recent" / worth
+# calling out. Strict rolling window from the moment the change was first seen.
+VOLCANO_CHANGE_WINDOW_H = 24
 
 
 def resolve_model_id(base_model_id: str, region: str) -> str:
@@ -131,6 +140,19 @@ SEISMIC:
 VOLCANIC:
 - Only volcanoes at Level 1+ (skip Level 0)
 - Include aviation colour code
+- Each volcano item carries "changed_24h" (true/false), "change" ("up"/
+  "down"/null) and "level_change_since". Treat a long-standing level
+  (changed_24h=false) as background context, NOT a headline: mention it at
+  most once, briefly, in the full report's VOLCANIC section, and do NOT put
+  it in summary_line or brief_report. Only a volcano whose level changed in
+  the last 24h (changed_24h=true) is noteworthy — lead with it, state the
+  direction (raised/lowered) and both the new and previous level, and it may
+  appear in summary_line/brief_report if significant.
+- If an item has level 0 with change="down", the volcano was de-escalated
+  below Level 1 in the last 24h — report that de-escalation once, then it
+  drops off future reports.
+- If no volcano changed in the last 24h, do not lead any output with volcanic
+  activity; a steady Level 1/2 is not news.
 
 AVALANCHE:
 - Group by danger level, list regions
@@ -204,6 +226,164 @@ def get_config() -> dict:
     config = json.loads(obj["Body"].read(), strict=False)
     _cache["config"] = config
     return config
+
+
+# ---------------------------------------------------------------------------
+# Volcano alert-level state — persisted in S3 so we can tell a fresh change
+# from a long-standing level.
+#
+# Shape of volcano/state.json:
+# {
+#   "White Island": {"level": 2, "since": "2025-11-02T09:00:00Z",
+#                     "last_seen": "2026-09-07T06:00:00Z"},
+#   "Ruapehu":      {"level": 1, "since": "2026-06-14T...Z", "last_seen": "..."}
+# }
+# `since` is when the CURRENT level was first observed (the change moment);
+# `last_seen` is the most recent run that saw this volcano at all.
+# ---------------------------------------------------------------------------
+def read_volcano_state() -> dict:
+    s3 = boto3.client("s3")
+    try:
+        obj = s3.get_object(Bucket=CONFIG_BUCKET, Key=VOLCANO_STATE_KEY)
+        state = json.loads(obj["Body"].read(), strict=False)
+        return state if isinstance(state, dict) else {}
+    except Exception as e:
+        # First run (NoSuchKey) or unreadable — start empty. We deliberately
+        # do NOT treat a missing state file as "everything changed"; see
+        # reconcile_volcano_state() first-seen handling.
+        print(f"volcano state not read (treating as empty): {e}")
+        return {}
+
+
+def write_volcano_state(state: dict) -> None:
+    s3 = boto3.client("s3")
+    s3.put_object(
+        Bucket=CONFIG_BUCKET,
+        Key=VOLCANO_STATE_KEY,
+        Body=json.dumps(state, indent=2).encode("utf-8"),
+        ContentType="application/json",
+    )
+
+
+def reconcile_volcano_state(volcano_features: list[dict], now: datetime) -> tuple[dict, dict]:
+    """
+    Compare current volcano levels against the persisted state and return
+    (updated_state, changes_by_name).
+
+    changes_by_name maps volcano name -> {
+        "level": int,               # current level (or 0 if it dropped off)
+        "prev_level": int | None,   # previously stored level
+        "changed_24h": bool,        # level differs from stored AND within window
+        "change": "up"|"down"|None, # direction of the recent change
+        "since": ISO8601,           # when the current level was first seen
+        "disappeared": bool,        # was tracked at 1+, now absent from feed
+    }
+
+    Rules:
+    - First time we ever see a volcano: record it, seed `since = now`, but do
+      NOT flag it as a change (no prior baseline -> avoid a false positive on
+      first deploy).
+    - Level differs from stored level: it's a change; set `since = now` and
+      flag changed_24h=True with a direction.
+    - Level unchanged: keep stored `since`; changed_24h is True only if that
+      stored change is still within the rolling window.
+    - Volcano previously tracked at level >= 1 but absent from the current
+      feed (the map filters out level 0): treat as a "down" change to level 0
+      for one window, so a de-escalation is reported rather than silently
+      vanishing.
+    """
+    prev_state = read_volcano_state()
+    new_state: dict = {}
+    changes: dict = {}
+    window = timedelta(hours=VOLCANO_CHANGE_WINDOW_H)
+
+    # Map current features by volcano name.
+    current: dict[str, int] = {}
+    for f in volcano_features:
+        meta = (f.get("properties") or {}).get("metadata") or {}
+        name = meta.get("volcanoTitle") or (f.get("properties") or {}).get("callsign")
+        level = meta.get("level")
+        if not name or level is None:
+            continue
+        try:
+            current[name] = int(level)
+        except (TypeError, ValueError):
+            continue
+
+    now_iso = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def _within_window(since_iso: str) -> bool:
+        try:
+            since_dt = datetime.fromisoformat(since_iso.replace("Z", "+00:00"))
+            return (now - since_dt) <= window
+        except Exception:
+            return False
+
+    # Volcanoes present in the current feed.
+    for name, level in current.items():
+        prev = prev_state.get(name)
+        if not prev or prev.get("level") is None:
+            # First time seen — baseline, not a change.
+            since = (prev or {}).get("since") or now_iso
+            new_state[name] = {"level": level, "since": since, "last_seen": now_iso}
+            changes[name] = {
+                "level": level, "prev_level": None, "changed_24h": False,
+                "change": None, "since": since, "disappeared": False,
+            }
+            continue
+
+        prev_level = int(prev["level"])
+        if level != prev_level:
+            # Genuine change now.
+            new_state[name] = {"level": level, "since": now_iso, "last_seen": now_iso}
+            changes[name] = {
+                "level": level, "prev_level": prev_level, "changed_24h": True,
+                "change": "up" if level > prev_level else "down",
+                "since": now_iso, "disappeared": False,
+            }
+        else:
+            # Same level — carry forward `since`; recent only if within window.
+            since = prev.get("since") or now_iso
+            recent = _within_window(since)
+            new_state[name] = {"level": level, "since": since, "last_seen": now_iso}
+            changes[name] = {
+                "level": level, "prev_level": prev_level, "changed_24h": recent,
+                # Direction only meaningful while the change is still recent;
+                # we don't persist which way it moved, so report None once the
+                # window has elapsed (steady state).
+                "change": None, "since": since, "disappeared": False,
+            }
+
+    # Volcanoes that were tracked at level >= 1 but are now absent (dropped to
+    # level 0 -> filtered out of the feed). Report a de-escalation for one
+    # window, then let them age out of the state file.
+    for name, prev in prev_state.items():
+        if name in current:
+            continue
+        prev_level = prev.get("level")
+        if prev_level is None:
+            continue
+        prev_level = int(prev_level)
+        if prev_level >= 1:
+            # Mark the drop now (since = now), keep in state so we can age it.
+            since = now_iso
+            new_state[name] = {"level": 0, "since": since, "last_seen": now_iso}
+            changes[name] = {
+                "level": 0, "prev_level": prev_level, "changed_24h": True,
+                "change": "down", "since": since, "disappeared": True,
+            }
+        elif prev_level == 0 and _within_window(prev.get("since") or now_iso):
+            # Already dropped to 0 within the window on a previous run — keep
+            # reporting it as a recent de-escalation until the window elapses.
+            new_state[name] = prev
+            changes[name] = {
+                "level": 0, "prev_level": 0, "changed_24h": True,
+                "change": "down", "since": prev.get("since") or now_iso,
+                "disappeared": True,
+            }
+        # else: level 0 older than the window — drop from state entirely.
+
+    return new_state, changes
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +494,7 @@ def feature_to_line_context(feature: dict) -> dict:
     return ctx
 
 
-def build_context(config: dict) -> tuple[dict, dict[str, int]]:
+def build_context(config: dict) -> tuple[dict, dict[str, int], dict]:
     base_url = config.get("cloudtak_url", "").rstrip("/")
     # CloudTAK accepts the profile-scoped etl.<jwt> API token directly as a
     # Bearer token on every protected route (see api/lib/auth.ts tokenParser)
@@ -328,6 +508,9 @@ def build_context(config: dict) -> tuple[dict, dict[str, int]]:
 
     layers_context: dict[str, list[dict]] = {}
     feature_counts: dict[str, int] = {}
+    volcano_state: dict = {}
+
+    now = datetime.now(timezone.utc)
 
     for layer_id in SITREP_LAYER_IDS:
         layer_def = layer_defs.get(layer_id)
@@ -347,6 +530,32 @@ def build_context(config: dict) -> tuple[dict, dict[str, int]]:
         points = [f for f in features if (f.get("geometry") or {}).get("type") == "Point"]
         layer_items = [feature_to_context(f) for f in points]
 
+        # Volcano: annotate each item with whether its alert level changed in
+        # the last 24h (up/down) so the model can call out changes and treat
+        # long-standing levels as background rather than headline news.
+        if layer_id == "volcano":
+            volcano_state, changes = reconcile_volcano_state(points, now)
+            for item in layer_items:
+                name = (item.get("metadata") or {}).get("volcanoTitle") or item.get("callsign")
+                info = changes.get(name)
+                if info:
+                    item["changed_24h"] = info["changed_24h"]
+                    item["change"] = info["change"]
+                    item["level_change_since"] = info["since"]
+            # Surface volcanoes that dropped off the feed (de-escalated to
+            # level 0) as synthetic items so a de-escalation is still reported.
+            for name, info in changes.items():
+                if info.get("disappeared") and info.get("changed_24h"):
+                    layer_items.append({
+                        "callsign": name,
+                        "time": None,
+                        "metadata": {"volcanoTitle": name, "level": 0,
+                                     "prev_level": info.get("prev_level")},
+                        "changed_24h": True,
+                        "change": "down",
+                        "level_change_since": info["since"],
+                    })
+
         # NZTA road closures are LineStrings with no paired point feature —
         # include their first/last coordinate so the model can describe the
         # closed section (e.g. "closed between Te Anau and Manapouri")
@@ -361,10 +570,10 @@ def build_context(config: dict) -> tuple[dict, dict[str, int]]:
             feature_counts[layer_id] = len(points)
 
     context = {
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "layers": layers_context,
     }
-    return context, feature_counts
+    return context, feature_counts, volcano_state
 
 
 # ---------------------------------------------------------------------------
@@ -440,11 +649,19 @@ def handler(event: dict, context: Any) -> dict:
 
     try:
         config = get_config()
-        ctx, feature_counts = build_context(config)
+        ctx, feature_counts, volcano_state = build_context(config)
         model_output = call_bedrock(ctx)
     except Exception as e:
         print(f"SitRep generation failed: {e}")
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+
+    # Persist the reconciled volcano state so the next run (and the display's
+    # cot-proxy) can tell a fresh change from a long-standing level. Best
+    # effort — a write failure shouldn't sink the SitRep we just generated.
+    try:
+        write_volcano_state(volcano_state)
+    except Exception as e:
+        print(f"volcano state write failed (non-fatal): {e}")
 
     result = {
         "generated_at": generated_at,

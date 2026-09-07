@@ -106,8 +106,11 @@ export class DisplayCloudFront extends Construct {
             memorySize:    256,
             logGroup:      cotProxyLog,
             environment: {
-                CONFIG_BUCKET: configBucketName,
-                CONFIG_KEY:    'Utils-Display-Proxy-Config.json',
+                CONFIG_BUCKET:     configBucketName,
+                CONFIG_KEY:        'Utils-Display-Proxy-Config.json',
+                // Volcano alert-level history (written by the SitRep Lambda) —
+                // used to badge the volcano card with recent level changes.
+                VOLCANO_STATE_KEY: 'volcano/state.json',
             },
         });
 
@@ -149,6 +152,14 @@ export class DisplayCloudFront extends Construct {
                 resources: [kmsKeyArn],
             }));
         }
+
+        // cot-proxy additionally reads the volcano alert-level state file to
+        // badge the volcano card. Read-only — the SitRep Lambda owns writes.
+        cotProxy.addToRolePolicy(new iam.PolicyStatement({
+            effect:    iam.Effect.ALLOW,
+            actions:   ['s3:GetObject'],
+            resources: [`arn:aws:s3:::${configBucketName}/volcano/state.json`],
+        }));
 
         // Lambda Function URLs — public, auth handled inside the Lambda
         const cotProxyUrl  = cotProxy.addFunctionUrl({

@@ -28,8 +28,19 @@ const CONFIG_BUCKET = process.env.CONFIG_BUCKET;
 const CONFIG_KEY    = process.env.CONFIG_KEY || 'Utils-Display-Proxy-Config.json';
 const CONFIG_TTL_MS = 5 * 60 * 1000;  // re-read config every 5 minutes
 
+// Volcano alert-level history written by the SitRep Lambda (see
+// lambda/sitrep-generator/index.py reconcile_volcano_state). Used to badge
+// the volcano card with whether the level changed in the last 24h rather than
+// silently showing a long-standing level. Optional — if it can't be read we
+// just serve volcano features unbadged.
+const VOLCANO_STATE_KEY     = process.env.VOLCANO_STATE_KEY || 'volcano/state.json';
+const VOLCANO_CHANGE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 let cachedConfig    = null;
 let configLoadedAt  = 0;
+
+let cachedState     = null;
+let stateLoadedAt   = 0;
 
 // ---------------------------------------------------------------------------
 // Config loader
@@ -56,6 +67,91 @@ async function getConfig() {
     cachedConfig   = JSON.parse(body);
     configLoadedAt = now;
     return cachedConfig;
+}
+
+// ---------------------------------------------------------------------------
+// Volcano state loader — same caching/local-dev pattern as getConfig().
+// Returns {} on any failure (missing file, first run) so callers can treat
+// "no state" as "no badge" without special-casing.
+// ---------------------------------------------------------------------------
+async function getVolcanoState() {
+    const now = Date.now();
+    if (cachedState && (now - stateLoadedAt) < CONFIG_TTL_MS) {
+        return cachedState;
+    }
+
+    if (process.env.LOCAL_VOLCANO_STATE_FILE) {
+        try {
+            const { readFileSync } = await import('fs');
+            cachedState   = JSON.parse(readFileSync(process.env.LOCAL_VOLCANO_STATE_FILE, 'utf8'));
+        } catch { cachedState = {}; }
+        stateLoadedAt = now;
+        return cachedState;
+    }
+
+    try {
+        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3   = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+        const res  = await s3.send(new GetObjectCommand({ Bucket: CONFIG_BUCKET, Key: VOLCANO_STATE_KEY }));
+        const body = await res.Body.transformToString();
+        cachedState = JSON.parse(body);
+    } catch (err) {
+        // Missing on first run, or unreadable — serve features unbadged.
+        console.warn('Volcano state unavailable:', err.name || err.message);
+        cachedState = {};
+    }
+    stateLoadedAt = now;
+    return cachedState;
+}
+
+// ---------------------------------------------------------------------------
+// Enrich volcano features with change info from the state file, so the
+// highlight card template can show whether the alert level changed recently.
+//
+// Adds to properties.metadata:
+//   changed_24h    (boolean) — level changed within the last 24h
+//   change         ("up"|"down"|"none") — direction of the recent change
+//   changeBadge    (string) — display-ready: "↑ raised 3h ago",
+//                  "↓ lowered 12h ago", or "no change"
+// ---------------------------------------------------------------------------
+function relTime(ms) {
+    const min = Math.floor(ms / 60000);
+    if (min < 1)  return 'just now';
+    if (min < 60) return `${min}min ago`;
+    const hrs = Math.floor(min / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function enrichVolcanoFeature(feature, state) {
+    const meta = feature.properties && feature.properties.metadata;
+    if (!meta || typeof meta !== 'object') return feature;
+
+    const name = meta.volcanoTitle || (feature.properties && feature.properties.callsign);
+    const entry = name && state[name];
+
+    let changed = false;
+    let direction = 'none';
+    if (entry && entry.since && entry.level != null) {
+        const sinceMs = new Date(String(entry.since).replace(/(\.\d{3})\d+(Z|[+-]\d{2}:?\d{2})?$/, '$1$2')).getTime();
+        const age = Date.now() - sinceMs;
+        if (!isNaN(sinceMs) && age >= 0 && age <= VOLCANO_CHANGE_WINDOW_MS) {
+            // A `since` inside the window means the current level was first
+            // seen recently — i.e. it changed. Direction is inferred from the
+            // stored vs current level when both are known.
+            const cur = Number(meta.level);
+            const prev = Number(entry.prev_level);
+            changed = true;
+            if (!isNaN(cur) && !isNaN(prev)) direction = cur > prev ? 'up' : cur < prev ? 'down' : 'none';
+            meta.changeBadge = (direction === 'up' ? '↑ raised ' : direction === 'down' ? '↓ lowered ' : 'changed ') + relTime(age);
+        }
+    }
+    if (!changed) {
+        meta.changeBadge = 'no change';
+    }
+    meta.changed_24h = changed;
+    meta.change = direction;
+    return feature;
 }
 
 // ---------------------------------------------------------------------------
@@ -402,30 +498,42 @@ export async function handler(event) {
         page++;
     }
 
-    const fc = {
-        type: 'FeatureCollection',
-        features: allFeatures.filter(function(f) {
-            // Server-side stale filtering — only return non-expired features
-            var stale = f.properties && f.properties.stale;
-            if (!stale) return true;
-            return new Date(stale).getTime() > Date.now();
-        }).filter(function(f) {
-            // Filter by ID prefix if configured on the layer
-            if (layerDef && layerDef.id_prefix) {
-                return f.id && f.id.startsWith(layerDef.id_prefix);
-            }
-            return true;
-        }).filter(function(f) {
-            // Apply config-defined filters for this layer
-            return applyFilters(f, config.filters && config.filters[layerName]);
-        }).map(function(f) {
-            // Apply query-based styles for this layer
-            return applyStyles(f, config.styles && config.styles[layerName]);
-        }).filter(function(f) {
-            // Remove features marked for deletion by style queries
-            return f !== null;
-        }),
-    };
+    let features = allFeatures.filter(function(f) {
+        // Server-side stale filtering — only return non-expired features
+        var stale = f.properties && f.properties.stale;
+        if (!stale) return true;
+        return new Date(stale).getTime() > Date.now();
+    }).filter(function(f) {
+        // Filter by ID prefix if configured on the layer
+        if (layerDef && layerDef.id_prefix) {
+            return f.id && f.id.startsWith(layerDef.id_prefix);
+        }
+        return true;
+    }).filter(function(f) {
+        // Apply config-defined filters for this layer
+        return applyFilters(f, config.filters && config.filters[layerName]);
+    }).map(function(f) {
+        // Apply query-based styles for this layer
+        return applyStyles(f, config.styles && config.styles[layerName]);
+    }).filter(function(f) {
+        // Remove features marked for deletion by style queries
+        return f !== null;
+    });
+
+    // Volcano: badge each feature with recent alert-level change info from the
+    // SitRep-maintained state file, so the card shows "↑ raised 3h ago" etc.
+    // rather than a bare long-standing level. Best effort — unbadged on any
+    // state read failure.
+    if (layerName === 'volcano') {
+        try {
+            const state = await getVolcanoState();
+            features = features.map(function(f) { return enrichVolcanoFeature(f, state); });
+        } catch (err) {
+            console.warn('Volcano enrichment skipped:', err.message);
+        }
+    }
+
+    const fc = { type: 'FeatureCollection', features: features };
 
     return jsonResponse(200, fc);
 }

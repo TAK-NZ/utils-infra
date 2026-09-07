@@ -37,6 +37,9 @@ export interface SitRepLambdaProps {
     /** S3 key to write the SitRep result to */
     sitrepKey?: string;
 
+    /** S3 key for the persisted volcano alert-level history (read + written each run) */
+    volcanoStateKey?: string;
+
     /**
      * Bedrock model id, without a region-profile prefix (e.g. "anthropic.claude-sonnet-5",
      * not "au.anthropic.claude-sonnet-5"). Most current Claude models require a
@@ -59,6 +62,7 @@ export class SitRepLambda extends Construct {
 
         const modelId = props.modelId ?? 'anthropic.claude-sonnet-5';
         const sitrepKey = props.sitrepKey ?? 'sitrep/latest.json';
+        const volcanoStateKey = props.volcanoStateKey ?? 'volcano/state.json';
 
         const logGroup = new logs.LogGroup(this, 'LogGroup', {
             retention: logs.RetentionDays.ONE_WEEK,
@@ -77,6 +81,7 @@ export class SitRepLambda extends Construct {
                 CONFIG_BUCKET: props.configBucket.bucketName,
                 CONFIG_KEY: props.configKey,
                 SITREP_KEY: sitrepKey,
+                VOLCANO_STATE_KEY: volcanoStateKey,
                 MODEL_ID: modelId,
             },
         });
@@ -85,14 +90,23 @@ export class SitRepLambda extends Construct {
         this.fn.addToRolePolicy(new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
             actions: ['s3:GetObject'],
-            resources: [`arn:aws:s3:::${props.configBucket.bucketName}/${props.configKey}`],
+            resources: [
+                `arn:aws:s3:::${props.configBucket.bucketName}/${props.configKey}`,
+                // Volcano alert-level history — read at the start of each run to
+                // detect changes, rewritten at the end. See index.py.
+                `arn:aws:s3:::${props.configBucket.bucketName}/${volcanoStateKey}`,
+            ],
         }));
 
-        // Write the SitRep result to the same bucket
+        // Write the SitRep result and the reconciled volcano state to the
+        // same bucket.
         this.fn.addToRolePolicy(new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
             actions: ['s3:PutObject'],
-            resources: [`arn:aws:s3:::${props.configBucket.bucketName}/${sitrepKey}`],
+            resources: [
+                `arn:aws:s3:::${props.configBucket.bucketName}/${sitrepKey}`,
+                `arn:aws:s3:::${props.configBucket.bucketName}/${volcanoStateKey}`,
+            ],
         }));
 
         // KMS for the config bucket — Decrypt to read the config object,
