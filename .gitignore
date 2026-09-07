@@ -92,3 +92,13 @@ display-proxy/Utils-Display-Proxy-Config.json
 # Allow display-proxy JS source and static assets (excluded by *.js CDK rule above)
 !display-proxy/*.js
 !display-proxy/static/*.js
+
+# Flooding hazard-map pipeline — downloaded source zips, extracted rasters,
+# generated overlays and TAK packages, and the per-run work dir are all large
+# and reproducible from S3. Only the scripts, README and .env.example are tracked.
+data-packages/hazards/flooding/work/
+data-packages/hazards/flooding/overlays/
+data-packages/hazards/flooding/packages/
+data-packages/hazards/flooding/*.zip
+data-packages/hazards/flooding/*.tif
+data-packages/hazards/flooding/*.tiff
