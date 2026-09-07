@@ -11,7 +11,7 @@
 #   2. Extracts    only the hmax/ (water-depth) GeoTIFFs.
 #   3. Converts    each GeoTIFF to a coloured RGBA EPSG:4326 overlay.
 #   4. Packages    each overlay into a TAK Mission Package and uploads it to
-#                  CloudTAK named "Hazards - Flood - 100y Inundation - <Region> - <Map>".
+#                  CloudTAK named "Hazards - <Region> - Flood - <Map> (100yr)".
 #   5. Cleans up   every interim file for that region before moving to the next,
 #                  so peak local disk use stays to roughly one region at a time.
 #
@@ -188,7 +188,10 @@ process_region() {
     if [[ "$DRY_RUN" == "1" ]]; then
         echo "        (dry run — building packages only, no upload)"
     else
-        upload_flags=(--upload --url "$CLOUDTAK_URL" --token "$CLOUDTAK_TOKEN")
+        # --replace makes re-runs idempotent: any existing package with the
+        # same name is deleted before the new one is uploaded, so re-running a
+        # region refreshes rather than duplicates its maps.
+        upload_flags=(--upload --replace --url "$CLOUDTAK_URL" --token "$CLOUDTAK_TOKEN")
         if [[ -n "$CLOUDTAK_CHANNELS" ]]; then
             upload_flags+=(--channels "$CLOUDTAK_CHANNELS")
         fi
@@ -198,8 +201,8 @@ process_region() {
         --input-dir "$region_work/overlays" \
         --one-per-file \
         --output-dir "$region_work/packages" \
-        --name "Hazards - Flood - 100y Inundation - ${region} - {location}" \
-        --keywords Hazards Flood "100y Inundation" "$region" "{location}" \
+        --name "Hazards - ${region} - Flood - {location} (100yr)" \
+        --keywords Hazards "$region" Flood "{location}" "100y Inundation" \
         "${upload_flags[@]}" \
         | sed 's/^/        /'
 

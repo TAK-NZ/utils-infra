@@ -102,3 +102,10 @@ data-packages/hazards/flooding/packages/
 data-packages/hazards/flooding/*.zip
 data-packages/hazards/flooding/*.tif
 data-packages/hazards/flooding/*.tiff
+
+# Tsunami evacuation-zone pipeline — fetched/generated intermediates and the
+# built KMZ/package are reproducible from the NEMA service. Only scripts,
+# README and .env.example are tracked.
+data-packages/hazards/tsunami/work/
+data-packages/hazards/tsunami/*.kmz
+data-packages/hazards/tsunami/*.zip
