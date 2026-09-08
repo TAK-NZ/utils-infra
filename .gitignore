@@ -97,11 +97,13 @@ display-proxy/Utils-Display-Proxy-Config.json
 # generated overlays and TAK packages, and the per-run work dir are all large
 # and reproducible from S3. Only the scripts, README and .env.example are tracked.
 data-packages/hazards/flooding/work/
+data-packages/hazards/flooding/catchment-work/
 data-packages/hazards/flooding/overlays/
 data-packages/hazards/flooding/packages/
 data-packages/hazards/flooding/*.zip
 data-packages/hazards/flooding/*.tif
 data-packages/hazards/flooding/*.tiff
+data-packages/hazards/flooding/*.kmz
 
 # Tsunami evacuation-zone pipeline — fetched/generated intermediates and the
 # built KMZ/package are reproducible from the NEMA service. Only scripts,

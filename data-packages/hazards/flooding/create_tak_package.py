@@ -85,6 +85,23 @@ from xml.dom import minidom
 
 
 # ---------------------------------------------------------------------------
+# Package-name sanitisation
+# ---------------------------------------------------------------------------
+
+def sanitize_package_name(name: str) -> str:
+    """
+    Remove characters that TAK Server rejects in a Data Package name.
+
+    TAK Server returns HTTP 400 ("resource unavailable or not allowed") when a
+    package name contains an apostrophe — e.g. "Hawke's Bay" fails to upload.
+    We strip ASCII (') and curly (’) apostrophes. The display name is applied
+    both to the package manifest and the upload query parameter, so this is
+    applied in one place used by both.
+    """
+    return name.replace("\u2019", "").replace("'", "")
+
+
+# ---------------------------------------------------------------------------
 # Manifest builder
 # ---------------------------------------------------------------------------
 
@@ -94,7 +111,7 @@ def build_manifest(package_uid: str, package_name: str,
 
     config = ET.SubElement(root, "Configuration")
     ET.SubElement(config, "Parameter", name="uid", value=package_uid)
-    ET.SubElement(config, "Parameter", name="name", value=package_name)
+    ET.SubElement(config, "Parameter", name="name", value=sanitize_package_name(package_name))
 
     contents_el = ET.SubElement(root, "Contents")
     for item in contents:
@@ -221,6 +238,12 @@ def upload_package(zip_path: Path, package_name: str, base_url: str,
 
     base_url = base_url.rstrip("/")
     headers = {"Authorization": f"Bearer {token}"}
+
+    # TAK Server rejects apostrophes anywhere in the package metadata — in the
+    # name AND in keywords (e.g. "Hawke's Bay" fails as either). Sanitise both,
+    # keeping the display name / manifest name / delete-by-name lookup consistent.
+    package_name = sanitize_package_name(package_name)
+    keywords = [sanitize_package_name(k) for k in keywords]
 
     if replace:
         delete_existing_by_name(base_url, token, package_name)
@@ -358,6 +381,11 @@ def main():
     keywords = args.keywords or []
     channels = args.channels or []
 
+    # Track upload failures so the process exits non-zero — callers (e.g. the
+    # flood orchestrator) can then treat a region as failed instead of silently
+    # succeeding when its packages didn't upload.
+    upload_failures = 0
+
     # -----------------------------------------------------------------------
     # Upload-only mode: treat input files as ZIPs to upload directly
     # -----------------------------------------------------------------------
@@ -365,9 +393,13 @@ def main():
         for zip_path in files:
             pkg_name = args.name or zip_path.stem.replace("_", " ")
             print(f"\n  Package: {pkg_name}")
-            upload_package(zip_path, pkg_name, args.url, args.token,
-                           keywords, channels, replace=args.replace)
+            if upload_package(zip_path, pkg_name, args.url, args.token,
+                              keywords, channels, replace=args.replace) is None:
+                upload_failures += 1
         print("\nDone.")
+        if upload_failures:
+            print(f"ERROR: {upload_failures} upload(s) failed.", file=sys.stderr)
+            sys.exit(1)
         return
 
     # -----------------------------------------------------------------------
@@ -403,8 +435,9 @@ def main():
             create_package([f], out_zip, pkg_name)
 
             if upload_required(args):
-                upload_package(out_zip, pkg_name, args.url, args.token,
-                               per_file_keywords, channels, replace=args.replace)
+                if upload_package(out_zip, pkg_name, args.url, args.token,
+                                  per_file_keywords, channels, replace=args.replace) is None:
+                    upload_failures += 1
     else:
         if args.output:
             out_zip = Path(args.output)
@@ -417,10 +450,14 @@ def main():
         create_package(files, out_zip, pkg_name, package_uid=args.uid)
 
         if upload_required(args):
-            upload_package(out_zip, pkg_name, args.url, args.token,
-                           keywords, channels, replace=args.replace)
+            if upload_package(out_zip, pkg_name, args.url, args.token,
+                              keywords, channels, replace=args.replace) is None:
+                upload_failures += 1
 
     print("\nDone.")
+    if upload_failures:
+        print(f"ERROR: {upload_failures} upload(s) failed.", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
