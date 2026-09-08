@@ -20,5 +20,7 @@
 		<Content ignore="false" zipEntry="ArcGIS-World-Topo-Map.xml"/>
 		<Content ignore="false" zipEntry="ArcGIS-World-Street-Map.xml"/>
 		<Content ignore="false" zipEntry="ArcGIS-World-Imagery.xml"/>
+		<Content ignore="false" zipEntry="LINZ-Topographic-Vector.json"/>
+		<Content ignore="false" zipEntry="LINZ-Topographic-Vector-3D.json"/>
     </Contents>
 </MissionPackageManifest>

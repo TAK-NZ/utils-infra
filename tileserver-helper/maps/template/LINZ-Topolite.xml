@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customMapSource>
+    <name>02 - TAK.NZ - LINZ Topolite</name>
+    <minZoom>0</minZoom>
+    <maxZoom>20</maxZoom>
+    <tileType>png</tileType>
+    <tileUpdate>None</tileUpdate>
+    <url>https://tiles.{{DOMAIN}}/styles/topolite/256/{$z}/{$x}/{$y}.png?api={{API_KEY}}</url>
+    <backgroundColor>#000000</backgroundColor>
+</customMapSource>

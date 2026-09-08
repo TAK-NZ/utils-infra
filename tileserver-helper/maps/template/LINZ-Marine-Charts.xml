@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customMapSource>
+    <name>11 - TAK.NZ - LINZ Marine Charts</name>
+    <minZoom>0</minZoom>
+    <maxZoom>24</maxZoom>
+    <tileType>png</tileType>
+    <tileUpdate>None</tileUpdate>
+    <url>https://tiles.{{DOMAIN}}/styles/linz-marine/256/{$z}/{$x}/{$y}.png?api={{API_KEY}}</url>
+    <backgroundColor>#B8DCFA</backgroundColor>
+</customMapSource>

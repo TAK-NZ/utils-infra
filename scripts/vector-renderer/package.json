@@ -1,0 +1,16 @@
+{
+  "name": "vector-renderer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "_render.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.59.1"
+  }
+}

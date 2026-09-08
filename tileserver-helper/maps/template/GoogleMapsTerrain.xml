@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customMapSource>
+  <name>08 - Google Maps - Terrain</name>
+  <minZoom>0</minZoom>
+  <maxZoom>18</maxZoom>
+  <tileType>png</tileType>
+  <tileUpdate>None</tileUpdate>
+  <url>https://mts1.google.com/vt/lyrs=p&amp;hl=en&amp;x={$x}&amp;y={$y}&amp;z={$z}</url>
+  <backgroundColor>#000000</backgroundColor>
+</customMapSource>
