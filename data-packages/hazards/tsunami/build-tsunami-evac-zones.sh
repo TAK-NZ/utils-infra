@@ -56,10 +56,13 @@ echo "=========================================================="
 # --- 1. Build the styled, simplified KMZ --------------------------------
 keep_flag=()
 [[ "$KEEP_WORK" == "1" ]] && keep_flag=(--keep-work)
+# Geometry simplify tolerance in degrees. Default ~0.0001° (≈11 m) keeps the
+# file small; set SIMPLIFY_DEG=0 for full-accuracy (unsimplified) geometry.
+SIMPLIFY_DEG="${SIMPLIFY_DEG:-0.0001}"
 python3 "$SCRIPT_DIR/build_kmz.py" \
     --source-url "$SOURCE_URL" \
     --out "$KMZ" \
-    --simplify-deg 0.0001 \
+    --simplify-deg "$SIMPLIFY_DEG" \
     --doc-name "NZ Tsunami Evacuation Zones" \
     "${keep_flag[@]}"
 

@@ -205,10 +205,20 @@ process_region() {
         --keywords Hazards "$region" Flood "{location}" "100y Inundation" \
         "${upload_flags[@]}" \
         | sed 's/^/        /'
+    # ${PIPESTATUS[0]} is create_tak_package.py's exit code (the pipe through
+    # sed would otherwise mask it). Non-zero => at least one upload failed, so
+    # this region is a failure rather than a silent partial success.
+    local pkg_status="${PIPESTATUS[0]}"
 
     local pkg_count
     pkg_count=$(find "$region_work/packages" -maxdepth 1 -name '*.zip' 2>/dev/null | wc -l | tr -d ' ')
     total_uploaded=$((total_uploaded + pkg_count))
+
+    if [[ "$pkg_status" -ne 0 ]]; then
+        echo "  ERROR: packaging/upload reported failures for $region (exit $pkg_status)." >&2
+        [[ "$KEEP_WORK" != "1" ]] && rm -rf "$region_work"
+        return 1
+    fi
 
     # --- 5. Clean up interim files for this region -------------------------
     if [[ "$KEEP_WORK" == "1" ]]; then
