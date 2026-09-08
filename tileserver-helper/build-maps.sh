@@ -38,10 +38,9 @@ echo "Output: $OUTPUT_DIR"
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Process each template into the output directory as a standalone file.
-# Includes both customMapSource XML (raster) and StreamingTiles JSON (vector,
-# e.g. LINZ-Topographic-Vector.json / -3D.json) templates.
-for template in "$SCRIPT_DIR/maps/template/"*.xml "$SCRIPT_DIR/maps/template/"*.json; do
+# Process each customMapSource XML template into the output directory as a
+# standalone file.
+for template in "$SCRIPT_DIR/maps/template/"*.xml; do
     [[ -f "$template" ]] || continue
     filename=$(basename "$template")
     echo "Processing: $filename"
@@ -61,9 +60,7 @@ echo "1. Device Profile (recommended): upload each file individually via"
 echo "   PUT /Marti/api/device/profile/<profile>/file?filename=<filename>"
 echo "   (one file per call — do NOT zip these together)"
 echo "2. Manual ATAK install:"
-echo "   - XML (raster) files: copy to Internal storage/atak/maps/"
-echo "   - JSON (vector, e.g. *-Vector*.json) files: copy to"
-echo "     Internal storage/atak/imagery/mobile/mapsources/"
+echo "   - copy the XML files to Internal storage/atak/maps/"
 echo "   then restart ATAK"
 
 ls -la "$OUTPUT_DIR"

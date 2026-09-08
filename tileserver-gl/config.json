@@ -9,14 +9,6 @@
       "Vary": "Accept-Encoding"
     }
   },
-  "data": {
-    "nz-omt": {
-      "mbtiles": "./tiles/nz-omt.mbtiles"
-    },
-    "nz-omt-buildings": {
-      "mbtiles": "./tiles/nz-omt-buildings.mbtiles"
-    }
-  },
   "styles": {
     "topolite": {
       "name": "LINZ Topolite",
