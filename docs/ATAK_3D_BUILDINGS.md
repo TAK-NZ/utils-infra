@@ -1,5 +1,17 @@
 # ATAK 3D Buildings — `buildings-proxy` Implementation Guide
 
+> **Delivery status (current).** The vector basemap is delivered **only as a sideloaded
+> `.mbtiles`** (Path A), installed via the TAK Server **Device Profile** map-source flow
+> (`tileserver-helper/build-maps.sh` → individual customMapSource XML files). The
+> **streamed** path (Path B — `tileserver-gl` `/data/*`, CloudFront, and the
+> `StreamingTiles` `LINZ-Topographic-Vector*.json` manifests) and the **Mission Package**
+> delivery (`build-maps-package.sh`) were **removed** — streaming rendered worse on device
+> than sideloaded mbtiles, and Device Profile is the only delivery mechanism in use. The
+> sections below that describe the streamed/serve path and Mission Package delivery are kept
+> as the historical investigation record, not current practice.
+
+---
+
 Serve NZ building footprints with heights to ATAK as **extruded 3D buildings**, reusing the
 `terrain-proxy` pattern in this repo.
 
