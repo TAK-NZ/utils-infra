@@ -141,8 +141,9 @@ export class CloudFront extends Construct {
 function handler(event) {
     var request = event.request;
     
-    // Only validate /styles/* paths - allow everything else
-    if (!request.uri.startsWith('/styles/')) {
+    // Only validate /styles/* and /data/* paths - allow everything else
+    // (health check, static UI assets, etc.)
+    if (!request.uri.startsWith('/styles/') && !request.uri.startsWith('/data/')) {
         return request;
     }
     
@@ -201,6 +202,21 @@ function handler(event) {
       additionalBehaviors: {
         // All tile images - long cache (covers all image formats and path depths)
         '/styles/*': {
+          origin: albOrigin,
+          cachePolicy: tileCachePolicy,
+          originRequestPolicy,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+          functionAssociations: [{
+            function: apiKeyFunction,
+            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+          }],
+        },
+        // Raw MBTiles data sources (nz-omt, nz-omt-buildings) - TileJSON +
+        // vector tiles at /data/{id}.json and /data/{id}/{z}/{x}/{y}.pbf.
+        // Same auth and cache treatment as /styles/* — these are the vector
+        // equivalent of the raster tiles served there.
+        '/data/*': {
           origin: albOrigin,
           cachePolicy: tileCachePolicy,
           originRequestPolicy,

@@ -1,0 +1,26 @@
+{
+  "schema": "4.0.0",
+  "title": "91 - TAK.NZ - LINZ Topographic (Vector)",
+  "content": "vector",
+  "mimeType": "application/vnd.mapbox-vector-tile",
+  "downloadable": true,
+  "overlay": false,
+  "refreshInterval": 0,
+  "isQuadtree": true,
+  "numLevels": 17,
+  "srs": "EPSG:3857",
+  "url": "https://tiles.{{DOMAIN}}/data/nz-omt/{$z}/{$x}/{$y}.pbf?api={{API_KEY}}",
+  "bounds": {
+    "minX": 166.0,
+    "minY": -47.6,
+    "maxX": 179.2,
+    "maxY": -34.0
+  },
+  "attribution": "Topographic data © LINZ, CC BY 4.0.",
+  "metadata": {
+    "styleSchema": "omt",
+    "json": "{\"vector_layers\":[{\"id\":\"transportation\",\"fields\":{\"class\":\"String\"}},{\"id\":\"water\",\"fields\":{\"class\":\"String\"}}]}",
+    "dataSource": "LINZ Basemaps topographic",
+    "coverage": "New Zealand"
+  }
+}

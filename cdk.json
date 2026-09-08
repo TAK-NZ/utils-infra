@@ -80,6 +80,14 @@
               {
                 "s3Key": "linz-vector-tiles.mbtiles",
                 "filename": "linz-vector-tiles.mbtiles"
+              },
+              {
+                "s3Key": "nz-omt.mbtiles",
+                "filename": "nz-omt.mbtiles"
+              },
+              {
+                "s3Key": "nz-omt-buildings.mbtiles",
+                "filename": "nz-omt-buildings.mbtiles"
               }
             ]
           }
@@ -191,6 +199,14 @@
               {
                 "s3Key": "linz-vector-tiles.mbtiles",
                 "filename": "linz-vector-tiles.mbtiles"
+              },
+              {
+                "s3Key": "nz-omt.mbtiles",
+                "filename": "nz-omt.mbtiles"
+              },
+              {
+                "s3Key": "nz-omt-buildings.mbtiles",
+                "filename": "nz-omt-buildings.mbtiles"
               }
             ]
           }

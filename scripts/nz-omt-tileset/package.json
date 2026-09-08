@@ -1,0 +1,13 @@
+{
+  "name": "nz-omt-tileset",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline builder for the ATAK OpenMapTiles-conformant NZ vector basemap, with or without 3D building heights",
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "@mapbox/vector-tile": "^3.0.0",
+    "@turf/turf": "^7.2.0",
+    "pbf": "^5.1.2",
+    "pmtiles": "^4.4.0"
+  }
+}

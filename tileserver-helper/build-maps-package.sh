@@ -34,11 +34,13 @@ echo "UUID: $UUID"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp -r "$SCRIPT_DIR/maps-package/template/"* "$TEMP_DIR/"
 
-# Replace template variables in all XML files
-find "$TEMP_DIR" -name "*.xml" -type f -exec sed -i "s/{{DOMAIN}}/$DOMAIN/g" {} \;
-find "$TEMP_DIR" -name "*.xml" -type f -exec sed -i "s/{{API_KEY}}/$TAKNZ_API_KEY/g" {} \;
-find "$TEMP_DIR" -name "*.xml" -type f -exec sed -i "s/{{LINZ_API_KEY}}/$LINZ_API_KEY/g" {} \;
-find "$TEMP_DIR" -name "*.xml" -type f -exec sed -i "s/{{UUID}}/$UUID/g" {} \;
+# Replace template variables in all XML files (customMapSource raster
+# sources) and JSON files (StreamingTiles vector manifests, e.g.
+# LINZ-Topographic-Vector.json / -3D.json)
+find "$TEMP_DIR" \( -name "*.xml" -o -name "*.json" \) -type f -exec sed -i "s/{{DOMAIN}}/$DOMAIN/g" {} \;
+find "$TEMP_DIR" \( -name "*.xml" -o -name "*.json" \) -type f -exec sed -i "s/{{API_KEY}}/$TAKNZ_API_KEY/g" {} \;
+find "$TEMP_DIR" \( -name "*.xml" -o -name "*.json" \) -type f -exec sed -i "s/{{LINZ_API_KEY}}/$LINZ_API_KEY/g" {} \;
+find "$TEMP_DIR" \( -name "*.xml" -o -name "*.json" \) -type f -exec sed -i "s/{{UUID}}/$UUID/g" {} \;
 
 # Create zip file in temp directory then move to output
 cd "$TEMP_DIR"
