@@ -1,0 +1,9 @@
+{
+  "emi": {
+    "apiKey": "<EMI real-time-dispatch subscription key>"
+  },
+  "recorder": {
+    "enabled": true,
+    "intervalMs": 300000
+  }
+}

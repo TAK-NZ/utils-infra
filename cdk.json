@@ -51,10 +51,10 @@
           "priority": 2,
           "imageTag": "v1.2.3"
         },
-        "power-outages": {
-          "enabled": false,
-          "path": "/power-outages",
-          "healthCheckPath": "/power-outages/health",
+        "grid-monitor": {
+          "enabled": true,
+          "path": "/grid-monitor",
+          "healthCheckPath": "/grid-monitor/health",
           "port": 3000,
           "cpu": 256,
           "memory": 512,
@@ -162,10 +162,10 @@
           "priority": 2,
           "imageTag": "v1.2.3"
         },
-        "power-outages": {
+        "grid-monitor": {
           "enabled": false,
-          "path": "/power-outages",
-          "healthCheckPath": "/power-outages/health",
+          "path": "/grid-monitor",
+          "healthCheckPath": "/grid-monitor/health",
           "port": 3000,
           "cpu": 512,
           "memory": 1024,

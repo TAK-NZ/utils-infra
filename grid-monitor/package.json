@@ -1,0 +1,19 @@
+{
+  "name": "grid-monitor",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "emi-transmission-outages": "node tools/emi-transmission-outages.js",
+    "emi-outage-monitor": "node tools/emi-outage-monitor.js",
+    "emi-outage-record": "node tools/emi-outage-monitor.js --record",
+    "emi-dispatch-classify": "node tools/emi-dispatch-classify.js",
+    "emi-dispatch-sites": "node tools/emi-dispatch-sites.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2",
+    "proj4": "^2.9.2"
+  }
+}
