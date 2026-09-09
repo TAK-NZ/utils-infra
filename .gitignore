@@ -21,6 +21,11 @@ cdk.out
 .env.local
 .env.*.local
 
+# Python bytecode (from the data-package / lambda Python scripts)
+__pycache__/
+*.pyc
+*.pyo
+
 # Logs
 logs
 *.log
