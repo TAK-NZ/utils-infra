@@ -35,8 +35,20 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Install system dependencies
-        # Required for container builds and testing
-        run: sudo apt-get update && sudo apt-get install -y curl
+        # Required for container builds and testing.
+        #
+        # The hosted runner image ships pre-configured third-party apt repos
+        # (e.g. Google Chrome, Microsoft) that intermittently serve a
+        # mismatched Packages.gz hash. That makes a plain `apt-get update` exit
+        # 100 and fail the whole job for reasons unrelated to this project — we
+        # only need `curl` from the Ubuntu archive. Drop those third-party
+        # source lists before updating so an upstream hash flake there can't
+        # break our build.
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
+                     /etc/apt/sources.list.d/microsoft-prod.list
+          sudo apt-get update
+          sudo apt-get install -y curl
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
