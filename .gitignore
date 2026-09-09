@@ -4,7 +4,7 @@
 !weather-proxy/server.js
 !camera-proxy/server.js
 !terrain-proxy/server.js
-!power-outages/**/*.js
+!grid-monitor/**/*.js
 !scripts/*.js
 *.d.ts
 node_modules
@@ -33,6 +33,11 @@ pids
 *.pid
 *.seed
 *.pid.lock
+
+# grid-monitor local snapshot store + local S3 config (runtime data / secrets)
+grid-monitor/data/snapshots/
+grid-monitor/data/wits-outage-snapshots.jsonl
+grid-monitor/Utils-Grid-Monitor-Config.json
 
 # Coverage directory used by tools like istanbul
 coverage
