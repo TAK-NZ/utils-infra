@@ -24,6 +24,9 @@ const CONFIG_BUCKET = process.env.CONFIG_BUCKET;
 const CONFIG_KEY = process.env.CONFIG_KEY || 'ETL-Util-AIS-Proxy-Api-Keys.json';
 const DEBUG = process.env.DEBUG === 'true';
 const CACHE_FILE = '/data/vessel-cache.json';
+// Long-lived store of static vessel identity (name/callsign/type/dims/IMO).
+// Kept separate from vesselCache so identity survives position-TTL eviction.
+const STATIC_IDENTITY_FILE = '/data/vessel-identity.json';
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION || 'ap-southeast-2' });
 
@@ -32,7 +35,15 @@ const vesselCache = new Map();
 const apiKeyCache = new Map();
 const rateLimitCache = new Map();
 const clientStatusCache = new Map(); // Track AIS upload clients
+// Long-lived static identity: MMSI -> { NAME, CALLSIGN, TYPE, IMO, A, B, C, D, source, lastLearned }
+// Not evicted by the position TTL, so a name learned once is re-applied whenever a
+// vessel record is (re)created after eviction.
+const staticIdentityCache = new Map();
 const MAX_VESSEL_CACHE_SIZE = 50000;
+const MAX_STATIC_IDENTITY_CACHE_SIZE = 100000;
+// Static identity lives far longer than a position fix. 90 days keeps names across
+// long absences while still bounding the file so unseen vessels eventually age out.
+const STATIC_IDENTITY_TTL = 90 * 24 * 3600000; // 90 days
 const MAX_RATE_LIMIT_CACHE_SIZE = 10000;
 const RATE_LIMIT_PER_MINUTE = 600;
 const MARINESIA_DEFAULT_POLL_INTERVAL = 60000; // Default 60s, overridden by S3 config or env var
@@ -246,6 +257,105 @@ function saveCache() {
   }
 }
 
+// Track whether static identity has changed since the last flush, so we can
+// persist promptly when a new name is learned without writing on every message.
+let staticIdentityDirty = false;
+
+// Load long-lived static identity store from disk
+function loadStaticIdentity() {
+  try {
+    if (fs.existsSync(STATIC_IDENTITY_FILE)) {
+      const data = fs.readFileSync(STATIC_IDENTITY_FILE, 'utf8');
+      const stored = JSON.parse(data);
+      const cutoff = Date.now() - STATIC_IDENTITY_TTL;
+      let filtered = 0;
+      for (const [mmsi, identity] of Object.entries(stored)) {
+        const mmsiNum = parseInt(mmsi);
+        if (!isValidMMSI(mmsiNum)) { filtered++; continue; }
+        // Drop entries not seen within the identity TTL
+        if (identity.lastLearned && identity.lastLearned < cutoff) { filtered++; continue; }
+        staticIdentityCache.set(mmsiNum, identity);
+      }
+      console.log(`Loaded ${staticIdentityCache.size} vessel identities from store${filtered ? ` (filtered ${filtered})` : ''}`);
+    }
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.info('Static identity store does not exist, starting empty');
+    } else if (error instanceof SyntaxError) {
+      console.error('Static identity store contains invalid JSON:', sanitizeLogInput(error.message));
+    } else {
+      console.error('Failed to load static identity store:', sanitizeLogInput(error.message || ''));
+    }
+  }
+}
+
+// Save long-lived static identity store to disk
+function saveStaticIdentity() {
+  if (!staticIdentityDirty) return;
+  try {
+    fs.mkdirSync(path.dirname(STATIC_IDENTITY_FILE), { recursive: true });
+    const obj = Object.fromEntries(staticIdentityCache);
+    fs.writeFileSync(STATIC_IDENTITY_FILE, JSON.stringify(obj));
+    staticIdentityDirty = false;
+    if (DEBUG) console.log(`Saved ${staticIdentityCache.size} vessel identities to store`);
+  } catch (error) {
+    console.warn('Failed to save static identity store:', sanitizeLogInput(error.message || ''));
+  }
+}
+
+// Bound the static identity store, evicting the least-recently-learned entries.
+function enforceStaticIdentityLimit() {
+  if (staticIdentityCache.size <= MAX_STATIC_IDENTITY_CACHE_SIZE) return;
+  const entries = Array.from(staticIdentityCache.entries());
+  entries.sort((a, b) => (b[1].lastLearned || 0) - (a[1].lastLearned || 0));
+  staticIdentityCache.clear();
+  entries.slice(0, Math.floor(MAX_STATIC_IDENTITY_CACHE_SIZE * 0.8))
+    .forEach(([k, v]) => staticIdentityCache.set(k, v));
+}
+
+// Record any newly-learned static identity fields for an MMSI. Only fills fields
+// that are actually present (non-empty), never clears an existing value.
+// Returns true if the stored identity changed.
+function recordStaticIdentity(mmsi, fields, source) {
+  if (!mmsi) return false;
+  const existing = staticIdentityCache.get(mmsi) || {};
+  let changed = false;
+
+  if (fields.NAME && fields.NAME !== existing.NAME) { existing.NAME = fields.NAME; changed = true; }
+  if (fields.CALLSIGN && fields.CALLSIGN !== existing.CALLSIGN) { existing.CALLSIGN = fields.CALLSIGN; changed = true; }
+  if ((fields.TYPE !== null && fields.TYPE !== undefined && fields.TYPE !== 0) && fields.TYPE !== existing.TYPE) { existing.TYPE = fields.TYPE; changed = true; }
+  if (fields.IMO && fields.IMO !== existing.IMO) { existing.IMO = fields.IMO; changed = true; }
+  if (fields.A && fields.A !== existing.A) { existing.A = fields.A; changed = true; }
+  if (fields.B && fields.B !== existing.B) { existing.B = fields.B; changed = true; }
+  if (fields.C && fields.C !== existing.C) { existing.C = fields.C; changed = true; }
+  if (fields.D && fields.D !== existing.D) { existing.D = fields.D; changed = true; }
+
+  if (changed) {
+    existing.source = source || existing.source || null;
+    existing.lastLearned = Date.now();
+    staticIdentityCache.set(mmsi, existing);
+    staticIdentityDirty = true;
+    enforceStaticIdentityLimit();
+  }
+  return changed;
+}
+
+// Apply stored static identity onto a vessel record, filling only missing fields.
+// Used when a vessel is (re)created so a previously-learned name is restored.
+function applyStaticIdentity(vessel) {
+  const identity = staticIdentityCache.get(vessel.MMSI);
+  if (!identity) return;
+  if (!vessel.NAME && identity.NAME) {
+    vessel.NAME = identity.NAME;
+    vessel._nameSource = identity.source || 'identity-cache';
+  }
+  if (!vessel.CALLSIGN && identity.CALLSIGN) vessel.CALLSIGN = identity.CALLSIGN;
+  if ((vessel.TYPE === null || vessel.TYPE === 0) && identity.TYPE !== null && identity.TYPE !== undefined) vessel.TYPE = identity.TYPE;
+  if (!vessel.IMO && identity.IMO) vessel.IMO = identity.IMO;
+  if ((vessel.A === null || vessel.A === 0) && identity.A) { vessel.A = identity.A; vessel.B = identity.B; }
+  if ((vessel.C === null || vessel.C === 0) && identity.C) { vessel.C = identity.C; vessel.D = identity.D; }
+}
+
 // WebSocket connection state
 let wsConnection = null;
 let reconnectAttempts = 0;
@@ -387,7 +497,8 @@ function processAISMessage(message) {
       return;
     }
     
-    let vessel = vesselCache.get(mmsi) || {
+    const existingVessel = vesselCache.get(mmsi);
+    let vessel = existingVessel || {
       MMSI: mmsi,
       NAME: '',
       CALLSIGN: '',
@@ -408,8 +519,14 @@ function processAISMessage(message) {
       _fixType: null,
       _valid: null,
       _messageType: null,
-      _nameSource: null // 'ais' | 'marinesia' | null
+      _nameSource: null // 'ais' | 'marinesia' | 'identity-cache' | null
     };
+
+    // For a freshly-created record, restore any static identity (name, callsign,
+    // type, dimensions) learned previously so it survives position-TTL eviction.
+    if (!existingVessel) {
+      applyStaticIdentity(vessel);
+    }
     
     // Update common fields
     vessel.MMSI = mmsi;
@@ -511,6 +628,12 @@ function processAISMessage(message) {
       vessel._aisVersion = static_data.AisVersion;
       vessel._fixType = static_data.FixType;
       vessel._valid = static_data.Valid;
+
+      // Persist static identity so it survives position-TTL eviction
+      recordStaticIdentity(mmsi, {
+        NAME: vessel.NAME, CALLSIGN: vessel.CALLSIGN, TYPE: vessel.TYPE, IMO: vessel.IMO,
+        A: vessel.A, B: vessel.B, C: vessel.C, D: vessel.D
+      }, 'ais');
     }
     
     // Process Class B static data (Message Type 24)
@@ -552,6 +675,12 @@ function processAISMessage(message) {
       
       // Store additional internal fields
       vessel._valid = static_data.Valid;
+
+      // Persist static identity so it survives position-TTL eviction
+      recordStaticIdentity(mmsi, {
+        NAME: vessel.NAME, CALLSIGN: vessel.CALLSIGN, TYPE: vessel.TYPE, IMO: vessel.IMO,
+        A: vessel.A, B: vessel.B, C: vessel.C, D: vessel.D
+      }, 'ais');
     }
     
     // Process navigation aids
@@ -587,6 +716,12 @@ function processAISMessage(message) {
       vessel._positionAccuracy = nav_aid.PositionAccuracy;
       vessel._timestamp = nav_aid.Timestamp;
       vessel._valid = nav_aid.Valid;
+
+      // Persist static identity so it survives position-TTL eviction
+      recordStaticIdentity(mmsi, {
+        NAME: vessel.NAME, TYPE: vessel.TYPE,
+        A: vessel.A, B: vessel.B, C: vessel.C, D: vessel.D
+      }, 'ais');
     }
     
     vesselCache.set(mmsi, vessel);
@@ -607,6 +742,12 @@ function processAISMessage(message) {
       if (!vessel.DRAUGHT && marinesiaVessel.draught) vessel.DRAUGHT = marinesiaVessel.draught;
       if ((vessel.A === null || vessel.A === 0) && marinesiaVessel.a) { vessel.A = marinesiaVessel.a; vessel.B = marinesiaVessel.b; }
       if ((vessel.C === null || vessel.C === 0) && marinesiaVessel.c) { vessel.C = marinesiaVessel.c; vessel.D = marinesiaVessel.d; }
+
+      // Persist Marinesia-derived static identity too
+      recordStaticIdentity(mmsi, {
+        NAME: vessel.NAME, CALLSIGN: vessel.CALLSIGN, TYPE: vessel.TYPE, IMO: vessel.IMO,
+        A: vessel.A, B: vessel.B, C: vessel.C, D: vessel.D
+      }, vessel._nameSource === 'marinesia' ? 'marinesia' : (vessel._nameSource || 'marinesia'));
     }
     
     // Save cache occasionally
@@ -649,6 +790,21 @@ setInterval(() => {
 }, 300000);
 
 setInterval(saveCache, 600000);
+
+// Persist the static identity store on its own cadence (only writes when dirty),
+// and prune entries whose identity hasn't been re-learned within the TTL.
+setInterval(() => {
+  const cutoff = Date.now() - STATIC_IDENTITY_TTL;
+  let pruned = 0;
+  for (const [mmsi, identity] of staticIdentityCache.entries()) {
+    if (identity.lastLearned && identity.lastLearned < cutoff) {
+      staticIdentityCache.delete(mmsi);
+      pruned++;
+    }
+  }
+  if (pruned > 0) { staticIdentityDirty = true; if (DEBUG) console.log(`Pruned ${pruned} stale vessel identities`); }
+  saveStaticIdentity();
+}, 600000);
 
 
 
@@ -1368,6 +1524,9 @@ app.get('/ais-proxy/v2/health', async (req, res) => {
         lastPoll: marinesiaLastPoll ? marinesiaLastPoll.toISOString() : null,
         pollInterval: marinesiaPollInterval
       },
+      staticIdentity: {
+        storedVessels: staticIdentityCache.size
+      },
       uploadClients: {
         totalClients: clientStatusCache.size,
         activeClients24h: Array.from(clientStatusCache.values())
@@ -1394,6 +1553,7 @@ process.on('SIGTERM', () => {
     clearInterval(pingInterval);
   }
   saveCache();
+  saveStaticIdentity();
   process.exit(0);
 });
 
@@ -1406,6 +1566,7 @@ process.on('SIGINT', () => {
     clearInterval(pingInterval);
   }
   saveCache();
+  saveStaticIdentity();
   process.exit(0);
 });
 
@@ -1483,6 +1644,13 @@ async function pollMarinesia() {
         a: v.a || null, b: v.b || null, c: v.c || null, d: v.d || null
       });
 
+      // Persist Marinesia static identity regardless of whether the vessel is
+      // currently in the position cache, so it can be re-applied after eviction.
+      recordStaticIdentity(v.mmsi, {
+        NAME: v.name, TYPE: mappedType, IMO: v.imo,
+        A: v.a, B: v.b, C: v.c, D: v.d
+      }, 'marinesia');
+
       const cached = vesselCache.get(v.mmsi);
       if (cached) {
         // Enrich existing vessel with missing static data
@@ -1507,7 +1675,7 @@ async function pollMarinesia() {
         }
       } else {
         // Add new vessel from Marinesia
-        vesselCache.set(v.mmsi, {
+        const newVessel = {
           MMSI: v.mmsi,
           NAME: v.name || '',
           CALLSIGN: '',
@@ -1534,7 +1702,10 @@ async function pollMarinesia() {
           _messageType: 'PositionReport',
           _nameSource: v.name ? 'marinesia' : null,
           _dataSource: 'marinesia'
-        });
+        };
+        // Backfill any previously-learned identity Marinesia didn't include this poll
+        applyStaticIdentity(newVessel);
+        vesselCache.set(v.mmsi, newVessel);
         added++;
       }
     }
@@ -1571,7 +1742,16 @@ async function startMarinesiaEnrichment() {
 
 app.listen(PORT, () => {
   console.log(`AIS Proxy server running on port ${PORT}`);
+  loadStaticIdentity();
   loadCache();
+  // Re-apply persisted identity to any cached vessels that came back nameless
+  let restored = 0;
+  for (const vessel of vesselCache.values()) {
+    const before = vessel.NAME;
+    applyStaticIdentity(vessel);
+    if (!before && vessel.NAME) restored++;
+  }
+  if (restored > 0) console.log(`Restored names for ${restored} cached vessels from identity store`);
   connectToAISStream();
   startMarinesiaEnrichment();
 });
