@@ -19,7 +19,6 @@ MAP_DOWNLOADS_BUCKET="__MAP_DOWNLOADS_BUCKET__"
 NOTIFICATIONS_TOPIC_ARN="__NOTIFICATIONS_TOPIC_ARN__"
 ENV_CONFIG_BUCKET="__ENV_CONFIG_BUCKET__"
 ARTIFACTS_BUCKET="__ARTIFACTS_BUCKET__"
-ECS_CLUSTER_NAME="__ECS_CLUSTER_NAME__"
 BUNDLE_S3_URI="__BUNDLE_S3_URI__"
 # Skip flags: --skip-regional/-marine/-vector.
 SKIP_REGIONAL="__SKIP_REGIONAL__"
@@ -102,7 +101,7 @@ echo "=== Offline map build starting: $(date -u) on $INSTANCE_ID in $REGION ==="
 # (Node >=22.5.0), and bare "nodejs" via AL2023 `alternatives` isn't
 # guaranteed >=22 -- confirmed once: "No such built-in module: node:sqlite".
 if ! dnf install -y git python3 python3-pip sqlite sqlite-devel awscli amazon-cloudwatch-agent \
-    nodejs22 nodejs22-npm gcc-c++ make zlib-devel jq; then
+    nodejs22 nodejs22-npm gcc-c++ make zlib-devel; then
   FAILURES+=("dependency-install")
 fi
 
@@ -244,8 +243,17 @@ else
 fi
 fi
 
-# 6. NZ OMT vector basemap. Uploads both variants to BOTH buckets:
-# artifacts (tile-downloader) and map-downloads/vector/ (user-facing).
+# 6. NZ OMT vector basemap. Uploads both variants to map-downloads/vector/
+# only (user-facing) -- NOT to the artifacts bucket. Artifacts is reserved
+# for the "raw" files as fetched from their source (linz-vector-tiles.mbtiles
+# straight from LINZ, nz-building-heights.pmtiles as uploaded, etc); neither
+# nz-omt.mbtiles nor nz-omt-buildings.mbtiles is a raw source file, and
+# neither is wired to be read from there by anything -- tileserver-gl's
+# tile-downloader only fetches what's listed in cdk.json's mbtilesMulti
+# (nz_nationalmap_emergency.mbtiles, linz-vector-tiles.mbtiles), and the
+# streamed /data/* delivery path that once read nz-omt* from artifacts was
+# removed. So there is also no tileserver-gl reload step here -- it would be
+# reloading a service that was never serving these files in the first place.
 if [[ "$SKIP_VECTOR" == "true" ]]; then
   echo "=== Skipping NZ OMT vector basemap (--skip-vector) ==="
 else
@@ -270,10 +278,6 @@ if [[ -d "$WORKDIR/repo/scripts/nz-omt-tileset" ]] && cd "$WORKDIR/repo/scripts/
         FAILURES+=("nz-omt-build-buildings-variant")
         NZ_OMT_OK=0
       else
-        if ! aws s3 cp "$WORKDIR/nz-omt-buildings.mbtiles" "s3://${ARTIFACTS_BUCKET}/nz-omt-buildings.mbtiles" --region "$REGION"; then
-          FAILURES+=("nz-omt-upload-buildings-variant-artifacts")
-          NZ_OMT_OK=0
-        fi
         if ! aws s3 cp "$WORKDIR/nz-omt-buildings.mbtiles" "s3://${MAP_DOWNLOADS_BUCKET}/vector/nz-omt-buildings.mbtiles" --region "$REGION"; then
           FAILURES+=("nz-omt-upload-buildings-variant-downloads")
           NZ_OMT_OK=0
@@ -282,16 +286,21 @@ if [[ -d "$WORKDIR/repo/scripts/nz-omt-tileset" ]] && cd "$WORKDIR/repo/scripts/
       rm -f "$WORKDIR/nz-omt-buildings.mbtiles"
       rm -rf "$WORKDIR/omt-work-buildings"
 
+      # Base (non-3D) variant: --addresses is required here, NOT optional --
+      # this is the variant that carries flat building outlines (from LINZ's
+      # own `buildings` layer, since there's no --heights source) instead of
+      # extruded ones, and without --addresses it silently ships with no
+      # `housenumber` layer at all. Confirmed missed once already (2026-09):
+      # a manual national build reused build.sh's bare example invocation and
+      # shipped without housenumbers even though the Wellington CBD test that
+      # validated this exact build included them.
       if ! ./build.sh --linz "$WORKDIR/linz-vector-tiles.mbtiles" \
+          --addresses \
           --workdir "$WORKDIR/omt-work-base" \
           --out "$WORKDIR/nz-omt.mbtiles"; then
         FAILURES+=("nz-omt-build-base-variant")
         NZ_OMT_OK=0
       else
-        if ! aws s3 cp "$WORKDIR/nz-omt.mbtiles" "s3://${ARTIFACTS_BUCKET}/nz-omt.mbtiles" --region "$REGION"; then
-          FAILURES+=("nz-omt-upload-base-variant-artifacts")
-          NZ_OMT_OK=0
-        fi
         if ! aws s3 cp "$WORKDIR/nz-omt.mbtiles" "s3://${MAP_DOWNLOADS_BUCKET}/vector/nz-omt.mbtiles" --region "$REGION"; then
           FAILURES+=("nz-omt-upload-base-variant-downloads")
           NZ_OMT_OK=0
@@ -301,35 +310,7 @@ if [[ -d "$WORKDIR/repo/scripts/nz-omt-tileset" ]] && cd "$WORKDIR/repo/scripts/
       rm -rf "$WORKDIR/omt-work-base"
 
       if [[ "${NZ_OMT_OK:-0}" == "1" ]]; then
-        notify "Offline map build progress on $INSTANCE_ID" "Uploaded nz-omt-buildings.mbtiles and nz-omt.mbtiles to both artifacts and map-downloads buckets"
-
-        # shellcheck disable=SC2016  # JMESPath, not meant to expand
-        SERVICE_NAME="$(aws ecs list-services --cluster "$ECS_CLUSTER_NAME" --region "$REGION" \
-          --query 'serviceArns[?contains(@,`tileserver-gl`)]' --output text | xargs -n1 basename 2>/dev/null || true)"
-        if [[ -z "$SERVICE_NAME" ]]; then
-          echo "tileserver-gl service not found in cluster $ECS_CLUSTER_NAME, skipping reload"
-        else
-          TASK_DEF_ARN="$(aws ecs describe-services --cluster "$ECS_CLUSTER_NAME" --services "$SERVICE_NAME" --region "$REGION" \
-            --query 'services[0].taskDefinition' --output text)"
-          aws ecs describe-task-definition --task-definition "$TASK_DEF_ARN" --region "$REGION" \
-            --query 'taskDefinition' > "$WORKDIR/task-def.json"
-          jq '.containerDefinitions |= map(
-            if .name == "tile-downloader" then
-              .environment |= (map(if .name == "FORCE_DOWNLOAD" then .value = "true" else . end) |
-              if (map(.name) | contains(["FORCE_DOWNLOAD"]) | not) then
-                . + [{"name": "FORCE_DOWNLOAD", "value": "true"}]
-              else . end)
-            else . end
-          ) | {family, taskRoleArn, executionRoleArn, networkMode, containerDefinitions,
-             volumes, placementConstraints, requiresCompatibilities, cpu, memory}' \
-            "$WORKDIR/task-def.json" > "$WORKDIR/new-task-def.json"
-          NEW_TASK_DEF_ARN="$(aws ecs register-task-definition --region "$REGION" \
-            --cli-input-json "file://$WORKDIR/new-task-def.json" \
-            --query 'taskDefinition.taskDefinitionArn' --output text)"
-          aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$SERVICE_NAME" --region "$REGION" \
-            --task-definition "$NEW_TASK_DEF_ARN" --force-new-deployment >/dev/null
-          echo "tileserver-gl service updated to $NEW_TASK_DEF_ARN -- will re-download refreshed NZ OMT tilesets"
-        fi
+        notify "Offline map build progress on $INSTANCE_ID" "Uploaded nz-omt-buildings.mbtiles and nz-omt.mbtiles to map-downloads/vector/"
       fi
     fi
   fi

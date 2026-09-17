@@ -157,7 +157,6 @@ NOTIFICATIONS_TOPIC_ARN="$(get_export MapBuildNotificationsTopicArn)"
 SCHEDULER_ROLE_ARN="$(get_export MapBuildSchedulerRoleArn)"
 ENV_CONFIG_BUCKET="$(get_export S3EnvConfigArn | sed -E 's#^arn:[^:]+:s3:::##')"
 ARTIFACTS_BUCKET="$(get_export AppImagesBucket)"
-ECS_CLUSTER_NAME="$(get_export EcsClusterName)"
 
 for name_val in \
   "MapDownloadsBucket:$MAP_DOWNLOADS_BUCKET" \
@@ -165,8 +164,7 @@ for name_val in \
   "MapBuildNotificationsTopicArn:$NOTIFICATIONS_TOPIC_ARN" \
   "MapBuildSchedulerRoleArn:$SCHEDULER_ROLE_ARN" \
   "S3EnvConfigArn:$ENV_CONFIG_BUCKET" \
-  "AppImagesBucket:$ARTIFACTS_BUCKET" \
-  "EcsClusterName:$ECS_CLUSTER_NAME"
+  "AppImagesBucket:$ARTIFACTS_BUCKET"
 do
   name="${name_val%%:*}"
   val="${name_val#*:}"
@@ -183,7 +181,6 @@ echo "  MapBuildNotificationsTopicArn: $NOTIFICATIONS_TOPIC_ARN"
 echo "  MapBuildSchedulerRoleArn:      $SCHEDULER_ROLE_ARN"
 echo "  EnvConfigBucket:               $ENV_CONFIG_BUCKET"
 echo "  ArtifactsBucket:               $ARTIFACTS_BUCKET"
-echo "  EcsClusterName:                $ECS_CLUSTER_NAME"
 
 # ---------------------------------------------------------------------------
 # Package the local offline-maps/ and scripts/nz-omt-tileset/ directories and
@@ -257,7 +254,6 @@ sed \
   -e "s|__NOTIFICATIONS_TOPIC_ARN__|${NOTIFICATIONS_TOPIC_ARN}|g" \
   -e "s|__ENV_CONFIG_BUCKET__|${ENV_CONFIG_BUCKET}|g" \
   -e "s|__ARTIFACTS_BUCKET__|${ARTIFACTS_BUCKET}|g" \
-  -e "s|__ECS_CLUSTER_NAME__|${ECS_CLUSTER_NAME}|g" \
   -e "s|__BUNDLE_S3_URI__|s3://${ARTIFACTS_BUCKET}/${BUNDLE_KEY}|g" \
   -e "s|__SKIP_REGIONAL__|${SKIP_REGIONAL}|g" \
   -e "s|__SKIP_MARINE__|${SKIP_MARINE}|g" \
