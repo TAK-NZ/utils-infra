@@ -70,7 +70,7 @@ which requires the original source file. Keep the source packages under
 | Hazards | Nelson | `Hazards - Nelson - Flood - Wakapuaka (100yr)` | S3 flood pipeline |
 | Hazards | Nelson | `Hazards - Nelson - Flood - Whangamoa (100yr)` | S3 flood pipeline |
 | Hazards | NZ | `Hazards - NZ - Tsunami Evacuation Zones` | `data-packages/hazards/tsunami/` (NEMA ArcGIS) |
-| Infrastructure | NZ | `Infrastructure - NZ - AED Locations` | `kml/aed-locations/` |
+| Infrastructure | NZ | `Infrastructure - NZ - AED Locations` | `data-packages/infrastructure/aed-locations/` |
 | Infrastructure | NZ | `Infrastructure - NZ - Fire Stations (FENZ)` | `data-packages/infrastructure/` |
 | Infrastructure | NZ | `Infrastructure - NZ - Volcano Cameras (GeoNet)` | `data-packages/infrastructure/geonet-volcano-cameras/` |
 | Infrastructure | NZ | `Infrastructure - NZ - Campsites (DOC)` | `data-packages/infrastructure/` |

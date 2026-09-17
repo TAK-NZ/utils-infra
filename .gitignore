@@ -125,3 +125,10 @@ data-packages/hazards/tsunami/*.zip
 data-packages/infrastructure/geonet-volcano-cameras/work/
 data-packages/infrastructure/geonet-volcano-cameras/*.kmz
 data-packages/infrastructure/geonet-volcano-cameras/*.zip
+
+# AED locations pipeline — same reasoning: generated KMZ/package are
+# reproducible from the aedlocations.co.nz feed. Only scripts, README,
+# aed.png and .env.example are tracked.
+data-packages/infrastructure/aed-locations/work/
+data-packages/infrastructure/aed-locations/*.kmz
+data-packages/infrastructure/aed-locations/*.zip
