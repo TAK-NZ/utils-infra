@@ -20,13 +20,16 @@
  *   node translate.js --linz <linz.mbtiles> [options] > merged.geojsonl
  *
  *   --linz PATH        LINZ topographic MBTiles (Shortbread schema)   [required]
- *   --heights PATH     nz-building-heights.pmtiles; omit to build without 3D
+ *   --heights PATH     nz-building-heights.pmtiles; omit to build without 3D.
+ *                      When omitted, LINZ's own `buildings` layer is instead
+ *                      emitted as flat OMT `building` outlines (no
+ *                      `render_height` -- see the `buildings` pass below).
  *   --addresses        also emit an OMT `housenumber` layer from LINZ's
  *                      `addresses` layer (off by default -- see build.sh)
  *   --bbox W,S,E,N     area of interest        [default: all of New Zealand]
  *   --linz-zoom N      source zoom to read from LINZ        [default: 15, its maxzoom]
  *   --bldg-zoom N      source zoom to read from heights     [default: 16, its maxzoom]
- *   --only linz|heights|addresses   run just one pass  [default: both/all requested]
+ *   --only linz|heights|buildings|addresses   run just one pass  [default: both/all requested]
  *   --progress N       log every N source tiles             [default: 5000]
  *
  * build.sh drives this once per zoom level so that each output zoom is built
@@ -86,12 +89,18 @@ if (!LINZ_DB) {
   console.error('usage: translate.js --linz <linz.mbtiles> [--heights <heights.pmtiles>] [--bbox W,S,E,N]');
   process.exit(1);
 }
-if (!['both', 'linz', 'heights', 'addresses'].includes(ONLY)) {
-  console.error(`--only must be one of: both, linz, heights, addresses (got "${ONLY}")`);
+if (!['both', 'linz', 'heights', 'buildings', 'addresses'].includes(ONLY)) {
+  console.error(`--only must be one of: both, linz, heights, buildings, addresses (got "${ONLY}")`);
   process.exit(1);
 }
 const DO_LINZ = ONLY === 'both' || ONLY === 'linz';
 const DO_HEIGHTS = (ONLY === 'both' || ONLY === 'heights') && !!HEIGHTS;
+// LINZ's own `buildings` layer, emitted as flat OMT `building` outlines when
+// no --heights archive is given. Only makes sense when heights are absent:
+// the heights archive is authoritative for the 3D variant (it carries
+// render_height, LINZ's own layer doesn't), so building this pass only when
+// !HEIGHTS avoids ever emitting two `building` sources into the same tileset.
+const DO_LINZ_BUILDINGS = (ONLY === 'both' || ONLY === 'buildings') && !HEIGHTS;
 // `addresses` is its own pass (like heights), gated by an explicit --addresses
 // flag rather than folded into DO_LINZ's per-zoom loop, because it must be
 // read exactly once (at LINZ_Z, i.e. LINZ's own maxzoom for best positional
@@ -233,7 +242,9 @@ const DROP_REASON = {
   pier_lines: 'no OMT equivalent',
   aerialways: 'no OMT equivalent (cable cars/ski tows, not airport aeroways)',
   dam_lines: 'no OMT equivalent',
-  buildings: 'replaced by nz-building-heights footprints carrying render_height',
+  buildings: HEIGHTS
+    ? 'replaced by nz-building-heights footprints carrying render_height'
+    : 'read in its own pass (--only buildings) as flat OMT `building` outlines, not per-zoom',
 };
 
 /* ------------------------------------------------------------- emit */
@@ -440,6 +451,81 @@ if (DO_ADDRESSES) {
   console.error(`addresses done: ${addrFeatures} housenumbers${addrNoNumber ? `, ${addrNoNumber} features without a housenumber` : ''}`);
 } else if (ONLY === 'both' && !WANT_ADDRESSES) {
   console.error('\naddresses: skipped (pass --addresses to include the housenumber layer)');
+}
+
+/* ==================================================================
+ * Pass 1c -- LINZ `buildings` -> flat OMT `building` outlines (own pass,
+ * own DB handle, mirrors the addresses pass above)
+ *
+ * Only runs when no --heights archive was given (DO_LINZ_BUILDINGS, defined
+ * above). Read once at LINZ_Z (its own maxzoom) rather than as a `translate`
+ * table entry, for the same reason as addresses: build.sh invokes --only linz
+ * once per output zoom, and a `building` layer must live only in the z16
+ * tiles (see build.sh's header comment on why buildings/housenumbers are
+ * tiled at MAXZOOM only, not per literal zoom).
+ *
+ * These outlines carry no `render_height` -- LINZ's `buildings` layer has no
+ * height attribute at all, only `building`/`kind`/`name`/`store_item`/`use`.
+ * ATAK's extrusion is driven solely by `render_height`
+ * (MapBoxGLStyleSheet.cpp:215-216), so without it these render as flat 2D
+ * fills under the bundled OMT `bright`/`dark` styles' `building` paint rule
+ * -- which is exactly the point: this is the basemap-only variant's building
+ * *outline* layer, not a 3D layer. Nothing else in this OMT layer's expected
+ * field set (Schema.java:103: render_min_height, hide_3d, colour,
+ * render_height) is populated either; layerIntersect still holds because
+ * OMT's `building` layer requires no particular field to be present, only
+ * that the layer name matches (see verify.js and Schema.java:210-227).
+ * ================================================================== */
+let linzBldgFeatures = 0;
+let linzBldgTiles = 0;
+if (DO_LINZ_BUILDINGS) {
+  const bdb = new DatabaseSync(LINZ_DB, { readOnly: true });
+  const bZ = LINZ_Z; // LINZ's own source zoom, same as addresses
+  let bTotal;
+  let bRows;
+  if (HAS_BBOX) {
+    const r = tileRange(bZ);
+    const yTmsMin = 2 ** bZ - 1 - r.y1;
+    const yTmsMax = 2 ** bZ - 1 - r.y0;
+    bTotal = bdb.prepare(
+      `select count(*) c from tiles where zoom_level=? and tile_column between ? and ? and tile_row between ? and ?`
+    ).get(bZ, r.x0, r.x1, yTmsMin, yTmsMax).c;
+    bRows = bdb.prepare(
+      `select tile_column x, tile_row y, tile_data d from tiles
+        where zoom_level=? and tile_column between ? and ? and tile_row between ? and ?`
+    ).iterate(bZ, r.x0, r.x1, yTmsMin, yTmsMax);
+  } else {
+    bTotal = bdb.prepare('select count(*) c from tiles where zoom_level=?').get(bZ).c;
+    bRows = bdb.prepare('select tile_column x, tile_row y, tile_data d from tiles where zoom_level=?').iterate(bZ);
+  }
+  console.error(`\nLINZ buildings (no --heights) z${bZ}: ${bTotal} tiles`);
+  for (const row of bRows) {
+    const yXyz = 2 ** bZ - 1 - row.y;
+    let buf = Buffer.from(row.d);
+    if (buf[0] === 0x1f && buf[1] === 0x8b) buf = zlib.gunzipSync(buf);
+    let tile;
+    try { tile = new VectorTile(new PbfReader(buf)); } catch (e) { continue; }
+    const L = tile.layers.buildings;
+    if (!L) continue;
+    linzBldgTiles++;
+    for (let i = 0; i < L.length; i++) {
+      const f = L.feature(i);
+      let gj;
+      try { gj = f.toGeoJSON(row.x, yXyz, bZ); } catch (e) { continue; }
+      if (gj.geometry.type !== 'Polygon' && gj.geometry.type !== 'MultiPolygon') continue;
+      const p = gj.properties || {};
+      emit('building', gj.geometry, { name: p.name });
+      linzBldgFeatures++;
+    }
+    if (linzBldgTiles % PROGRESS === 0) console.error(`  ${linzBldgTiles} tiles with buildings, ${linzBldgFeatures} outlines so far`);
+  }
+  bdb.close();
+  flush();
+  console.error(`LINZ buildings done: ${linzBldgFeatures} outlines from ${linzBldgTiles} tiles (no render_height -- flat outlines only)`);
+} else if (HEIGHTS) {
+  console.error('\nLINZ buildings: skipped (--heights given -- the heights archive supplies `building` instead)');
+} else if (ONLY !== 'both' && ONLY !== 'buildings') {
+  console.error(`\nLINZ buildings: skipped (--only ${ONLY})`);
 }
 
 /* ==================================================================

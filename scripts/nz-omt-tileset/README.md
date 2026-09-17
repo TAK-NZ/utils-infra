@@ -4,21 +4,36 @@ Offline builder for the ATAK vector basemap: LINZ topographic tiles translated
 from the Shortbread schema into OpenMapTiles, optionally merged with the
 `nz-building-heights` archive so ATAK renders **extruded 3D buildings**.
 
-Produces two basemap variants:
+Produces two basemap variants, **both of which now include a `building` layer**:
 
-| Variant | Command | Contents |
+| Variant | Command | `building` layer |
 |---|---|---|
-| with 3D buildings | pass `--heights` | full basemap + `building` layer carrying `render_height` |
-| basemap only | omit `--heights` | full basemap, no `building` layer |
+| with 3D buildings | pass `--heights` | from `nz-building-heights`, carries `render_height` -> ATAK extrudes them |
+| basemap only | omit `--heights` | from LINZ's own `buildings` layer, flat 2D outlines, no `render_height` -> ATAK draws them flat |
 
 `build.sh` also accepts `--addresses`, which adds a `housenumber` layer from
-LINZ address points. **Do not use it.** It was tried and reverted: ATAK's
-bundled OMT `dark` style has no `housenumber` layer at all, and even in
-`bright`/`overlay` it needs `minzoom: 18` — evaluated against camera zoom, not
-tile zoom — which in practice never renders on device. Confirmed no visible
-effect after including it; it only adds ~60MB uncompressed nationally for
-nothing. The flag is kept in the builder for reference but is no longer passed
-by `build.sh`'s own examples or the CI workflow.
+LINZ address points. **This renders fine under ATAK's bundled OMT style too —
+it always did.** An earlier version of this doc claimed housenumbers never
+rendered on device; that was wrong. `bright`/`overlay` set `housenumber` to
+`minzoom: 18`, evaluated against the camera's current zoom, so you do have to
+zoom in a long way — but at z18 the labels are there, confirmed on device on
+both the 3D variant and the (then outline-less) basemap-only variant, i.e.
+this predates every change in this doc. `dark` has no `housenumber` layer at
+all, so it won't render under that variant specifically. It still isn't
+passed by `build.sh`'s own examples or the CI workflow by default, and still
+adds ~60MB uncompressed nationally for a layer that only matters at an
+extreme zoom, so it stays opt-in.
+
+[`omt-linz-style.json`](omt-linz-style.json) (see "Custom style" further
+down) additionally defines its own `housenumber` layer at `minzoom: 16`
+instead of the bundled style's 18, so labels appear two zoom levels earlier
+when that custom style is applied via ATAK 5.8's "Set Layer Style". That's a
+usability improvement, not a fix — housenumbers were never broken.
+
+Confirmed on device, on a Wellington CBD extract built with `--addresses` and
+no `--heights`: the new flat `building` outlines render correctly (the actual
+new capability in this doc), and `housenumber` labels render both under the
+bundled style at z18 and under the custom style from z16.
 
 Background and the ATAK source references behind every constraint here are in
 [`ATAK_3D_BUILDINGS.md`](../../docs/ATAK_3D_BUILDINGS.md).
@@ -67,11 +82,18 @@ aws s3 cp s3://tak-demo-baseinfra-us-west-2-123456789012-artifacts/linz-vector-t
 # national, basemap only       -> nz-omt.mbtiles
 ./build.sh --linz linz-vector-tiles.mbtiles
 
-# quick Wellington smoke test (a few minutes)
+# quick Wellington CBD smoke test, 3D buildings (a few minutes)
 ./build.sh --linz linz-vector-tiles.mbtiles \
            --heights ../../../CloudTAK/data/nz-building-heights.pmtiles \
-           --bbox 174.765,-41.305,174.800,-41.270 --minzoom 12 \
+           --bbox 174.765,-41.295,174.790,-41.275 --minzoom 12 \
            --out wellington-omt.mbtiles
+
+# quick Wellington CBD smoke test, basemap only (flat building outlines +
+# housenumbers, for testing the custom style's housenumber layer)
+./build.sh --linz linz-vector-tiles.mbtiles \
+           --bbox 174.765,-41.295,174.790,-41.275 --minzoom 12 \
+           --addresses \
+           --out wellington-omt-basemap.mbtiles
 ```
 
 Run `./build.sh --help` for all options.
@@ -91,7 +113,10 @@ LINZ's z15 maximum — it cannot be dropped because buildings only draw at z16.
 
 `--addresses` adds **~61 MB uncompressed** nationally (measured: 2,590,884
 address points, tiled at z16, max tile 141.8 KB, no density dropping needed).
-Off by default — see the "Housenumbers are opt-in" section below for why.
+Off by default — see "Housenumbers" below for why.
+
+The basemap-only variant's `building` layer (LINZ outlines, no `render_height`)
+adds a modest amount too — see "Buildings without `--heights`" below.
 
 ## Coverage
 
@@ -117,11 +142,14 @@ for a national run.
 
 1. **`translate.js`** streams every LINZ tile at the source zoom, maps Shortbread
    layers and `kind` values onto OMT layers and `class` values, and emits
-   newline-delimited GeoJSON with a per-feature `tippecanoe.layer` member. With
-   `--heights` it then walks the PMTiles archive at z16 and emits `building`
-   features carrying only `render_height` and `render_min_height`. With
-   `--addresses` it also reads LINZ's `addresses` layer once (at LINZ's own
-   source maxzoom) and emits `housenumber` features carrying only `housenumber`.
+   newline-delimited GeoJSON with a per-feature `tippecanoe.layer` member.
+   `building` comes from one of two mutually exclusive passes: with
+   `--heights`, it walks the PMTiles archive at z16 and emits `building`
+   features carrying `render_height`/`render_min_height`; without `--heights`,
+   it instead reads LINZ's own `buildings` layer once (at LINZ's own source
+   maxzoom) and emits `building` features carrying only `name` (no height —
+   flat outlines). With `--addresses` it also reads LINZ's `addresses` layer
+   once and emits `housenumber` features carrying only `housenumber`.
 2. **`build.sh`** splits base, building and (if requested) address features into
    separate tippecanoe passes, and joins the results with `tile-join`.
 3. **`verify.js`** checks the result against what ATAK enforces: `format=pbf`,
@@ -131,14 +159,16 @@ for a national run.
 
 ### Non-obvious details
 
-**Buildings and housenumbers are each tiled separately, at z16 only.** ATAK's
-bundled OMT style sets `building` to `minzoom: 16` and `housenumber` to
-`minzoom: 18` — but those minzooms are evaluated against the camera's current
-map zoom, not the tile pyramid's zoom, the same way `building` at z16 already
-renders once the camera passes z16 via the renderer's own overzoom scaling. So
-`housenumber` features must live in the z16 tiles too, not in tiles literally
-named z17/z18 — a literal z18 tile would carry no roads or water underneath and
-the basemap would appear to vanish at that zoom, the same failure mode buildings
+**Buildings and housenumbers are each tiled separately, at z16 only** —
+whichever of the two `building` sources is active (heights archive or LINZ's
+own outlines) and `housenumber` alike. ATAK's bundled OMT style sets
+`building` to `minzoom: 16` and `housenumber` to `minzoom: 18` — but those
+minzooms are evaluated against the camera's current map zoom, not the tile
+pyramid's zoom, the same way `building` at z16 already renders once the
+camera passes z16 via the renderer's own overzoom scaling. So `housenumber`
+features must live in the z16 tiles too, not in tiles literally named
+z17/z18 — a literal z18 tile would carry no roads or water underneath and the
+basemap would appear to vanish at that zoom, the same failure mode buildings
 would have hit if tiled naively.
 
 The obvious alternative for either layer — a per-feature `tippecanoe.minzoom` —
@@ -171,8 +201,8 @@ as grey land.
 | `pois` | `poi` | `building`/`amenity`/`historic`/`man_made`→`class` |
 | `public_transport` (`kind=aerodrome`/`helipad`) | `poi` | `class=airfield`/`class=heliport` — see "Aerodromes" below |
 | `boundaries` | consumed | subtracted from tile extent to derive `water` |
-| `buildings` | dropped | replaced by the heights archive, which has `render_height` |
-| `addresses` | opt-in via `--addresses` | → `housenumber`; off by default — see "Housenumbers are opt-in" below |
+| `buildings` | `building` | **with `--heights`**: replaced entirely by the heights archive footprints, which carry `render_height`. **without `--heights`**: LINZ's own footprints are used instead, as flat outlines (no `render_height` — see "Buildings without `--heights`" below) |
+| `addresses` | opt-in via `--addresses` | → `housenumber`; off by default — see "Housenumbers" below |
 | `contours` | dropped | **no OMT contour layer exists** — a real loss for TAK use, and unfixable via this route |
 | `parcel_boundaries`, `pier_lines`, `aerialways`, `dam_lines` | dropped | no OMT equivalent (`aerialways` here means cable cars/ski tows, not airport aeroways) |
 
@@ -214,25 +244,64 @@ variant filters `aerodrome_label` on `has iata`, and LINZ carries no IATA codes
 with `class=airfield` / `class=heliport`, which have real icons in the bundled
 sprite sheet (`airfield_11/15`, `heliport_11/15`) and actually draw.
 
-### Housenumbers — tried, reverted, do not re-enable
+### Buildings without `--heights`: flat outlines from LINZ, not omitted
+
+Earlier versions of this builder dropped the `building` layer entirely for
+the basemap-only variant — LINZ's own `buildings` layer was in the "no OMT
+equivalent" drop list, on the reasoning that it would be replaced by the
+heights archive. That reasoning only holds when `--heights` is actually
+given. Omitting `--heights` meant the basemap-only variant carried no
+building outlines at all, even though LINZ's own `buildings` layer (polygons,
+`building`/`kind`/`name`/`store_item`/`use` attributes, no height field) was
+right there in the source and perfectly capable of drawing outlines.
+
+Fixed: when `--heights` is omitted, `translate.js --only buildings` reads
+LINZ's `buildings` layer once (same MAXZOOM-only pass structure as
+`--heights`/`--addresses`, for the same reason — ATAK's bundled style hides
+`building` below map zoom 16, evaluated against camera zoom not tile zoom) and
+emits `building` features carrying only `name`. No `render_height` — LINZ's
+layer has no height attribute — so `Schema.OMT.matches()` still passes
+(`layerIntersect` only needs the layer name plus *any* shared field; `building`
+requires none in particular), but ATAK draws these as **flat 2D fills**, not
+extrusions. That is the intended and only possible outcome without a heights
+source: `MapBoxGLStyleSheet.cpp:215-216` extrudes only from `render_height`.
+**Confirmed on device**, against a Wellington CBD extract sideloaded as a
+basemap: flat building outlines render correctly.
+
+When `--heights` *is* given, this LINZ pass is skipped entirely and the
+heights archive remains the sole source of `building` — the two are never
+merged into one tileset.
+
+### Housenumbers — they always worked, you just have to zoom in a long way
 
 `--addresses` embeds LINZ's `addresses` layer (2,590,884 points nationally) as
-OMT's `housenumber` layer, carrying only the `housenumber` field. This was
-built and included in production builds for a while, then removed after
-device testing showed it renders nothing.
+OMT's `housenumber` layer, carrying only the `housenumber` field.
 
-Reason: `housenumber` is `minzoom: 18` in both bundled `bright` and `overlay`
-styles (`dark` has no `housenumber` layer at all), and that minzoom is
-evaluated against the camera's current map zoom — closer to "read individual
-letterboxes" than any navigation zoom a user actually reaches. Confirmed on
-device: with `--addresses` included, no housenumbers were ever visible.
-It also isn't free — ~61 MB uncompressed nationally (measured: 2,590,884
-address points, tiled at z16, max tile 141.8 KB) for a layer that never draws.
+An earlier version of this doc claimed housenumbers rendered nothing under
+ATAK's bundled style. **That was wrong.** `housenumber` is `minzoom: 18` in
+both bundled `bright` and `overlay` styles, evaluated against the camera's
+current map zoom — closer to "read individual letterboxes" than any
+navigation zoom a user reaches by default, which is almost certainly why the
+earlier device test looked like it wasn't rendering. But zoom in far enough
+(z18) and the labels are there. Confirmed on device on both the 3D variant
+and the basemap-only variant (including before this doc's building-outline
+change), so this is not new behaviour and not something this PR fixes.
+`dark` genuinely has no `housenumber` layer at all, so it won't render under
+that variant regardless of zoom.
 
-The `--addresses` flag still exists in `translate.js`/`build.sh` for reference
-and possible future use (e.g. if a future ATAK style ships a lower
-`housenumber` minzoom), but neither `build.sh`'s own examples nor
-`.github/workflows/update-linz-tiles.yml` pass it anymore.
+It still costs ~61 MB uncompressed nationally (measured: 2,590,884 address
+points, tiled at z16, max tile 141.8 KB) for a layer that only matters at an
+extreme zoom most users won't reach, so `--addresses` stays off by default in
+`build.sh`'s own examples and `.github/workflows/update-linz-tiles.yml`/
+`offline-maps/user-data.sh`.
+
+`omt-linz-style.json` (see "Custom style" below) additionally defines its own
+`housenumber` layer at `minzoom: 16` — two zoom levels earlier than the
+bundled style's 18, and the tile zoom the layer is actually stored at. This
+is a usability improvement for anyone deploying the custom style anyway, not
+a fix for a broken layer. Confirmed on device: labels appear from z16 with
+the custom style applied via ATAK 5.8's "Set Layer Style", versus z18 under
+the bundled style.
 
 ## Deploying the result
 
