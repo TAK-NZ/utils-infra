@@ -9,16 +9,23 @@ Generates large, downloadable offline map files for NZ:
   (full EEZ at low zoom, coastal/harbour detail at high zoom), mbtiles format.
   Output → `MapDownloadsBucket`.
 - The NZ OMT vector basemap (`scripts/nz-omt-tileset/`, `nz-omt.mbtiles` +
-  `nz-omt-buildings.mbtiles`) — the ATAK vector basemap tileserver-gl serves.
+  `nz-omt-buildings.mbtiles`) — the sideloaded ATAK vector basemap (see
+  `docs/ATAK_3D_BUILDINGS.md`, Path A). `nz-omt.mbtiles` (no `--heights`) now
+  also carries flat building outlines and housenumbers, not just roads/water/
+  labels -- `build.sh` is always invoked with `--addresses` for this variant.
   This used to run monthly on GitHub Actions; it's now step 6 of
-  `user-data.sh`, folded into this same annual instance. Output → **both**
-  `AppImagesBucket` (internal, so tileserver-gl's tile-downloader init
-  container can fetch it, followed by a forced ECS service reload so
-  tileserver-gl picks up the refresh) **and** `MapDownloadsBucket` under
-  `vector/` (so users can download the vector basemap directly, same as the
-  regional/marine files). See "Where the refresh runs now" in
-  `docs/ATAK_3D_BUILDINGS.md` for the reasoning and disk-space history behind the
-  move to this instance.
+  `user-data.sh`, folded into this same annual instance. Output → only
+  `MapDownloadsBucket` under `vector/` (user-facing download, same as the
+  regional/marine files) -- **not** `AppImagesBucket`/artifacts. That bucket
+  is reserved for raw source files (`linz-vector-tiles.mbtiles` as fetched
+  from LINZ, `nz-building-heights.pmtiles`); neither built variant is a raw
+  source file, and nothing reads them from there -- tileserver-gl's
+  tile-downloader only fetches what's listed in `cdk.json`'s `mbtilesMulti`,
+  and the streamed `/data/*` delivery path that once served them from
+  artifacts was removed (see "Delivery status" at the top of
+  `docs/ATAK_3D_BUILDINGS.md`). See "Where the refresh runs now" in that same
+  doc for the reasoning and disk-space history behind the move to this
+  instance.
 
 All three are built manually, roughly once a year, and all three end up
 available for download via the TAK Team Manager portal (users grab the
@@ -85,8 +92,7 @@ This:
    and extracts the bundle, fetches the LINZ API key from the same S3 config
    object `terrain-proxy` already reads, runs both generator scripts (output
    → map-downloads bucket), then builds the NZ OMT vector basemap (output →
-   both the artifacts bucket and map-downloads, plus a forced tileserver-gl
-   reload), and self-terminates
+   map-downloads bucket only), and self-terminates
 
 Use `--dry-run` first to see the resolved command and rendered user-data
 without launching anything:
@@ -196,12 +202,8 @@ checkpoint/resume logic beyond the per-region granularity described above.
 s3://<MapDownloadsBucket>/
   regional/{region-key}-topo.mbtiles   # one per region, 16 files
   marine/nz-marine-charts.mbtiles      # one national file
-  vector/nz-omt.mbtiles                # vector basemap, no buildings
-  vector/nz-omt-buildings.mbtiles      # vector basemap, 3D buildings
-
-s3://<AppImagesBucket>/
-  nz-omt.mbtiles                       # same file, tileserver-gl's own copy
-  nz-omt-buildings.mbtiles             # same file, tileserver-gl's own copy
+  vector/nz-omt.mbtiles                # vector basemap, flat building outlines + housenumbers
+  vector/nz-omt-buildings.mbtiles      # vector basemap, 3D (extruded) buildings
 ```
 
 `region-key` matches the keys in `REGIONS` in `generate-regional-mbtiles.py`
@@ -211,15 +213,18 @@ built by this pipeline — they geographically overlap almost every smaller
 region and would roughly double download time/storage for no benefit given
 the per-region downloads already cover the same ground.
 
-The two vector basemap files are uploaded to **both** buckets — they're
-independent uploads of the same local build output, not a copy-between-
-buckets step, so a failure uploading to one doesn't silently skip the other
-(see `user-data.sh` step 6). TAK Team Manager reads from `MapDownloadsBucket`
-to mint presigned download URLs for authenticated users — that's the case
-for all four file types now, regional, marine, and vector. `AppImagesBucket`
-is a separate, internal bucket that `tileserver-gl` reads from directly (via
-its EFS-mounted `tile-downloader` init container); nobody downloads from it
-through the portal, it exists purely to keep the live service fed.
+All four file types (regional, marine, and the two vector basemap variants)
+go to `MapDownloadsBucket` only (see `user-data.sh` step 6). TAK Team Manager
+reads from there to mint presigned download URLs for authenticated users.
+**The two vector basemap files are not uploaded to `AppImagesBucket`** —
+that bucket holds only raw source files (`linz-vector-tiles.mbtiles` as
+fetched from LINZ, `nz-building-heights.pmtiles`) that `tileserver-gl`'s
+EFS-mounted `tile-downloader` init container reads directly, per
+`cdk.json`'s `mbtilesMulti` list. Neither built `nz-omt*.mbtiles` variant is
+in that list, and the streamed `/data/*` path that once served them from
+there was removed — see the "Delivery status" banner at the top of
+`docs/ATAK_3D_BUILDINGS.md`. There is deliberately no tileserver-gl reload
+step in this pipeline for the same reason.
 
 Also in `AppImagesBucket`, under `offline-maps-bundles/` — the code bundles
 `launch-build-instance.sh` uploads at each launch (see "Running a build"
