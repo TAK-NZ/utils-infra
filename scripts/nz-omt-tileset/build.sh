@@ -4,7 +4,11 @@
 #
 # Two variants:
 #   with 3D buildings     pass --heights <nz-building-heights.pmtiles>
+#                         building layer carries render_height (extruded)
 #   without 3D buildings  omit --heights
+#                         building layer is still included, from LINZ's own
+#                         `buildings` layer, as flat 2D outlines (no
+#                         render_height, so ATAK draws them flat, not extruded)
 #
 # Optionally also embeds a `housenumber` layer:
 #   pass --addresses to include LINZ address points (adds ~60MB uncompressed
@@ -42,7 +46,9 @@ usage: build.sh --linz <linz.mbtiles> [--heights <heights.pmtiles>] [options]
 
   --linz PATH       LINZ topographic MBTiles, Shortbread schema        [required]
   --heights PATH    nz-building-heights.pmtiles. Omit to build the
-                    basemap WITHOUT 3D buildings.
+                    basemap WITHOUT 3D buildings -- the `building` layer is
+                    still included, from LINZ's own footprints, but as flat
+                    2D outlines (no render_height, so ATAK draws them flat).
   --addresses       also embed a `housenumber` layer from LINZ address
                     points. Off by default: ATAK's bundled OMT style only
                     draws housenumbers above map zoom 18 (an extremely tight
@@ -219,7 +225,26 @@ if [[ -n "$HEIGHTS" ]]; then
     echo "      no building features found"
   fi
 else
-  echo "      skipped (no --heights given)"
+  # No heights archive: fall back to LINZ's own `buildings` layer as flat
+  # OMT `building` outlines (no render_height, so ATAK draws them flat, not
+  # extruded). Same MAXZOOM-only reasoning as the 3D case above.
+  GJ="$WORKDIR/bldg.geojsonl"
+  node "$HERE/translate.js" --linz "$LINZ" ${BBOX:+--bbox "$BBOX"} \
+       --only buildings > "$GJ"
+  if [[ -s "$GJ" ]]; then
+    echo "      $(wc -l < "$GJ") building outline features (from LINZ, no render_height)"
+    tippecanoe -o "$WORKDIR/bldg.mbtiles" \
+      -Z "$MAXZOOM" -z "$MAXZOOM" \
+      --no-tile-compression \
+      --drop-densest-as-needed \
+      --progress-interval=10 \
+      --force \
+      "$GJ"
+    PARTS+=("$WORKDIR/bldg.mbtiles")
+    rm -f "$GJ"
+  else
+    echo "      no building outline features found"
+  fi
 fi
 
 echo

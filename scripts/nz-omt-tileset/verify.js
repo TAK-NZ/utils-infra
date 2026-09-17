@@ -75,12 +75,16 @@ ok(miss === 0, `layerMiss = ${miss} (must be 0, else autostyle disables extrusio
 ok(intersect > 0, `layerIntersect = ${intersect} (must be > 0)`);
 
 const bldg = layers.find((l) => l.id === 'building');
-console.log('\n3D buildings');
+console.log('\nbuildings');
 if (!bldg) {
-  console.log('   n/a   no `building` layer -- basemap-only variant');
+  console.log('   n/a   no `building` layer at all');
 } else {
-  ok(Object.prototype.hasOwnProperty.call(bldg.fields || {}, 'render_height'),
-    'building.render_height present (the attribute ATAK extrudes)');
+  const has3d = Object.prototype.hasOwnProperty.call(bldg.fields || {}, 'render_height');
+  if (has3d) {
+    console.log('   3D    building.render_height present -> ATAK will extrude these');
+  } else {
+    console.log('   flat  no render_height -- LINZ outlines, ATAK will draw these as flat 2D fills (expected for the basemap-only variant)');
+  }
   ok(Number(bldg.maxzoom) >= 16, `building maxzoom ${bldg.maxzoom} >= 16 (style hides it below 16)`);
 }
 
@@ -132,7 +136,8 @@ if (deepest !== null) {
       const h = B.feature(i).properties.render_height;
       if (typeof h === 'number') { lo = Math.min(lo, h); hi = Math.max(hi, h); }
     }
-    console.log(`   building: ${B.length} features, render_height ${lo}..${hi} m`);
+    if (lo <= hi) console.log(`   building: ${B.length} features, render_height ${lo}..${hi} m`);
+    else console.log(`   building: ${B.length} features, no render_height (flat outlines)`);
   }
   const H = t.layers.housenumber;
   if (H) {
