@@ -12,22 +12,28 @@ Produces two basemap variants, **both of which now include a `building` layer**:
 | basemap only | omit `--heights` | from LINZ's own `buildings` layer, flat 2D outlines, no `render_height` -> ATAK draws them flat |
 
 `build.sh` also accepts `--addresses`, which adds a `housenumber` layer from
-LINZ address points. **It renders nothing under ATAK's bundled OMT style.**
-ATAK's bundled `dark` style has no `housenumber` layer at all, and even in
-`bright`/`overlay` it needs `minzoom: 18` — evaluated against camera zoom, not
-tile zoom — which in practice never renders on device with the *bundled*
-style. It still isn't passed by `build.sh`'s own examples or the CI workflow
-by default, and still adds ~60MB uncompressed nationally, so keep it opt-in
-unless you're deploying the custom style below alongside it.
+LINZ address points. **This renders fine under ATAK's bundled OMT style too —
+it always did.** An earlier version of this doc claimed housenumbers never
+rendered on device; that was wrong. `bright`/`overlay` set `housenumber` to
+`minzoom: 18`, evaluated against the camera's current zoom, so you do have to
+zoom in a long way — but at z18 the labels are there, confirmed on device on
+both the 3D variant and the (then outline-less) basemap-only variant, i.e.
+this predates every change in this doc. `dark` has no `housenumber` layer at
+all, so it won't render under that variant specifically. It still isn't
+passed by `build.sh`'s own examples or the CI workflow by default, and still
+adds ~60MB uncompressed nationally for a layer that only matters at an
+extreme zoom, so it stays opt-in.
 
-**It does render with the custom style — confirmed on device.** [`omt-linz-style.json`](omt-linz-style.json)
-(see "Custom style" further down) now includes a `housenumber` layer at
-`minzoom: 16` — the tile zoom the layer is actually stored at, not the
-bundled style's camera-zoom-18 gate. Uploaded via ATAK 5.8's "Set Layer
-Style", this bypasses the bundled style's minzoom entirely. Confirmed
-working: both the flat `building` outlines and `housenumber` labels render
-correctly on device, tested against a Wellington CBD extract built with
-`--addresses` and no `--heights`.
+[`omt-linz-style.json`](omt-linz-style.json) (see "Custom style" further
+down) additionally defines its own `housenumber` layer at `minzoom: 16`
+instead of the bundled style's 18, so labels appear two zoom levels earlier
+when that custom style is applied via ATAK 5.8's "Set Layer Style". That's a
+usability improvement, not a fix — housenumbers were never broken.
+
+Confirmed on device, on a Wellington CBD extract built with `--addresses` and
+no `--heights`: the new flat `building` outlines render correctly (the actual
+new capability in this doc), and `housenumber` labels render both under the
+bundled style at z18 and under the custom style from z16.
 
 Background and the ATAK source references behind every constraint here are in
 [`ATAK_3D_BUILDINGS.md`](../../docs/ATAK_3D_BUILDINGS.md).
@@ -107,8 +113,7 @@ LINZ's z15 maximum — it cannot be dropped because buildings only draw at z16.
 
 `--addresses` adds **~61 MB uncompressed** nationally (measured: 2,590,884
 address points, tiled at z16, max tile 141.8 KB, no density dropping needed).
-Off by default — see "Housenumbers — invisible under the bundled style,
-renders under the custom style" below for why.
+Off by default — see "Housenumbers" below for why.
 
 The basemap-only variant's `building` layer (LINZ outlines, no `render_height`)
 adds a modest amount too — see "Buildings without `--heights`" below.
@@ -197,7 +202,7 @@ as grey land.
 | `public_transport` (`kind=aerodrome`/`helipad`) | `poi` | `class=airfield`/`class=heliport` — see "Aerodromes" below |
 | `boundaries` | consumed | subtracted from tile extent to derive `water` |
 | `buildings` | `building` | **with `--heights`**: replaced entirely by the heights archive footprints, which carry `render_height`. **without `--heights`**: LINZ's own footprints are used instead, as flat outlines (no `render_height` — see "Buildings without `--heights`" below) |
-| `addresses` | opt-in via `--addresses` | → `housenumber`; off by default — see "Housenumbers are opt-in" below |
+| `addresses` | opt-in via `--addresses` | → `housenumber`; off by default — see "Housenumbers" below |
 | `contours` | dropped | **no OMT contour layer exists** — a real loss for TAK use, and unfixable via this route |
 | `parcel_boundaries`, `pier_lines`, `aerialways`, `dam_lines` | dropped | no OMT equivalent (`aerialways` here means cable cars/ski tows, not airport aeroways) |
 
@@ -267,35 +272,36 @@ When `--heights` *is* given, this LINZ pass is skipped entirely and the
 heights archive remains the sole source of `building` — the two are never
 merged into one tileset.
 
-### Housenumbers — invisible under the bundled style, renders under the custom style
+### Housenumbers — they always worked, you just have to zoom in a long way
 
 `--addresses` embeds LINZ's `addresses` layer (2,590,884 points nationally) as
-OMT's `housenumber` layer, carrying only the `housenumber` field. This was
-built and included in production builds for a while, then removed after
-device testing showed it renders nothing **under ATAK's bundled style**.
+OMT's `housenumber` layer, carrying only the `housenumber` field.
 
-Reason: `housenumber` is `minzoom: 18` in both bundled `bright` and `overlay`
-styles (`dark` has no `housenumber` layer at all), and that minzoom is
-evaluated against the camera's current map zoom — closer to "read individual
-letterboxes" than any navigation zoom a user actually reaches. Confirmed on
-device: with `--addresses` included but no custom style applied, no
-housenumbers were ever visible. It also isn't free — ~61 MB uncompressed
-nationally (measured: 2,590,884 address points, tiled at z16, max tile
-141.8 KB) for a layer that doesn't draw under the bundled style.
+An earlier version of this doc claimed housenumbers rendered nothing under
+ATAK's bundled style. **That was wrong.** `housenumber` is `minzoom: 18` in
+both bundled `bright` and `overlay` styles, evaluated against the camera's
+current map zoom — closer to "read individual letterboxes" than any
+navigation zoom a user reaches by default, which is almost certainly why the
+earlier device test looked like it wasn't rendering. But zoom in far enough
+(z18) and the labels are there. Confirmed on device on both the 3D variant
+and the basemap-only variant (including before this doc's building-outline
+change), so this is not new behaviour and not something this PR fixes.
+`dark` genuinely has no `housenumber` layer at all, so it won't render under
+that variant regardless of zoom.
 
-That constraint is baked into the APK's compiled stylesheets and cannot be
-changed from the tileset side — but ATAK 5.8's "Set Layer Style" upload
-bypasses the bundled stylesheet entirely for whichever layer it's applied to.
-`omt-linz-style.json` now defines its own `housenumber` layer at `minzoom: 16`
-(the tile zoom the layer is actually stored at), not the bundled style's
-camera-zoom-18 gate. **Confirmed working on device**: build with
-`--addresses`, then upload `omt-linz-style.json` via Set Layer Style — see
-"Custom style" below for how to apply it.
+It still costs ~61 MB uncompressed nationally (measured: 2,590,884 address
+points, tiled at z16, max tile 141.8 KB) for a layer that only matters at an
+extreme zoom most users won't reach, so `--addresses` stays off by default in
+`build.sh`'s own examples and `.github/workflows/update-linz-tiles.yml`/
+`offline-maps/user-data.sh`.
 
-The `--addresses` flag is still off by default in `build.sh`'s own examples
-and `.github/workflows/update-linz-tiles.yml`/`offline-maps/user-data.sh`,
-since it only pays off when the custom style is actually deployed alongside
-it.
+`omt-linz-style.json` (see "Custom style" below) additionally defines its own
+`housenumber` layer at `minzoom: 16` — two zoom levels earlier than the
+bundled style's 18, and the tile zoom the layer is actually stored at. This
+is a usability improvement for anyone deploying the custom style anyway, not
+a fix for a broken layer. Confirmed on device: labels appear from z16 with
+the custom style applied via ATAK 5.8's "Set Layer Style", versus z18 under
+the bundled style.
 
 ## Deploying the result
 
