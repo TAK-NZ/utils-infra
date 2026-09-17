@@ -72,7 +72,7 @@ which requires the original source file. Keep the source packages under
 | Hazards | NZ | `Hazards - NZ - Tsunami Evacuation Zones` | `data-packages/hazards/tsunami/` (NEMA ArcGIS) |
 | Infrastructure | NZ | `Infrastructure - NZ - AED Locations` | `kml/aed-locations/` |
 | Infrastructure | NZ | `Infrastructure - NZ - Fire Stations (FENZ)` | `data-packages/infrastructure/` |
-| Infrastructure | NZ | `Infrastructure - NZ - Volcano Cameras (GeoNet)` | `kml/geonet-volcano-cameras/` |
+| Infrastructure | NZ | `Infrastructure - NZ - Volcano Cameras (GeoNet)` | `data-packages/infrastructure/geonet-volcano-cameras/` |
 | Infrastructure | NZ | `Infrastructure - NZ - Campsites (DOC)` | `data-packages/infrastructure/` |
 | Infrastructure | NZ | `Infrastructure - NZ - Huts (DOC)` | `data-packages/infrastructure/` |
 | Reference | NZ | `Reference - NZ - Lines Company Boundaries` | `data-packages/reference/` |
