@@ -487,13 +487,13 @@ async function fetchTileWithProvider(z, x, y, options) {
   
   try {
     const providerInstance = getProvider(provider);
-    return await providerInstance.getTile(z, x, y, options);
+    return { buffer: await providerInstance.getTile(z, x, y, options), fallback: false };
   } catch (error) {
     // Only fallback to RainViewer for precipitation layers, since RainViewer has no
     // equivalent for clouds/radars - falling back there would silently mislabel the data.
     if (provider === 'rainbow' && (layer === 'precip' || layer === 'precip-global')) {
       console.warn('Rainbow.ai failed, falling back to RainViewer:', error.message);
-      return await rainviewerProvider.getTile(z, x, y, options);
+      return { buffer: await rainviewerProvider.getTile(z, x, y, options), fallback: true };
     }
     throw error;
   }
@@ -509,12 +509,13 @@ async function generateRadarTile(z, x, y, options = {}) {
     const { smooth = 0, size = 256, snow = 0, color = RAINBOW_COLOR_DEFAULT, provider = 'rainviewer', api, forecast = 0, layer = 'precip', coverage = 0, usePrecipType = 0 } = options;
     const cacheKey = `radar-${provider}-${layer}-${z}-${x}-${y}-${smooth}-${size}-${snow}-${color}-${forecast}-${coverage}-${usePrecipType}`;
     const cached = cache.get(cacheKey);
-    if (cached) return cached;
+    if (cached) return { buffer: cached.buffer, fallback: cached.fallback, error: false };
 
     try {
-        const buffer = await fetchTileWithProvider(z, x, y, options);
-        cache.set(cacheKey, buffer);
-        return buffer;
+        const { buffer, fallback } = await fetchTileWithProvider(z, x, y, options);
+        // A RainViewer fallback is cached briefly so recovery of Rainbow.ai is picked up quickly
+        cache.set(cacheKey, { buffer, fallback }, fallback ? 30 : 600);
+        return { buffer, fallback, error: false };
         
     } catch (error) {
         console.error(`Error generating radar tile ${z}/${x}/${y} (provider: ${provider}):`, error.message);
@@ -527,7 +528,7 @@ async function generateRadarTile(z, x, y, options = {}) {
                 background: { r: 0, g: 0, b: 0, alpha: 0 }
             }
         }).png().toBuffer();
-        return buffer;
+        return { buffer, fallback: false, error: true };
     }
 }
 
@@ -773,21 +774,29 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
     
     try {
         const options = { smooth, size, snow, color, provider, api: apiKey, forecast, layer, coverage, usePrecipType };
-        const tileBuffer = await generateRadarTile(zoom, tileX, tileY, options);
+        const { buffer: tileBuffer, fallback, error: tileError } = await generateRadarTile(zoom, tileX, tileY, options);
         
         const attribution = provider === 'rainbow' 
             ? 'Weather data provided by Rainbow.ai'
             : 'Weather data provided by RainViewer.com';
         
+        // Degraded tiles are signalled with extra headers and a shorter (or no) cache lifetime
+        let cacheControl = 'public, max-age=600';
+        if (tileError) cacheControl = 'no-store';
+        else if (fallback) cacheControl = 'public, max-age=30';
+
         res.set({
             'Content-Type': 'image/png',
-            'Cache-Control': 'public, max-age=600',
+            'Cache-Control': cacheControl,
             'Access-Control-Allow-Origin': '*',
             'Attribution': attribution,
             'X-Weather-Provider': provider,
             'X-Weather-Layer': layer
         });
         
+        if (fallback) res.set('X-Weather-Fallback', 'rainviewer');
+        if (tileError) res.set('X-Weather-Error', '1');
+
         res.send(tileBuffer);
     } catch (error) {
         console.error('Radar tile generation error:', error.message);
@@ -816,10 +825,14 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Weather radar proxy server running on port ${PORT}`);
-    console.log(`Max zoom: ${MAX_ZOOM_LEVEL}, RainViewer max native zoom: ${RAINVIEWER_MAX_ZOOM} (z${RAINVIEWER_MAX_ZOOM+1}-${MAX_ZOOM_LEVEL} upscaled), Rainbow clouds/radars max native zoom: ${RAINBOW_LAYER_MAX_ZOOM}, Rate limit: ${RATE_LIMIT_PER_MINUTE}/min`);
-    console.log(`Providers: RainViewer (public), Rainbow.ai (API key required)`);
-    console.log(`Rainbow.ai layers: ${RAINBOW_LAYERS.join(', ')}`);
-    console.log(`Supports: ?provider=rainviewer|rainbow, ?layer=precip|precip-global|clouds|radars, ?size=256|512, ?smooth=0|1, ?snow=0|1, ?color=${RAINBOW_COLORS.join('|')}, ?forecast=0-240, ?coverage=0|1, ?use_precip_type=0|1`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Weather radar proxy server running on port ${PORT}`);
+        console.log(`Max zoom: ${MAX_ZOOM_LEVEL}, RainViewer max native zoom: ${RAINVIEWER_MAX_ZOOM} (z${RAINVIEWER_MAX_ZOOM+1}-${MAX_ZOOM_LEVEL} upscaled), Rainbow clouds/radars max native zoom: ${RAINBOW_LAYER_MAX_ZOOM}, Rate limit: ${RATE_LIMIT_PER_MINUTE}/min`);
+        console.log(`Providers: RainViewer (public), Rainbow.ai (API key required)`);
+        console.log(`Rainbow.ai layers: ${RAINBOW_LAYERS.join(', ')}`);
+        console.log(`Supports: ?provider=rainviewer|rainbow, ?layer=precip|precip-global|clouds|radars, ?size=256|512, ?smooth=0|1, ?snow=0|1, ?color=${RAINBOW_COLORS.join('|')}, ?forecast=0-240, ?coverage=0|1, ?use_precip_type=0|1`);
+    });
+}
+
+module.exports = { app };

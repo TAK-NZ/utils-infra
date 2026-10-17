@@ -134,6 +134,10 @@ GET /weather-radar/health
 ```
 
 Returns service status and cache statistics.
+### Degraded tile headers
+Good tiles are unchanged (`Cache-Control: public, max-age=600`). Degraded tiles are signalled with extra headers and a shorter cache lifetime:
+- **Fallback**: for `layer=precip` or `precip-global` with `provider=rainbow`, a failed Rainbow.ai request is answered with a RainViewer (current radar) tile. The response adds `X-Weather-Fallback: rainviewer` and uses `Cache-Control: public, max-age=30`. The proxy also caches it for 30 s instead of 600 s.
+- **Error tile**: when a tile cannot be produced at all, the transparent PNG is returned with `X-Weather-Error: 1` and `Cache-Control: no-store`. It is not cached by the proxy.
 
 ## Rate Limiting
 - **RainViewer (Public)**: 600 requests per minute per IP address
