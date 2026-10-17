@@ -620,7 +620,8 @@ async function fetchRadarTile(z, x, y, smooth = 0, size = 256, snow = 0) {
 //  - absent: the layer's latest snapshot (derived by the proxy, so missing tiles may step back)
 //  - valid: used as is (explicit, no step back)
 //  - newer than the layer's latest (a lagging layer): clamped to the latest, not an error
-//  - malformed, off the 10-minute grid, or older than the 2 hour window: error
+//  - malformed, off the 10-minute grid, or older than the 2 hour window (counted back from the layer's
+//    latest, or from the last fully elapsed step if that is older): error
 async function resolveRainbowSnapshot(layer, hintRaw) {
   let hint;
   if (hintRaw !== undefined) {
@@ -635,7 +636,10 @@ async function resolveRainbowSnapshot(layer, hintRaw) {
   if (hint === undefined) {
     return { snapshot: latest.snapshot, derived: true, clamped: false };
   }
-  if (hint < latest.snapshot - SNAPSHOT_WINDOW_S) {
+  // The window is anchored to the last fully elapsed step when Rainbow is already on the current one,
+  // so clients that count their 2 hour range from the clock (the CloudTAK relay) are never rejected.
+  const windowStart = Math.min(latest.snapshot, computedSnapshot(Math.floor(Date.now() / 1000))) - SNAPSHOT_WINDOW_S;
+  if (hint < windowStart) {
     return { error: `snapshot parameter is older than the ${SNAPSHOT_WINDOW_S / 3600} hour window available for layer ${layer}` };
   }
   if (hint > latest.snapshot) {

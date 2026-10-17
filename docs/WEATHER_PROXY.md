@@ -139,7 +139,7 @@ Rainbow.ai publishes a map snapshot for each layer every 10 minutes. A snapshot 
 
 **The `snapshot` query parameter (optional, `provider=rainbow` only)**
 - Absent: the layer's latest snapshot is used.
-- A multiple of 600 that is not newer than the layer's latest and not more than 2 hours before it: that snapshot is served.
+- A multiple of 600 that is not newer than the layer's latest and not more than 2 hours before it: that snapshot is served. The 2 hours are counted back from the layer's latest, or from the last fully elapsed 10-minute step (`floor(now / 600) * 600 - 600`) when Rainbow.ai is already on the current step, so a client that counts its window from the clock is never rejected.
 - Newer than the layer's latest (a client whose clock is ahead of a lagging layer): clamped to the layer's latest snapshot. This is not an error. `X-Weather-Snapshot` reports the snapshot actually served.
 - Not an integer multiple of 600, or older than the 2 hour window: `400 Bad Request`.
 - Ignored with `provider=rainviewer`, which has no snapshots.

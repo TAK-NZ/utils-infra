@@ -245,6 +245,13 @@ describe('client snapshot hint', () => {
     expect(snapshotOf(oldest.res as any)).toBe(LATEST - 7200);
   });
 
+  test('with Rainbow on the current step, the oldest frame of a clock-based 2 h window is still valid', async () => {
+    snapshotReply = () => new Response(JSON.stringify({ snapshot: NOW_S }), { status: 200 });
+    const hint = NOW_S - 600 - 7200;
+    const { res } = await tile('precip', `&snapshot=${hint}`);
+    expect(res.status).toBe(200);
+    expect(snapshotOf(res as any)).toBe(hint);
+  });
   test('a snapshot newer than the layer latest is clamped, not rejected', async () => {
     const { res } = await tile('clouds', `&snapshot=${LATEST + 600}`);
     expect(res.status).toBe(200);
