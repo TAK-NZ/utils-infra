@@ -22,6 +22,18 @@ const RATE_LIMIT_PER_MINUTE = 600; // RainViewer allows 600 requests per minute
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
+// Rainbow.ai publishes one map snapshot per layer every 10 minutes (epoch seconds, multiple of 600)
+// and keeps tiles available for 2 hours behind the latest one.
+const RAINBOW_TILES_BASE = 'https://api.rainbow.ai/tiles/v1';
+const SNAPSHOT_STEP_S = 600;
+const SNAPSHOT_WINDOW_S = 7200; // oldest snapshot (before the layer's latest) that is still served
+const SNAPSHOT_MAX_FUTURE_S = 600; // a snapshot reported this far ahead of our clock is still believable
+const SNAPSHOT_CACHE_TTL_S = 60; // how long a layer's latest snapshot is reused
+const SNAPSHOT_FAILURE_CACHE_TTL_S = 15; // how long the clock-based fallback is reused after a failed lookup
+const SNAPSHOT_FETCH_TIMEOUT_MS = 5000;
+const SNAPSHOT_STEP_BACK_MAX = 2; // extra 10-minute steps tried when a derived snapshot has no tile yet
+const STALE_TILE_CACHE_TTL_S = 60; // proxy cache lifetime of a tile served from an older snapshot than requested
+
 // Coverage boundaries (approximate global coverage)
 const COVERAGE_BOUNDS = {
   minLat: -85,
@@ -148,12 +160,12 @@ async function validateApiKey(providedKey) {
 }
 
 // Retry with exponential backoff
-async function retryWithBackoff(fn, retries = MAX_RETRIES) {
+async function retryWithBackoff(fn, retries = MAX_RETRIES, shouldRetry = () => true) {
   for (let i = 0; i < retries; i++) {
     try {
       return await fn();
     } catch (error) {
-      if (i === retries - 1) throw error;
+      if (i === retries - 1 || !shouldRetry(error)) throw error;
       const delay = RETRY_DELAY_MS * Math.pow(2, i);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -222,6 +234,43 @@ async function upscaleTile(fetchNativeTile, nativeMaxZoom, z, x, y, size) {
     .resize(size, size, { kernel: 'nearest' })
     .png()
     .toBuffer();
+}
+
+// Identify the image format from its leading bytes so Content-Type matches the real body.
+// Rainbow.ai serves some layers (e.g. clouds) as WebP; anything unrecognised is labelled PNG as before.
+function sniffImageContentType(buffer) {
+  if (buffer && buffer.length >= 8 &&
+      buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return 'image/png';
+  }
+  if (buffer && buffer.length >= 12 &&
+      buffer.toString('latin1', 0, 4) === 'RIFF' && buffer.toString('latin1', 8, 12) === 'WEBP') {
+    return 'image/webp';
+  }
+  if (buffer && buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  return 'image/png';
+}
+
+// Clock-based guess of the newest snapshot: the last fully elapsed 10-minute step
+function computedSnapshot(nowSeconds) {
+  return Math.floor(nowSeconds / SNAPSHOT_STEP_S) * SNAPSHOT_STEP_S - SNAPSHOT_STEP_S;
+}
+
+// A snapshot reported by Rainbow.ai must be an integer on a 10-minute boundary close to our clock
+function isSaneSnapshot(value, nowSeconds) {
+  return Number.isInteger(value) &&
+    value % SNAPSHOT_STEP_S === 0 &&
+    value <= nowSeconds + SNAPSHOT_MAX_FUTURE_S &&
+    value >= nowSeconds - SNAPSHOT_WINDOW_S;
+}
+
+// Error for a tile the upstream does not have (yet). Only this kind of error triggers a step back.
+function tileNotFoundError() {
+  const error = new Error('Tile not found');
+  error.tileNotFound = true;
+  return error;
 }
 
 // Weather provider abstraction layer
@@ -321,7 +370,8 @@ class RainbowProvider extends WeatherProvider {
   constructor() {
     super();
     this.apiKey = null;
-    this.timestampCache = new NodeCache({ stdTTL: 300 }); // 5 minutes cache for timestamps
+    this.snapshotCache = new NodeCache({ stdTTL: SNAPSHOT_CACHE_TTL_S }); // latest snapshot per layer
+    this.snapshotFlights = new Map(); // in-flight snapshot lookups per layer
   }
   
   async loadRainbowApiKey() {
@@ -337,22 +387,58 @@ class RainbowProvider extends WeatherProvider {
     return this.apiKey;
   }
   
-  async getLatestTimestamp() {
-    const cached = this.timestampCache.get('latest');
+  // Latest snapshot of a layer as { snapshot, source }, where source is 'rainbow' or 'computed'.
+  // Layers are published independently (clouds can lag precip), so each layer has its own snapshot.
+  // Concurrent callers share one upstream lookup. Never throws: if Rainbow.ai cannot answer with
+  // a believable value, the clock-based guess is used so an outage is no worse than before.
+  async getLatestSnapshot(layer = 'precip') {
+    const cached = this.snapshotCache.get(layer);
     if (cached) return cached;
     
-    // Rainbow.ai requires 10-minute aligned timestamps (epoch UTC seconds)
-    // and tiles are accessible up to 2 hours before latest snapshot
+    const inflight = this.snapshotFlights.get(layer);
+    if (inflight) return inflight;
+    
+    const flight = this.lookupLatestSnapshot(layer).finally(() => this.snapshotFlights.delete(layer));
+    this.snapshotFlights.set(layer, flight);
+    return flight;
+  }
+  
+  async lookupLatestSnapshot(layer) {
     const now = Math.floor(Date.now() / 1000);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SNAPSHOT_FETCH_TIMEOUT_MS);
     
-    // Align to 10-minute intervals (600 seconds)
-    const aligned = Math.floor(now / 600) * 600;
-    
-    // Use a timestamp from 10-20 minutes ago to ensure data availability
-    const timestamp = aligned - 600; // 10 minutes ago
-    
-    this.timestampCache.set('latest', timestamp);
-    return timestamp;
+    try {
+      const apiKey = await this.loadRainbowApiKey();
+      const response = await fetch(`${RAINBOW_TILES_BASE}/snapshot?layer=${encodeURIComponent(layer)}`, {
+        signal: controller.signal,
+        headers: {
+          'Ocp-Apim-Subscription-Key': apiKey,
+          'User-Agent': 'weather-proxy/1.0'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Snapshot API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const snapshot = data && data.snapshot;
+      if (!isSaneSnapshot(snapshot, now)) {
+        throw new Error('Snapshot API returned an unusable value');
+      }
+      
+      const result = { snapshot, source: 'rainbow' };
+      this.snapshotCache.set(layer, result, SNAPSHOT_CACHE_TTL_S);
+      return result;
+    } catch (error) {
+      console.warn(`Rainbow.ai snapshot lookup failed for layer ${layer}, using computed snapshot:`, error.message);
+      const result = { snapshot: computedSnapshot(now), source: 'computed' };
+      this.snapshotCache.set(layer, result, SNAPSHOT_FAILURE_CACHE_TTL_S);
+      return result;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
   
   async getTile(z, x, y, options) {
@@ -380,7 +466,7 @@ class RainbowProvider extends WeatherProvider {
   // and its own subset of supported query parameters.
   buildUrl(layer, timestamp, z, x, y, options) {
     const { color = RAINBOW_COLOR_DEFAULT, forecast = 0, coverage = 0, usePrecipType = 0 } = options;
-    const base = `https://api.rainbow.ai/tiles/v1`;
+    const base = RAINBOW_TILES_BASE;
     
     switch (layer) {
       case 'precip':
@@ -404,13 +490,38 @@ class RainbowProvider extends WeatherProvider {
     }
   }
   
+  // Fetch a tile for options.snapshot. When that snapshot was derived by the proxy (not explicitly
+  // requested by the client) and the tile is not there yet, step back one 10-minute snapshot at a
+  // time, up to SNAPSHOT_STEP_BACK_MAX times. Other errors are never stepped over.
   async fetchTile(z, x, y, options) {
-    const { size = 256, layer = 'precip' } = options;
+    const { layer = 'precip' } = options;
     const apiKey = await this.loadRainbowApiKey();
     
+    const hasSnapshot = options.snapshot !== undefined;
+    const snapshot = hasSnapshot ? options.snapshot : (await this.getLatestSnapshot(layer)).snapshot;
+    const derived = hasSnapshot ? !!options.snapshotDerived : true;
+    const maxSteps = derived ? SNAPSHOT_STEP_BACK_MAX : 0;
+    
+    let lastError;
+    for (let step = 0; step <= maxSteps; step++) {
+      const candidate = snapshot - step * SNAPSHOT_STEP_S;
+      try {
+        const buffer = await this.fetchSnapshotTile(z, x, y, options, candidate, apiKey);
+        if (options.trace) options.trace.snapshot = candidate;
+        return buffer;
+      } catch (error) {
+        if (!error.tileNotFound) throw error;
+        lastError = error;
+      }
+    }
+    throw lastError;
+  }
+  
+  async fetchSnapshotTile(z, x, y, options, timestamp, apiKey) {
+    const { size = 256, layer = 'precip' } = options;
+    
+    // A missing tile will not appear within the backoff window, so it is not retried here
     return await retryWithBackoff(async () => {
-      // Get a valid timestamp from Rainbow.ai
-      const timestamp = await this.getLatestTimestamp();
       const url = this.buildUrl(layer, timestamp, z, x, y, options);
       
       const controller = new AbortController();
@@ -429,8 +540,8 @@ class RainbowProvider extends WeatherProvider {
         if (!response.ok) {
           if (response.status === 401) {
             throw new Error('Rainbow.ai subscription key invalid');
-          } else if (response.status === 404) {
-            throw new Error('Tile not found');
+          } else if (response.status === 404 || response.status === 410) {
+            throw tileNotFoundError();
           } else if (response.status === 429) {
             throw new Error('Rate limit exceeded');
           } else if (response.status >= 500) {
@@ -457,7 +568,7 @@ class RainbowProvider extends WeatherProvider {
         clearTimeout(timeoutId);
         throw error;
       }
-    });
+    }, MAX_RETRIES, (error) => !error.tileNotFound);
   }
 }
 
@@ -504,18 +615,61 @@ async function fetchRadarTile(z, x, y, smooth = 0, size = 256, snow = 0) {
   return await rainviewerProvider.getTile(z, x, y, { smooth, size, snow });
 }
 
+// Work out which Rainbow.ai snapshot to serve for a layer.
+// `hintRaw` is the optional client `snapshot` query value; it is only a hint:
+//  - absent: the layer's latest snapshot (derived by the proxy, so missing tiles may step back)
+//  - valid: used as is (explicit, no step back)
+//  - newer than the layer's latest (a lagging layer): clamped to the latest, not an error
+//  - malformed, off the 10-minute grid, or older than the 2 hour window: error
+async function resolveRainbowSnapshot(layer, hintRaw) {
+  let hint;
+  if (hintRaw !== undefined) {
+    if (typeof hintRaw !== 'string' || !/^[0-9]{1,12}$/.test(hintRaw) || Number(hintRaw) % SNAPSHOT_STEP_S !== 0) {
+      return { error: `snapshot parameter must be an epoch seconds value that is a multiple of ${SNAPSHOT_STEP_S}` };
+    }
+    hint = Number(hintRaw);
+  }
+  
+  const latest = await rainbowProvider.getLatestSnapshot(layer);
+  
+  if (hint === undefined) {
+    return { snapshot: latest.snapshot, derived: true, clamped: false };
+  }
+  if (hint < latest.snapshot - SNAPSHOT_WINDOW_S) {
+    return { error: `snapshot parameter is older than the ${SNAPSHOT_WINDOW_S / 3600} hour window available for layer ${layer}` };
+  }
+  if (hint > latest.snapshot) {
+    return { snapshot: latest.snapshot, derived: true, clamped: true };
+  }
+  return { snapshot: hint, derived: false, clamped: false };
+}
+
 // Generate radar tile with enhanced parameters and provider support
 async function generateRadarTile(z, x, y, options = {}) {
     const { smooth = 0, size = 256, snow = 0, color = RAINBOW_COLOR_DEFAULT, provider = 'rainviewer', api, forecast = 0, layer = 'precip', coverage = 0, usePrecipType = 0 } = options;
-    const cacheKey = `radar-${provider}-${layer}-${z}-${x}-${y}-${smooth}-${size}-${snow}-${color}-${forecast}-${coverage}-${usePrecipType}`;
+    
+    // The effective snapshot is part of the cache key so different snapshots never share bytes
+    // and a new snapshot never serves old bytes. RainViewer has no snapshot concept.
+    let snapshot = options.snapshot;
+    let snapshotDerived = options.snapshotDerived;
+    if (provider === 'rainbow' && snapshot === undefined) {
+        snapshot = (await rainbowProvider.getLatestSnapshot(layer)).snapshot;
+        snapshotDerived = true;
+    }
+    const snapshotKey = provider === 'rainbow' ? snapshot : '-';
+    const cacheKey = `radar-${provider}-${layer}-${z}-${x}-${y}-${smooth}-${size}-${snow}-${color}-${forecast}-${coverage}-${usePrecipType}-${snapshotKey}`;
     const cached = cache.get(cacheKey);
-    if (cached) return { buffer: cached.buffer, fallback: cached.fallback, error: false };
+    if (cached) return { buffer: cached.buffer, fallback: cached.fallback, error: false, snapshot: cached.snapshot, stale: cached.stale };
 
     try {
-        const { buffer, fallback } = await fetchTileWithProvider(z, x, y, options);
-        // A RainViewer fallback is cached briefly so recovery of Rainbow.ai is picked up quickly
-        cache.set(cacheKey, { buffer, fallback }, fallback ? 30 : 600);
-        return { buffer, fallback, error: false };
+        const trace = { snapshot: null };
+        const { buffer, fallback } = await fetchTileWithProvider(z, x, y, { ...options, snapshot, snapshotDerived, trace });
+        const served = fallback ? null : trace.snapshot;
+        // Served from an older snapshot than requested because the newest tile was missing
+        const stale = served !== null && snapshot !== undefined && served !== snapshot;
+        // A RainViewer fallback or an older-snapshot tile is cached briefly so recovery is picked up quickly
+        cache.set(cacheKey, { buffer, fallback, snapshot: served, stale }, fallback ? 30 : (stale ? STALE_TILE_CACHE_TTL_S : 600));
+        return { buffer, fallback, error: false, snapshot: served, stale };
         
     } catch (error) {
         console.error(`Error generating radar tile ${z}/${x}/${y} (provider: ${provider}):`, error.message);
@@ -528,7 +682,7 @@ async function generateRadarTile(z, x, y, options = {}) {
                 background: { r: 0, g: 0, b: 0, alpha: 0 }
             }
         }).png().toBuffer();
-        return { buffer, fallback: false, error: true };
+        return { buffer, fallback: false, error: true, snapshot: null, stale: false };
     }
 }
 
@@ -581,7 +735,12 @@ app.get('/weather-radar/health', async (req, res) => {
                 forecast: [0, 240],
                 forecast_default: 0,
                 forecast_note: 'Rainbow.ai only; applies to layer=precip, precip-global only',
+                snapshot: 'epoch seconds, multiple of 600',
+                snapshot_note: 'Rainbow.ai only; optional hint. Must be a multiple of 600 and not older than 2 hours before the layer\'s latest snapshot, otherwise 400. A value newer than the latest is clamped to the latest. Without it the layer\'s latest snapshot is used. The snapshot actually served is returned in the X-Weather-Snapshot header.',
                 api_key_parameter: 'api'
+            },
+            endpoints: {
+                snapshot: '/weather-radar/snapshot?layer=<layer>&api=<key>'
             }
         });
     } catch (error) {
@@ -593,6 +752,61 @@ app.get('/weather-radar/health', async (req, res) => {
 });
 
 
+
+// Latest snapshot of a Rainbow.ai layer, for clients that want to line up their own time slider
+app.get('/weather-radar/snapshot', rateLimit, async (req, res) => {
+    const layer = req.query.layer || 'precip';
+    const apiKey = req.query.api || req.query.key; // Same key parameters as tiles
+    
+    if (!apiKey) {
+        return res.status(401).json({
+            error: 'API key required for Rainbow.ai provider',
+            message: 'Use ?api=your-key parameter'
+        });
+    }
+    
+    if (typeof layer !== 'string' || !RAINBOW_LAYERS.includes(layer)) {
+        return res.status(400).json({
+            error: 'Invalid parameter',
+            message: `layer parameter must be one of: ${RAINBOW_LAYERS.join(', ')}`
+        });
+    }
+    
+    const keyValidation = await validateApiKey(apiKey);
+    if (!keyValidation.valid) {
+        return res.status(401).json({
+            error: 'Unauthorized',
+            message: keyValidation.reason
+        });
+    }
+    
+    if (!keyValidation.providers.includes('rainbow')) {
+        return res.status(403).json({
+            error: 'Forbidden',
+            message: 'API key does not have access to rainbow provider'
+        });
+    }
+    
+    const rateLimitCheck = checkApiKeyRateLimit(apiKey, keyValidation.rateLimit);
+    if (!rateLimitCheck.allowed) {
+        return res.status(429).json({
+            error: 'Rate limit exceeded',
+            message: rateLimitCheck.message
+        });
+    }
+    
+    const latest = await rainbowProvider.getLatestSnapshot(layer);
+    res.set({
+        'Cache-Control': 'public, max-age=30',
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.json({
+        layer,
+        snapshot: latest.snapshot,
+        stepSeconds: SNAPSHOT_STEP_S,
+        source: latest.source
+    });
+});
 
 app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
     const { z, x, y } = req.params;
@@ -606,6 +820,7 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
     const layer = req.query.layer || 'precip';
     const coverage = parseInt(req.query.coverage) || 0;
     const usePrecipType = parseInt(req.query.use_precip_type) || 0;
+    const snapshotHint = req.query.snapshot;
     
     console.log(`Request: ${z}/${x}/${y}.png?provider=${provider}&layer=${layer}&color=${color}&size=${size}&smooth=${smooth}&snow=${snow}&forecast=${forecast}&coverage=${coverage}&use_precip_type=${usePrecipType}`);
     
@@ -772,9 +987,25 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
         });
     }
     
+    // Rainbow.ai snapshot: client value is only a hint (ignored for RainViewer, which has no snapshots)
+    let snapshotInfo = null;
+    if (provider === 'rainbow') {
+        snapshotInfo = await resolveRainbowSnapshot(layer, snapshotHint);
+        if (snapshotInfo.error) {
+            return res.status(400).json({
+                error: 'Invalid parameter',
+                message: snapshotInfo.error
+            });
+        }
+    }
+    
     try {
         const options = { smooth, size, snow, color, provider, api: apiKey, forecast, layer, coverage, usePrecipType };
-        const { buffer: tileBuffer, fallback, error: tileError } = await generateRadarTile(zoom, tileX, tileY, options);
+        if (snapshotInfo) {
+            options.snapshot = snapshotInfo.snapshot;
+            options.snapshotDerived = snapshotInfo.derived;
+        }
+        const { buffer: tileBuffer, fallback, error: tileError, snapshot: servedSnapshot, stale } = await generateRadarTile(zoom, tileX, tileY, options);
         
         const attribution = provider === 'rainbow' 
             ? 'Weather data provided by Rainbow.ai'
@@ -783,17 +1014,19 @@ app.get('/weather-radar/:z/:x/:y.png', rateLimit, async (req, res) => {
         // Degraded tiles are signalled with extra headers and a shorter (or no) cache lifetime
         let cacheControl = 'public, max-age=600';
         if (tileError) cacheControl = 'no-store';
-        else if (fallback) cacheControl = 'public, max-age=30';
+        else if (fallback || stale || (snapshotInfo && snapshotInfo.clamped)) cacheControl = 'public, max-age=30';
 
         res.set({
-            'Content-Type': 'image/png',
+            'Content-Type': sniffImageContentType(tileBuffer),
             'Cache-Control': cacheControl,
             'Access-Control-Allow-Origin': '*',
+            'Access-Control-Expose-Headers': 'X-Weather-Snapshot, X-Weather-Fallback, X-Weather-Error',
             'Attribution': attribution,
             'X-Weather-Provider': provider,
             'X-Weather-Layer': layer
         });
         
+        if (servedSnapshot) res.set('X-Weather-Snapshot', String(servedSnapshot));
         if (fallback) res.set('X-Weather-Fallback', 'rainviewer');
         if (tileError) res.set('X-Weather-Error', '1');
 
@@ -831,8 +1064,17 @@ if (require.main === module) {
         console.log(`Max zoom: ${MAX_ZOOM_LEVEL}, RainViewer max native zoom: ${RAINVIEWER_MAX_ZOOM} (z${RAINVIEWER_MAX_ZOOM+1}-${MAX_ZOOM_LEVEL} upscaled), Rainbow clouds/radars max native zoom: ${RAINBOW_LAYER_MAX_ZOOM}, Rate limit: ${RATE_LIMIT_PER_MINUTE}/min`);
         console.log(`Providers: RainViewer (public), Rainbow.ai (API key required)`);
         console.log(`Rainbow.ai layers: ${RAINBOW_LAYERS.join(', ')}`);
-        console.log(`Supports: ?provider=rainviewer|rainbow, ?layer=precip|precip-global|clouds|radars, ?size=256|512, ?smooth=0|1, ?snow=0|1, ?color=${RAINBOW_COLORS.join('|')}, ?forecast=0-240, ?coverage=0|1, ?use_precip_type=0|1`);
+        console.log(`Supports: ?provider=rainviewer|rainbow, ?layer=precip|precip-global|clouds|radars, ?snapshot=<epoch seconds, multiple of 600>, ?size=256|512, ?smooth=0|1, ?snow=0|1, ?color=${RAINBOW_COLORS.join('|')}, ?forecast=0-240, ?coverage=0|1, ?use_precip_type=0|1`);
     });
 }
 
-module.exports = { app };
+// Test hook: forget all cached state so tests do not influence each other
+function resetStateForTests() {
+    cache.flushAll();
+    pathCache.flushAll();
+    rateLimitCache.flushAll();
+    rainbowProvider.snapshotCache.flushAll();
+    rainbowProvider.snapshotFlights.clear();
+}
+
+module.exports = { app, resetStateForTests };
