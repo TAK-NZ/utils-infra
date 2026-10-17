@@ -90,6 +90,26 @@ describe('weather-proxy degraded tile headers', () => {
     expect(res.headers.get('x-weather-error')).toBeNull();
   }, 20000);
 
+  test('a cached RainViewer fallback is replayed with the fallback header and the short max-age', async () => {
+    rainbowOk = false;
+    const path = '/weather-radar/3/4/3.png?provider=rainbow&layer=precip&forecast=50&api=k';
+    const first = await get(path);
+    expect(first.res.status).toBe(200);
+    expect(first.res.headers.get('x-weather-fallback')).toBe('rainviewer');
+    expect(first.res.headers.get('cache-control')).toBe('public, max-age=30');
+    // Rainbow was tried (with retries) for the first request only
+    const callsAfterFirst = rainbowCalls;
+    expect(callsAfterFirst).toBeGreaterThan(0);
+
+    const second = await get(path);
+    expect(second.res.status).toBe(200);
+    expect(second.res.headers.get('x-weather-fallback')).toBe('rainviewer');
+    expect(second.res.headers.get('cache-control')).toBe('public, max-age=30');
+    expect(second.res.headers.get('x-weather-error')).toBeNull();
+    expect(second.body.equals(first.body)).toBe(true);
+    expect(rainbowCalls).toBe(callsAfterFirst);
+  }, 20000);
+
   test('clouds with Rainbow failing returns a transparent error tile that is not cached', async () => {
     rainbowOk = false;
     const first = await get('/weather-radar/3/4/2.png?provider=rainbow&layer=clouds&api=k');
