@@ -48,6 +48,10 @@ jobs:
       - name: Install CDK package dependencies
         run: npm ci  # Use npm ci for faster, reliable installs
 
+      - name: Install weather-proxy dependencies
+        # Required by test/weather-proxy*.test.ts, which load weather-proxy/server.js
+        run: npm ci --prefix weather-proxy
+
       - name: TypeScript compilation check
         run: npx tsc --noEmit --skipLibCheck
 

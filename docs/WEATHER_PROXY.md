@@ -19,7 +19,7 @@ https://utils.{domain}/weather-radar/
 - **Access**: Requires API key
 - **Coverage**: Enhanced global radar data
 - **Layers**: `precip` (default), `precip-global`, `clouds`, `radars` (see [Rainbow.ai Layers](#rainbowai-layers) below)
-- **Update Frequency**: 10 minutes
+- **Update Frequency**: 10 minutes (one snapshot per layer, see [Snapshots](#snapshots))
 - **Rate Limit**: Based on API key configuration
 - **Fallback**: Precipitation layers (`precip`, `precip-global`) automatically fall back to RainViewer if unavailable. `clouds` and `radars` have no RainViewer equivalent, so they return a transparent tile on failure instead
 
@@ -47,6 +47,7 @@ GET /weather-radar/{z}/{x}/{y}.png
 - `snow` - Snow overlay: `0` (default, no snow) or `1` (with snow) - RainViewer only
 - `forecast` - Forecast minutes ahead: `0-240` (Rainbow.ai `precip`/`precip-global` only, default: `0`)
 - `coverage` - Coverage mask overlay: `0` (default) or `1` (Rainbow.ai `precip`, `precip-global`, `radars` only)
+- `snapshot` - Optional Rainbow.ai map snapshot as epoch seconds (a multiple of 600). A hint only: see [Snapshots](#snapshots). Ignored for RainViewer
 - `use_precip_type` - Precipitation-type visualization instead of reflectivity: `0` (default) or `1` (Rainbow.ai `radars` only)
 - `color` - Rainbow.ai color palette code (default: `0`). Accepted values: `0`-`9`, `dbz_u8`. See [Rainbow.ai Colors](#rainbowai-colors) below for what each value renders. Ignored by RainViewer (always renders Universal Blue) and rejected when `layer=clouds` (no color palette for that layer)
 
@@ -128,12 +129,63 @@ The `color` parameter passes Rainbow.ai's own palette codes straight through to 
 
 `color` only applies to `provider=rainbow`, and is not accepted for `layer=clouds`. RainViewer ignores `color` entirely — it only renders a single palette (Universal Blue) as of 2025.
 
+### Snapshots
+
+Rainbow.ai publishes a map snapshot for each layer every 10 minutes. A snapshot is an epoch seconds value that is a multiple of 600, and tiles stay available for 2 hours behind the layer's latest snapshot. Layers are published independently, so one layer can lag another: `clouds` is often 10-20 minutes behind `precip`. A tile request for a snapshot that has not been published for its layer yet returns no tile, so the proxy asks Rainbow.ai which snapshot each layer is on instead of guessing from the clock.
+
+**Latest snapshot per layer**
+- The proxy calls Rainbow.ai's `GET /tiles/v1/snapshot?layer=<layer>` (authenticated with the same server-side key as tiles) and reuses the answer for 60 seconds per layer. Concurrent requests share one lookup.
+- The answer is only trusted if it is an integer, a multiple of 600, no more than 10 minutes ahead of the proxy clock and no more than 2 hours behind it. If the lookup fails or the value is not believable, the proxy falls back to the previous guess: the last fully elapsed 10-minute step (`floor(now / 600) * 600 - 600`). A Rainbow.ai outage is therefore no worse than before. A failed lookup is remembered for 15 seconds so an outage does not add a call to every tile.
+
+**The `snapshot` query parameter (optional, `provider=rainbow` only)**
+- Absent: the layer's latest snapshot is used.
+- A multiple of 600 that is not newer than the layer's latest and not more than 2 hours before it: that snapshot is served. The 2 hours are counted back from the layer's latest, or from the last fully elapsed 10-minute step (`floor(now / 600) * 600 - 600`) when Rainbow.ai is already on the current step, so a client that counts its window from the clock is never rejected.
+- Newer than the layer's latest (a client whose clock is ahead of a lagging layer): clamped to the layer's latest snapshot. This is not an error. `X-Weather-Snapshot` reports the snapshot actually served.
+- Not an integer multiple of 600, or older than the 2 hour window: `400 Bad Request`.
+- Ignored with `provider=rainviewer`, which has no snapshots.
+
+The effective snapshot is part of the proxy's cache key, so different snapshots never share cached bytes and a new snapshot never serves old ones.
+
+**Step back when the newest tile is missing.** If the snapshot was chosen by the proxy (no `snapshot` parameter, or a value that was clamped) and Rainbow.ai has no tile for it (HTTP 404 or 410), the proxy tries the previous 10-minute snapshot, then the one before, at most 2 extra attempts. `X-Weather-Snapshot` shows the snapshot served and the response uses `Cache-Control: public, max-age=30`; the proxy keeps it for 60 seconds before trying the newest snapshot again. An explicitly requested valid snapshot is never stepped back. Only "tile not found" triggers a step back: 401/403, 429 and 5xx keep the existing retry and fallback behaviour (RainViewer for `precip`/`precip-global`, a transparent tile with `X-Weather-Error` for `clouds`/`radars`). A missing tile is not retried with backoff because it will not appear within a few seconds.
+
+### Latest Snapshot Endpoint
+```
+GET /weather-radar/snapshot?layer=<layer>&api=<key>
+```
+
+Returns the snapshot the proxy would serve for a layer, so clients can line up a time slider with the data.
+
+- `layer` - `precip` (default), `precip-global`, `clouds` or `radars`. Anything else returns `400`
+- `api` (or `key`) - API key with access to the `rainbow` provider. Validation, per-key and per-IP rate limits are the same as for tiles (`401` without or with an invalid key, `403` without Rainbow.ai access, `429` when limited)
+
+```json
+{ "layer": "clouds", "snapshot": 1792274400, "stepSeconds": 600, "source": "rainbow" }
+```
+
+`source` is `rainbow` when the value came from Rainbow.ai and `computed` when the clock-based fallback was used. The response has `Access-Control-Allow-Origin: *` and `Cache-Control: public, max-age=30`.
+
 ### Health Check
 ```
 GET /weather-radar/health
 ```
 
-Returns service status and cache statistics.
+Returns service status, cache statistics and the supported parameters, including `snapshot` and the snapshot endpoint.
+
+### Response headers and content type
+
+| Header | Value |
+|--------|-------|
+| `Content-Type` | Taken from the image bytes: `image/png`, `image/webp` or `image/jpeg`; anything unrecognised is labelled `image/png`. The bytes are never transcoded. Rainbow.ai serves some layers (such as `clouds`) as WebP; upscaled tiles (`clouds`/`radars` above z7) are PNG |
+| `X-Weather-Provider`, `X-Weather-Layer` | Provider and layer of the request |
+| `X-Weather-Snapshot` | Epoch seconds of the Rainbow.ai snapshot actually served. Absent for RainViewer tiles, RainViewer fallback tiles and error tiles |
+| `X-Weather-Fallback`, `X-Weather-Error` | See below |
+| `Access-Control-Expose-Headers` | `X-Weather-Snapshot, X-Weather-Fallback, X-Weather-Error`, so browser clients can read them |
+
+### Degraded tile headers
+Good tiles are unchanged (`Cache-Control: public, max-age=600`). Degraded tiles are signalled with extra headers and a shorter cache lifetime:
+- **Older snapshot**: a tile served from an earlier snapshot than the newest one (see [Snapshots](#snapshots)) or a request clamped to the layer's latest uses `Cache-Control: public, max-age=30`. Its `X-Weather-Snapshot` tells which snapshot was served.
+- **Fallback**: for `layer=precip` or `precip-global` with `provider=rainbow`, a failed Rainbow.ai request is answered with a RainViewer (current radar) tile. The response adds `X-Weather-Fallback: rainviewer` and uses `Cache-Control: public, max-age=30`. The proxy also caches it for 30 s instead of 600 s.
+- **Error tile**: when a tile cannot be produced at all, the transparent PNG is returned with `X-Weather-Error: 1` and `Cache-Control: no-store`. It is not cached by the proxy.
 
 ## Rate Limiting
 - **RainViewer (Public)**: 600 requests per minute per IP address
@@ -201,7 +253,7 @@ Returns service status and cache statistics.
 
 ## Integration Notes
 
-- **Caching**: Tiles are cached server-side for 10 minutes (`Cache-Control: max-age=600`), matching provider update frequency. Client polling faster than this (e.g. the display kiosk polls every 5 minutes) reduces the worst-case staleness of displayed data but does not get newer tiles than the last provider update
+- **Caching**: Tiles are cached server-side for 10 minutes per effective snapshot (`Cache-Control: max-age=600`), matching provider update frequency. Client polling faster than this (e.g. the display kiosk polls every 5 minutes) reduces the worst-case staleness of displayed data but does not get newer tiles than the last provider update
 - **Zoom Limits**: RainViewer natively supports z0-7; zoom levels 8-9 are served by cropping and upscaling the z7 ancestor tile. Rainbow.ai `precip`/`precip-global` support up to z12 natively (requests are capped at z9). Rainbow.ai `clouds`/`radars` natively support z0-7, with z8-9 upscaled the same way as RainViewer
 - **Attribution**: Weather data provided by RainViewer.com or Rainbow.ai
 - **CORS**: Cross-origin requests are supported
