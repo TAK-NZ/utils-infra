@@ -212,21 +212,12 @@ export class UtilsInfraStack extends cdk.Stack {
       actions: ['s3:ListBucket'],
       resources: [configBucketArn],
     }));
-    // grid-monitor writes feed snapshots to the config bucket under a dedicated
-    // prefix (scoped so no other service gains broad write access).
-    taskRole.addToPolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['s3:PutObject'],
-      resources: [`${configBucketArn}/grid-monitor/snapshots/*`],
-    }));
 
-    // Grant KMS permissions for the S3 config bucket. Decrypt is needed to read
-    // config objects; GenerateDataKey is additionally required to WRITE objects
-    // to the KMS-encrypted bucket (grid-monitor writes feed snapshots there).
+    // Grant KMS decrypt permissions for S3 bucket
     const kmsKeyArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.KMS_KEY));
     taskRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: ['kms:Decrypt', 'kms:GenerateDataKey'],
+      actions: ['kms:Decrypt'],
       resources: [kmsKeyArn],
     }));
 
@@ -339,12 +330,6 @@ export class UtilsInfraStack extends cdk.Stack {
         environmentVariables.CONFIG_BUCKET = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
         environmentVariables.CONFIG_KEY = 'Utils-Display-Proxy-Config.json';
         environmentVariables.SITREP_KEY = 'sitrep/latest.json';
-      } else if (containerName === 'grid-monitor') {
-        // Reads the EMI API key from the S3 config file and writes feed
-        // snapshots back to the same bucket under a dedicated prefix.
-        environmentVariables.CONFIG_BUCKET = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
-        environmentVariables.CONFIG_KEY = 'Utils-Grid-Monitor-Config.json';
-        environmentVariables.SNAPSHOT_PREFIX = 'grid-monitor/snapshots';
       }
 
       // Create container service

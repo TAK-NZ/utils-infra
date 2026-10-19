@@ -110,14 +110,13 @@ describe('UtilsInfraStack', () => {
       }
     });
 
-    // Check KMS permissions exist. The task role needs Decrypt (read config)
-    // and GenerateDataKey (write snapshots to the KMS-encrypted config bucket).
+    // Check KMS permissions exist
     template.hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
         Statement: Match.arrayWith([
           Match.objectLike({
             Effect: 'Allow',
-            Action: Match.arrayWith(['kms:Decrypt', 'kms:GenerateDataKey'])
+            Action: 'kms:Decrypt'
           })
         ])
       }
