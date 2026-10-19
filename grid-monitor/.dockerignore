@@ -1,6 +1,0 @@
-node_modules
-*.md
-.git
-data/snapshots
-data/*.jsonl
-Utils-Grid-Monitor-Config.json
