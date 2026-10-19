@@ -39,7 +39,7 @@
           "cpu": 256,
           "memory": 512,
           "priority": 1,
-          "imageTag": "v1.3.0"
+          "imageTag": "v1.4.0"
         },
         "ais-proxy": {
           "enabled": true,
@@ -52,7 +52,7 @@
           "imageTag": "v1.2.4"
         },
         "grid-monitor": {
-          "enabled": true,
+          "enabled": false,
           "path": "/grid-monitor",
           "healthCheckPath": "/grid-monitor/health",
           "port": 3000,
@@ -150,7 +150,7 @@
           "cpu": 512,
           "memory": 1024,
           "priority": 1,
-          "imageTag": "v1.3.0"
+          "imageTag": "v1.4.0"
         },
         "ais-proxy": {
           "enabled": true,
