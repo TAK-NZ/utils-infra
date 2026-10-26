@@ -1248,12 +1248,23 @@ function makeAggregateItem(cluster, hlCfg, srcCfg) {
   // Latest issued time across the cluster (used by the summary template).
   var latest = null;
   var areaNames = {};
+  // Fire-detection stats (FIRMS): peak and total fire radiative power (MW)
+  // and the highest confidence in the cluster. Null when no member has a value.
+  var maxFrp = null, totalFrp = 0, hasFrp = false, maxConfidence = null;
   cluster.forEach(function(f) {
     var meta = (f.properties && f.properties._metadata) || {};
-    var t = parseTimestamp(meta.issuedTimeUTC || f.properties.time || meta.issuedTime);
+    var t = parseTimestamp(meta.issuedTimeUTC || meta.acq_datetime || f.properties.time || meta.issuedTime);
     if (t && (!latest || t.getTime() > latest.getTime())) latest = t;
     var name = meta.areaDesc || meta.region || meta.locality || f.properties.callsign;
     if (name) areaNames[name] = true;
+    var frp = parseFloat(meta.frp);
+    if (isFinite(frp)) {
+      hasFrp = true;
+      totalFrp += frp;
+      if (maxFrp === null || frp > maxFrp) maxFrp = frp;
+    }
+    var conf = parseFloat(meta.confidence);
+    if (isFinite(conf) && (maxConfidence === null || conf > maxConfidence)) maxConfidence = conf;
   });
 
   var names = Object.keys(areaNames);
@@ -1268,6 +1279,9 @@ function makeAggregateItem(cluster, hlCfg, srcCfg) {
         count: cluster.length,
         areaNames: names.join(', '),
         latestIssuedUTC: latest ? latest.toISOString() : null,
+        maxFrp: maxFrp,
+        totalFrp: hasFrp ? totalFrp : null,
+        maxConfidence: maxConfidence,
       },
     },
   };
