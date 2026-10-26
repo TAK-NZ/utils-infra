@@ -140,7 +140,7 @@ The `highlight` array configures a rotating feature-highlight mode. When enabled
 | `aggregate` | No | If `true`, collapse clusters of nearby features into a single summary card instead of cycling through each one. Useful for layers that can produce many near-identical events in one region (e.g. flooding forecasts). Default `false`. |
 | `group_radius_km` | No | Proximity threshold in kilometres for aggregation. Features within this distance of any cluster member join that cluster. Default `25`. Only used when `aggregate` is `true`. |
 | `group_min` | No | Minimum cluster size to collapse into a summary card. Clusters smaller than this (and lone features) still show as individual cards. Default `3`. Only used when `aggregate` is `true`. |
-| `aggregate_template` | No | Template string for the summary card body. In addition to `{{field}}`/`{{metadata.field}}`, aggregate summaries expose `{{metadata.count}}` (features in the cluster), `{{metadata.areaNames}}` (comma-joined area/region names), and `{{metadata.latestIssuedUTC}}` (most recent issued time in the cluster). Only used when `aggregate` is `true`. |
+| `aggregate_template` | No | Template string for the summary card body. In addition to `{{field}}`/`{{metadata.field}}`, aggregate summaries expose `{{metadata.count}}` (features in the cluster), `{{metadata.areaNames}}` (comma-joined area/region names), and `{{metadata.latestIssuedUTC}}` (most recent issued time in the cluster; falls back to `acq_datetime` for FIRMS fire detections). For fire detections it also exposes `{{metadata.maxFrp}}` (peak FRP in MW), `{{metadata.totalFrp}}` (summed FRP in MW) and `{{metadata.maxConfidence}}` (highest confidence). Only used when `aggregate` is `true`. |
 
 Features are sorted geographically north-to-south (descending latitude) within each priority layer.
 
@@ -159,6 +159,22 @@ Example — aggregate flooding forecasts within 100 km once there are 3 or more:
     "group_min": 3,
     "template": "{{callsign}}\nIssued: {{metadata.issuedTimeUTC|date}} ({{metadata.issuedTimeUTC|ago}})",
     "aggregate_template": "{{metadata.count}} active flooding forecasts in this area\n{{metadata.areaNames}}\nLatest issued: {{metadata.latestIssuedUTC|date}} ({{metadata.latestIssuedUTC|ago}})"
+}
+```
+
+Example — aggregate FIRMS satellite fire detections within 25 km once there are 3 or more:
+
+```json
+{
+    "layer": "fires",
+    "priority": 7,
+    "dwell": 10,
+    "zoom": 10,
+    "aggregate": true,
+    "group_radius_km": 25,
+    "group_min": 3,
+    "template": "FRP: {{metadata.frp|fixed:1}} MW (Confidence: {{metadata.confidence}}%)\n{{metadata.satellite}} — {{metadata.acq_datetime|date}} ({{metadata.acq_datetime|ago}})",
+    "aggregate_template": "{{metadata.count}} satellite fire detections in this area\nPeak FRP: {{metadata.maxFrp|fixed:1}} MW (Total: {{metadata.totalFrp|fixed:1}} MW)\nLatest detection: {{metadata.latestIssuedUTC|date}} ({{metadata.latestIssuedUTC|ago}})"
 }
 ```
 
