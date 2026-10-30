@@ -1,0 +1,193 @@
+# LCDB v6.0 class -> terrain impedance for the WiSAR cost surface.
+#
+# DRAFT FOR REVIEW. These values are expert judgement, NOT measured NZ travel speeds and NOT calibrated
+# against incident data. Review and adjust them (ideally with a SAR practitioner) before relying on any output.
+#
+# `impedance` is WiSAR's 0-99 scale (app/pipeline/shared.py). app/pipeline/cost_surface.py converts it to a
+# friction multiplier with fixed bins, so only these friction values are reachable:
+#   0-5 -> 1.00   5-10 -> 1.05   10-15 -> 1.10   15-25 -> 1.15   25-30 -> 1.25   30-35 -> 1.50
+#   35-45 -> 1.60   45-55 -> 1.80   55-85 -> 3.00   above 85 -> 50.0 (barrier)
+# Trails, roads and power-line corridors from OSM override these (friction 1.00); water barriers are applied on top.
+#
+# Slope is NOT part of friction: it is handled per edge by Tobler's hiking function during cost-distance.
+# Friction therefore describes only how much the ground cover slows a person on flat ground, relative to a track.
+
+[meta]
+lcdb_version = "6.0"
+epoch = "2023/24"
+class_field = "Class_2023"
+# Applied to cells outside every LCDB polygon (open sea, outside NZ mainland) and to class 0.
+sea_impedance = 99
+# LCDB flags wetland polygons separately (Wetland_23 = "yes"), on top of the class. A flagged cell gets
+# max(class impedance, this floor): wet ground is slow and tiring whatever grows on it.
+wetland_floor_impedance = 65
+
+[classes.0]
+name = "Not land"
+impedance = 99
+note = "Shoreline moved between epochs; treated as water."
+
+[classes.1]
+name = "Built-up Area (settlement)"
+impedance = 10
+note = "Hard surfaces, gardens, fences. Easy going; fences and buildings cost a little."
+
+[classes.2]
+name = "Urban Parkland/Open Space"
+impedance = 5
+note = "Mown grass, playing fields."
+
+[classes.5]
+name = "Transport Infrastructure"
+impedance = 0
+note = "Sealed roads, rail yards, runways, forestry landings."
+
+[classes.6]
+name = "Surface Mine or Dump"
+impedance = 35
+note = "Uneven, bare, spoil heaps."
+
+[classes.10]
+name = "Sand and Gravel"
+impedance = 20
+note = "Beaches and river margins; loose underfoot but open."
+
+[classes.12]
+name = "Landslide"
+impedance = 50
+note = "Bare, unstable, steep ground (steepness itself comes from the DEM)."
+
+[classes.14]
+name = "Permanent Snow and Ice"
+impedance = 70
+note = "Not a barrier: lost, unequipped people do try it. Slow and hazardous."
+
+[classes.15]
+name = "Alpine Grass/Herbfield"
+impedance = 25
+note = "Open ground above the treeline with boulders and bare rock."
+
+[classes.16]
+name = "Gravel and Rock"
+impedance = 40
+note = "Scree, rock pavement, boulder beds."
+
+[classes.20]
+name = "Lake or Pond"
+impedance = 99
+note = "Barrier."
+
+[classes.21]
+name = "River"
+impedance = 90
+note = "Open fresh water generally over 30 m wide. Barrier-like; some braided rivers are crossable at low flow."
+
+[classes.22]
+name = "Estuarine Open Water"
+impedance = 99
+note = "Barrier."
+
+[classes.30]
+name = "Short-rotation Cropland"
+impedance = 25
+note = "Cultivated paddocks; fences and crop rows."
+
+[classes.33]
+name = "Orchards, Vineyards or Other Perennial Crops"
+impedance = 30
+note = "Rows and trellis, fences, shelterbelts."
+
+[classes.40]
+name = "High Producing Exotic Grassland"
+impedance = 15
+note = "Pasture. Fences and stock tracks, but open."
+
+[classes.41]
+name = "Low Producing Grassland"
+impedance = 20
+note = "Rougher pasture and short tussock."
+
+[classes.43]
+name = "Tall Tussock Grassland"
+impedance = 35
+note = "Snow and red tussock: knee to waist high, uneven footing."
+
+[classes.44]
+name = "Depleted Grassland"
+impedance = 25
+note = "Short tussock with bare ground; open."
+
+[classes.45]
+name = "Herbaceous Freshwater Vegetation"
+impedance = 70
+note = "Rush, sedge, restiad, sphagnum; saturated ground."
+
+[classes.46]
+name = "Herbaceous Saline Vegetation"
+impedance = 60
+note = "Tidal saltmarsh; soft and tidal."
+
+[classes.47]
+name = "Flaxland"
+impedance = 50
+note = "Dense harakeke, often in damp ground."
+
+[classes.50]
+name = "Fernland"
+impedance = 40
+note = "Bracken and other ferns; head-high but penetrable."
+
+[classes.51]
+name = "Gorse and/or Broom"
+impedance = 60
+note = "Dense, spiny; among the worst scrub to push through."
+
+[classes.52]
+name = "Manuka and/or Kanuka"
+impedance = 55
+note = "Dense scrub, often with interlocking stems."
+
+[classes.54]
+name = "Broadleaved Indigenous Hardwoods"
+impedance = 55
+note = "Dense lowland scrub with tree ferns and vines."
+
+[classes.55]
+name = "Sub Alpine Shrubland"
+impedance = 50
+note = "Hebe, Dracophyllum, Olearia; dense but low."
+
+[classes.56]
+name = "Mixed Exotic Shrubland"
+impedance = 55
+note = "Blackberry, hawthorn, old man's beard, sweet brier."
+
+[classes.58]
+name = "Matagouri or Grey Scrub"
+impedance = 55
+note = "Divaricating, thorny shrubs."
+
+[classes.64]
+name = "Forest - Harvested"
+impedance = 50
+note = "Slash, stumps and debris; poor footing."
+
+[classes.68]
+name = "Deciduous Hardwoods"
+impedance = 45
+note = "Willow and poplar, often alongside water."
+
+[classes.69]
+name = "Indigenous Forest"
+impedance = 50
+note = "Tall native forest. Understory varies widely (open beech vs supplejack and lawyer vine) but LCDB does not separate it."
+
+[classes.70]
+name = "Mangrove"
+impedance = 75
+note = "Tidal mud and pneumatophores."
+
+[classes.71]
+name = "Exotic Forest"
+impedance = 40
+note = "Plantation, usually with open understory and planting rows; harvested blocks are class 64."
