@@ -7,7 +7,9 @@ Output layer `lines` has columns name, cat (trails | roads | waterways | powerli
 'line' for transmission lines) and a LineString geometry in EPSG:4326, with a packed spatial index, so a
 bounding-box read touches only the index nodes and features it needs, including over S3 range requests.
 """
-import geopandas as gpd
+import os
+import tempfile
+
 import numpy as np
 import pyogrio
 
@@ -48,9 +50,24 @@ def metadata_geojson(source_name, feature_count, built_at):
 
 
 def build_fgb(pbf_path, out_path):
-    """Read the PBF, classify, and write the FlatGeobuf. Returns the number of features written."""
-    frame = pyogrio.read_dataframe(pbf_path, sql=_SQL, sql_dialect='OGRSQL')
+    """Read the PBF, classify, and write the FlatGeobuf. Returns the number of features written.
+
+    GDAL's OSM driver spills temporary node data into the CURRENT WORKING DIRECTORY while it reads a large file. On
+    Lambda the working directory is /var/task, which is read-only, and the driver's error is swallowed by the SQL
+    path: the read quietly returns zero rows. So the read happens from a writable temporary directory, and an empty
+    result is treated as a failure instead of as "no data".
+    """
+    pbf_path, out_path = os.path.abspath(pbf_path), os.path.abspath(out_path)
+    previous = os.getcwd()
+    with tempfile.TemporaryDirectory(prefix='osm_build_') as scratch:
+        os.chdir(scratch)
+        try:
+            frame = pyogrio.read_dataframe(pbf_path, sql=_SQL, sql_dialect='OGRSQL')
+        finally:
+            os.chdir(previous)
     frame = classify(frame)
+    if len(frame) == 0:
+        raise RuntimeError('OSM build produced no features; refusing to write an empty snapshot')
     if frame.crs is None:
         frame = frame.set_crs('EPSG:4326')
     pyogrio.write_dataframe(frame, out_path, driver='FlatGeobuf', layer='lines', SPATIAL_INDEX='YES')
