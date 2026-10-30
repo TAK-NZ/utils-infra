@@ -11,14 +11,14 @@ MAX_RADIUS_KM.
 
 Event shapes accepted: ALB target group, Lambda Function URL, and direct invoke
 ({"method": "POST", "path": "/travel-time", "body": {...}} or just the body for /travel-time).
-Authentication: HTTP events must carry the x-api-key header matching SAR_API_KEY. With SAR_API_KEY unset, every
-route except /health is denied. Direct invokes rely on IAM and carry no key.
+Authentication: HTTP events must carry an x-api-key header matching a key in the config-bucket file named by
+SAR_CONFIG_BUCKET / SAR_CONFIG_KEY (see api_keys.py), or SAR_API_KEY for local use. With no valid key configured,
+every route except /health is denied. Direct invokes rely on IAM and carry no key.
 
 Privacy: the pipeline prints the IPP and bounding box. Its output is captured and discarded; logs hold only
 timings, sizes and error classes, never coordinates.
 """
 import contextlib
-import hmac
 import io
 import json
 import math
@@ -27,6 +27,7 @@ import time
 import traceback
 import warnings as pywarnings
 
+import api_keys
 import nz_sources  # noqa: E402  (importing registers the LCDB codes and sets GDAL read options)
 from pipeline.cost_distance import compute_cost_distance
 from pipeline.cost_surface import build_cost_surface
@@ -164,12 +165,6 @@ def run_travel_time(lat, lng, speed_kmh, intervals, radius_km):
 # --------------------------------------------------------------------------------------------------------------
 # Routing and event adapters
 # --------------------------------------------------------------------------------------------------------------
-def _authorized(headers):
-    expected = os.environ.get('SAR_API_KEY', '')
-    given = headers.get('x-api-key', '')
-    return bool(expected) and hmac.compare_digest(expected.encode(), given.encode())
-
-
 def handle(method, path, headers, body, authenticated):
     """Return (status, payload dict). `authenticated` is True for IAM-authorised direct invokes."""
     route = path.rstrip('/') or '/'
@@ -181,7 +176,7 @@ def handle(method, path, headers, body, authenticated):
         raise ApiError(404, 'Not found')
     if method != 'POST':
         raise ApiError(405, 'Use POST')
-    if not authenticated and not _authorized(headers):
+    if not authenticated and not api_keys.is_authorized(headers.get('x-api-key', '')):
         raise ApiError(401, 'Unauthorized')
     args = parse_travel_time(body)
     sink = io.StringIO()

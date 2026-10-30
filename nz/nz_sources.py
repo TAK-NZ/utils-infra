@@ -12,7 +12,7 @@ download_nhd_features}: same signatures and return shapes, so app/pipeline/ is u
   Hydrology  No NHD equivalent. Lakes and sea come from land cover; rivers and streams from OSM waterways.
 
 Data location: SAR_DATA_DIR (default: <repo>/data). It can be a local directory or a GDAL virtual path such as
-/vsis3/bucket/prefix, and must hold lcdb_2023_30m.tif, nz_osm.fgb and nz_osm_meta.geojson.
+/vsis3/bucket/prefix, and must hold lcdb_2023_30m.tif and nz_osm_meta.geojson, plus the OSM FlatGeobuf the sidecar names.
 """
 import json
 import math
@@ -51,12 +51,12 @@ for _k, _v in {'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR',
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get('SAR_DATA_DIR') or os.path.join(HERE, '..', 'data')
 LCDB_TIF = DATA_DIR + '/lcdb_2023_30m.tif'
-OSM_FGB = DATA_DIR + '/nz_osm.fgb'
+DEFAULT_OSM_FGB = 'nz_osm.fgb'                                    # used when the sidecar names no file
 OSM_META = DATA_DIR + '/nz_osm_meta.geojson'
 DEM_INDEX = os.path.join(HERE, 'dem_1m_index.json')            # bundled with the code
 LINZ_DEM_BASE = 'https://nz-elevation.s3-ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/'
 COPERNICUS_BASE = 'https://copernicus-dem-30m.s3.amazonaws.com/'
-OSM_STALE_DAYS = 14                                            # as in WiSAR (OSM_CACHE_STALE_DAYS)
+OSM_STALE_DAYS = 45                                            # the snapshot is refreshed monthly (WiSAR uses 14 for weekly)
 NODATA = -9999.0
 WINDOW_PAD_CELLS = 4
 
@@ -226,9 +226,21 @@ def osm_metadata():
     try:
         row = pyogrio.read_dataframe(OSM_META).iloc[0]
         # pyogrio parses datetime-looking strings into pandas Timestamps; hand back plain Python values.
-        return {'built_at': row['built_at'].isoformat(), 'source': str(row['source']), 'features': int(row['features'])}
+        meta = {'built_at': row['built_at'].isoformat(), 'source': str(row['source']), 'features': int(row['features'])}
+        if 'file' in row and str(row['file']):
+            meta['file'] = str(row['file'])
+        return meta
     except Exception:
         return {}
+
+
+def osm_fgb_path(meta=None):
+    """Path of the current OSM snapshot. The sidecar names it, so the scheduled refresh can publish a new snapshot
+    under a new key and switch to it with one small write; readers never see a half-written file."""
+    name = (meta if meta is not None else osm_metadata()).get('file') or DEFAULT_OSM_FGB
+    if name.startswith('/') or '..' in name.split('/'):
+        raise ValueError('OSM snapshot name in the sidecar is not a relative path')
+    return f'{DATA_DIR}/{name}'
 
 
 def download_osm_features(bbox):
@@ -239,7 +251,8 @@ def download_osm_features(bbox):
         'powerlines': _empty(['geometry', 'type', 'name']),
         '_warnings': [],
     }
-    gdf = gpd.read_file(OSM_FGB, bbox=tuple(bbox), engine='pyogrio')
+    meta = osm_metadata()
+    gdf = gpd.read_file(osm_fgb_path(meta), bbox=tuple(bbox), engine='pyogrio')
     if len(gdf):
         gdf['name'] = gdf['name'].fillna('').astype(str)
         gdf = gdf.set_crs('EPSG:4326', allow_override=True)
@@ -249,7 +262,7 @@ def download_osm_features(bbox):
                 sub['width'] = ''
             if len(sub):
                 result[cat] = sub
-    built = osm_metadata().get('built_at')
+    built = meta.get('built_at')
     age_days = None
     if built:
         age_days = (datetime.now(timezone.utc) - datetime.fromisoformat(built)).total_seconds() / 86400
