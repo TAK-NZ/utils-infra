@@ -33,7 +33,7 @@ upstream changes merge without conflicts. The Flask app (`app/server.py`, `app/s
 
 ```
 docker build -f Dockerfile.lambda -t sar-engine .
-docker run -p 9000:8080 -v /path/to/data:/data:ro -e SAR_DATA_DIR=/data -e SAR_API_KEY=changeme sar-engine
+docker run -p 9000:8080 -v /path/to/data:/data:ro -e SAR_DATA_DIR=/data -e SAR_API_KEY=local-dev-key-0123456789 sar-engine
 ```
 
 | Variable | Meaning |
