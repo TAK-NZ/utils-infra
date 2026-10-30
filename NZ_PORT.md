@@ -18,9 +18,12 @@ upstream changes merge without conflicts. The Flask app (`app/server.py`, `app/s
 | `nz/nz_sources.py` | Replacements for the four US data functions in `app/pipeline/downloads.py` (elevation, land cover, OSM, hydrology), plus the start-point water check. |
 | `nz/lcdb_friction.toml`, `nz/lcdb_friction.py` | LCDB class to terrain impedance (reviewed table with a rationale per class), and the loader that registers it with the pipeline. `python nz/lcdb_friction.py` prints the table with the resulting friction. |
 | `nz/osm_tags.py` | OSM tag sets used by the builder and the runtime. |
+| `nz/api_keys.py` | API keys from a JSON file in the config bucket (16-character minimum, disabled entries ignored, fails closed). |
+| `nz/osm_build.py` | Builds the OSM FlatGeobuf from a PBF using only pyogrio, so no `ogr2ogr`/`osmium` is needed. Shared by the builder and the refresh. |
+| `nz/osm_refresh.py` | Scheduled Lambda: downloads the Geofabrik extract, builds, uploads under a dated key, then switches the pointer sidecar. |
 | `nz/dem_1m_index.json` | Sheet bounding boxes of the LINZ 1 m DEM (bundled in the image). |
 | `nz/build_lcdb_raster.py` | LCDB v6.0 shapefile to a national 30 m COG (about 45 MB, 3 minutes). |
-| `nz/build_osm_lines.py` | Geofabrik NZ extract to a FlatGeobuf plus a build-time sidecar (under a minute). |
+| `nz/build_osm_lines.py` | Command-line build of the same FlatGeobuf plus the pointer sidecar, for local use (about 30 s). |
 | `nz/build_dem_index.py` | Regenerates `dem_1m_index.json` from the LINZ STAC collection. |
 | `nz/check_dem_coverage.py` | Samples random land points to estimate 1 m DEM coverage. |
 | `nz/run_spike.py`, `nz/report.py` | Run the pipeline on a site with timings; render ring-area comparison maps. |
@@ -35,8 +38,14 @@ docker run -p 9000:8080 -v /path/to/data:/data:ro -e SAR_DATA_DIR=/data -e SAR_A
 
 | Variable | Meaning |
 |---|---|
-| `SAR_DATA_DIR` | Directory (or GDAL path such as `/vsis3/bucket/prefix`) holding `lcdb_2023_30m.tif`, `nz_osm.fgb` and `nz_osm_meta.geojson`. Not baked into the image. |
-| `SAR_API_KEY` | Shared secret the caller sends in the `x-api-key` header. **With it unset, every route except `/health` is denied.** Direct (IAM-authorised) invokes do not use it. |
+| `SAR_DATA_DIR` | Directory (or GDAL path such as `/vsis3/bucket/prefix`) holding `lcdb_2023_30m.tif`, `nz_osm_meta.geojson` and the OSM FlatGeobuf the sidecar names. Not baked into the image. |
+| `SAR_CONFIG_BUCKET`, `SAR_CONFIG_KEY` | S3 object holding the API keys (`{"apiKeys": {"name": {"key": "...", "enabled": true}}}`). Cached for five minutes. |
+| `SAR_API_KEY` | A single key for local use (16 characters or more). |
+
+With no valid key configured, every route except `/health` is denied. Direct (IAM-authorised) invokes do not use keys.
+
+The OSM refresh runs from the same image with the command `osm_refresh.lambda_handler`, and reads `SAR_DATA_BUCKET` and
+`SAR_DATA_PREFIX`. `{"dry_run": true}` builds and validates without uploading.
 
 ### API
 
@@ -85,6 +94,9 @@ unvalidated test sites. **Not yet measured:** a real Lambda cold start, and S3 r
 | 30 km radius (maximum), 60 m cells | 38 s | grid is capped at 1000 x 1000 cells |
 | Peak container memory | 348 MiB | across all runs |
 
+The monthly refresh, run inside the Lambda image against the real Geofabrik download, took 73 s and published 971,529
+features (it needs about 1.6 GB of memory and 1 GB of `/tmp`).
+
 Over HTTP range requests, a FlatGeobuf bounding-box read fetched 1.8 MB in 53 requests for an 8 km bush area, 2.7 MB
 for a 60 km mountain area, and 43.5 MB in 152 requests for a dense 40 km urban area (local emulation, not S3).
 
@@ -111,16 +123,18 @@ for a 60 km mountain area, and 43.5 MB in 152 requests for a dense 40 km urban a
   (Tobler's function applies a factor of about 5-8 at 30 degrees; designed for walking on tracks) dominates.
 - **LCDB limits.** No understory detail (all indigenous forest gets one value). Cells with no LCDB polygon are treated
   as sea (barrier). Chatham Islands are not covered.
-- **OSM.** Every `highway=track` and `service` road is a friction-1.0 corridor, which includes farm tracks. Snapshot age
-  is reported (warning after 14 days).
+- **OSM.** Every `highway=track` and `service` road is a friction-1.0 corridor, which includes farm tracks. The snapshot is
+  refreshed monthly (about 1% of relevant ways change per month, extrapolated from a measured 0.21% over 5 days) and its
+  age is reported (warning after 45 days).
 - **Dense urban areas are slower** (Auckland waterfront: 21 s on a laptop-class CPU) because of OSM feature counts.
 - **Runtime dependency on LINZ and Copernicus S3 buckets** for elevation. An outage there fails the analysis.
 
 ## Next steps
 
-1. Upload `lcdb_2023_30m.tif`, `nz_osm.fgb` and `nz_osm_meta.geojson` to an S3 bucket (created by `utils-infra`).
-2. Weekly OSM refresh as a second handler in the same image, run by EventBridge.
-3. Measure a real Lambda cold start and S3 read times; set memory (2 GB is ample) and timeout (the ALB default idle
-   timeout is 60 s; the 30 km case took 38 s locally).
-4. `utils-infra`: construct, image build in CI, ALB target, and the CloudTAK relay in the TAK-NZ CloudTAK fork.
-5. TARR mode, once there is a defensible calibration.
+1. Deploy via [`utils-infra`](https://github.com/TAK-NZ/utils-infra) (branch `feat/sar-engine`, see its `docs/SAR_ENGINE.md`): upload
+   `lcdb_2023_30m.tif` to the artifacts bucket, enable the feature, run the first OSM refresh. It reuses the existing
+   artifacts bucket under a `sar-engine/` prefix and refreshes OSM monthly.
+2. Measure a real Lambda cold start and S3 read times (not yet measured). The HTTP function is configured for 2 GB and a
+   55 s timeout, under the ALB's 60 s idle timeout; the 30 km case took 38 s locally.
+3. The `/api/sar/*` relay in the TAK-NZ CloudTAK fork, and the plugin itself.
+4. TARR mode, once there is a defensible calibration.
