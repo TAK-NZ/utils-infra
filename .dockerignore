@@ -7,3 +7,9 @@ app/tarr_example_v1_15.png
 **/*.pyc
 .env
 **/.DS_Store
+
+# NZ port: local data, spike output and virtualenv are not part of any image
+data
+results
+venv
+nz/__pycache__

@@ -1,73 +1,126 @@
 # NZ port of WiSAR (TAK-NZ)
 
 This is TAK-NZ's fork of [WiSAR Terrain-Aware Range Rings](https://github.com/clptak/WiSAR-Terrain-Aware-Range-Rings)
-by Jamie F. Weleber (AGPL-3.0). The goal is a backend for the
-[`cloudtak-plugin-sar`](https://github.com/TAK-NZ/cloudtak-plugin-sar) CloudTAK plugin that runs on New Zealand data
-and is deployed as a container-image AWS Lambda from [`utils-infra`](https://github.com/TAK-NZ/utils-infra).
+by Jamie F. Weleber (AGPL-3.0). It is the backend for the
+[`cloudtak-plugin-sar`](https://github.com/TAK-NZ/cloudtak-plugin-sar) CloudTAK plugin: terrain-aware travel-time
+contours from New Zealand data, packaged as a container-image AWS Lambda for deployment from
+[`utils-infra`](https://github.com/TAK-NZ/utils-infra).
 
 Branch policy: `main` mirrors upstream (`git fetch upstream`). NZ work happens on `nz-port` and its successors.
 The upstream `app/pipeline/` package is deliberately **not modified**; everything NZ-specific lives in `nz/`, so
-upstream changes merge without conflicts.
+upstream changes merge without conflicts. The Flask app (`app/server.py`, `app/static/`) is not used by the Lambda.
 
 ## What is here
 
 | Path | Purpose |
 |---|---|
-| `nz/nz_sources.py` | Drop-in replacements for the four US data functions in `app/pipeline/downloads.py` (DEM, land cover, OSM, hydrology). |
-| `nz/build_dem_index.py` | Indexes the LINZ 1 m DEM STAC sheets so a bounding box maps to COG URLs. |
-| `nz/build_lcdb_raster.py` | Rasterizes LCDB v6.0 (2023/24) to a national 30 m Cloud-Optimized GeoTIFF (about 45 MB, 3 minutes). |
-| `nz/lcdb_friction.toml` | **Draft, for review.** LCDB class to terrain impedance, with a rationale per class. |
-| `nz/lcdb_friction.py` | Loads the table and registers the LCDB codes with the pipeline's shared impedance lookup. `python nz/lcdb_friction.py` prints the table with the resulting friction values. |
-| `nz/build_osm_lines.py` | Filters the Geofabrik NZ extract to a GeoPackage of trails, roads, waterways and power lines. |
-| `nz/run_spike.py` | Runs the unmodified pipeline against NZ data, with per-stage timing and peak memory. |
-| `nz/report.py` | Renders the ring-area comparison and an overview map. |
+| `nz/handler.py` | Lambda handler: routing, authentication, input validation, the travel-time analysis. |
+| `nz/nz_sources.py` | Replacements for the four US data functions in `app/pipeline/downloads.py` (elevation, land cover, OSM, hydrology), plus the start-point water check. |
+| `nz/lcdb_friction.toml`, `nz/lcdb_friction.py` | LCDB class to terrain impedance (reviewed table with a rationale per class), and the loader that registers it with the pipeline. `python nz/lcdb_friction.py` prints the table with the resulting friction. |
+| `nz/osm_tags.py` | OSM tag sets used by the builder and the runtime. |
+| `nz/dem_1m_index.json` | Sheet bounding boxes of the LINZ 1 m DEM (bundled in the image). |
+| `nz/build_lcdb_raster.py` | LCDB v6.0 shapefile to a national 30 m COG (about 45 MB, 3 minutes). |
+| `nz/build_osm_lines.py` | Geofabrik NZ extract to a FlatGeobuf plus a build-time sidecar (under a minute). |
+| `nz/build_dem_index.py` | Regenerates `dem_1m_index.json` from the LINZ STAC collection. |
+| `nz/check_dem_coverage.py` | Samples random land points to estimate 1 m DEM coverage. |
+| `nz/run_spike.py`, `nz/report.py` | Run the pipeline on a site with timings; render ring-area comparison maps. |
+| `Dockerfile.lambda`, `nz/requirements-lambda.txt` | The Lambda container image. |
 
-Run from the repository root, with `data/` holding the downloaded sources (git-ignored) and the upstream
-requirements installed (`app/requirements.txt`, plus `matplotlib` for `report.py`).
+## Running it
+
+```
+docker build -f Dockerfile.lambda -t sar-engine .
+docker run -p 9000:8080 -v /path/to/data:/data:ro -e SAR_DATA_DIR=/data -e SAR_API_KEY=changeme sar-engine
+```
+
+| Variable | Meaning |
+|---|---|
+| `SAR_DATA_DIR` | Directory (or GDAL path such as `/vsis3/bucket/prefix`) holding `lcdb_2023_30m.tif`, `nz_osm.fgb` and `nz_osm_meta.geojson`. Not baked into the image. |
+| `SAR_API_KEY` | Shared secret the caller sends in the `x-api-key` header. **With it unset, every route except `/health` is denied.** Direct (IAM-authorised) invokes do not use it. |
+
+### API
+
+An optional `/sar` path prefix is accepted so an ALB can route by path. Events from an ALB, a Function URL or a direct
+invoke are all understood.
+
+- `GET /health` returns `{"status": "ok", ...}` without authentication.
+- `POST /travel-time` takes
+  `{"ipp": {"lat": -40.87, "lng": 175.45}, "speed_kmh": 2.0, "intervals_hours": [1, 2, 4], "radius_km": 10}`
+  (`radius_km` optional) and returns GeoJSON `contours`, `parameters`, `bbox`, `warnings`, `data` versions,
+  `attribution`, a `disclaimer` and per-stage `timings_s`.
+
+Limits: IPP inside mainland NZ and on land (a start in the sea or a lake returns 422), speed 0.1 to 10 km/h, 1 to 8
+intervals of 0.25 to 24 h, radius at most 30 km, body at most 8 KB. The pipeline prints the IPP, so its output is
+discarded; logs hold timings, sizes and error classes, never coordinates.
 
 ## Data sources
 
 | Data | Source | Licence / attribution |
 |---|---|---|
-| Elevation | LINZ NZ Elevation, 1 m LiDAR DEM (COG, EPSG:2193), public S3 bucket `nz-elevation` | LINZ open data, attribution required. Confirm the exact terms on the dataset page. |
+| Elevation | LINZ NZ Elevation 1 m LiDAR DEM (COG, EPSG:2193), public S3 bucket `nz-elevation`; gaps filled from Copernicus GLO-30 (public S3 `copernicus-dem-30m`) | LINZ: CC BY 4.0 (per the STAC collection). Copernicus: see its licence terms; credit the Copernicus programme. |
 | Land cover | Landcare Research LCDB v6.0, 2023/24 epoch (LRIS shapefile download) | CC BY 4.0, attribute Landcare Research. |
-| Trails, roads, waterways, power lines | OpenStreetMap via the Geofabrik NZ extract | ODbL, attribute OpenStreetMap contributors. |
+| Trails, roads, waterways, transmission lines | OpenStreetMap via the Geofabrik NZ extract | ODbL, attribute OpenStreetMap contributors. |
 | Hydrology | None (no NHD equivalent). Lakes and sea come from land cover, streams and rivers from OSM waterways. | |
 
-## Spike results (October 2026)
+OSM differs from WiSAR in one way: only `power=line` (transmission) is burned in as a cleared corridor. NZ `minor_line`
+is mostly pole wiring along roads and through paddocks. This removed about 97% of "power line corridors" near Masterton.
 
-The unmodified pipeline ran end to end on NZ data. Test sites were arbitrary; the results are **not validated**. Timings below were measured with WorldCover; the LCDB runs were the same (worst case 27 s, 468 MB).
+### Elevation coverage
 
-| Case | Grid | Total | Cost-distance | Peak memory |
-|---|---|---|---|---|
-| 8 km radius | 533x529 | 10-11 s | 4 s | 330-360 MB |
-| 15 km radius | about 1000x1000 | 23-26 s | 15 s | 400-450 MB |
-| 22 km radius, stream-dense bush | 1000x993 | 30 s | 14 s | 473 MB |
+Sampling 600 random land points found 1 m DEM data at 86%: **96% in the North Island, 77% in the South Island**. The
+misses cluster in Southland, Fiordland and south Otago. Where a request has holes, the engine fills them from
+Copernicus GLO-30 (a 30 m surface model that includes tree canopy), removes the median offset where the two overlap,
+and tells the caller when the filled share exceeds 1%. In a Southland test (37% filled) slopes across the seam were
+consistent (median 13.7 degrees at the seam, between the 12.6 and 16.3 degree interiors).
 
-The pipeline caps the grid at 1000x1000, so runtime stays near 30 s for any radius (cells coarsen beyond about
-15 km). gdalwarp adds up to about 210 MB in a separate process. Cold-start time on Lambda is not yet measured.
+## Measurements
+
+All with the Lambda image under the Runtime Interface Emulator, limited to 1 CPU and 2 GB, data on local disk,
+unvalidated test sites. **Not yet measured:** a real Lambda cold start, and S3 read latency.
+
+| Case | Time | Notes |
+|---|---|---|
+| Tararua bush, 10 km radius | 10 s | cost-distance 7 s |
+| Southland, 10 km, 37% Copernicus fill | 13 s | |
+| 30 km radius (maximum), 60 m cells | 38 s | grid is capped at 1000 x 1000 cells |
+| Peak container memory | 348 MiB | across all runs |
+
+Over HTTP range requests, a FlatGeobuf bounding-box read fetched 1.8 MB in 53 requests for an 8 km bush area, 2.7 MB
+for a 60 km mountain area, and 43.5 MB in 152 requests for a dense 40 km urban area (local emulation, not S3).
+
+### Two bugs only the real runtime exposed
+
+- The Lambda base image lacks `libexpat`, which the rasterio and pyogrio wheels need (import failure). The Dockerfile
+  installs it.
+- The Lambda Python image ships boto3, and rasterio then builds a boto3-backed session on every `rasterio.Env` entry.
+  The upstream cost-surface code enters one per stream (about 1,100 per run), which added about 25 s (`cost_surface`
+  27 s against 1.5 s elsewhere). `nz_sources.py` hides boto3 from rasterio; GDAL still reads role credentials from the
+  environment for `/vsis3/` paths. Re-check this if the base image or rasterio changes.
 
 ## Known gaps
 
-- **Calibration.** WiSAR's per-band multipliers (1.05 / 1.35 / 1.80) come from Coconino County, Arizona. With them,
-  calibrated ring areas ranged from 0.28x to 2.3x the plain Koester circle depending on terrain (steep bush vs flat
-  farmland). There is no NZ incident data yet, so NZ output must not be presented as 25/50/75% containment. Plan:
-  ship Travel Time mode first, keep TARR multipliers configurable with a default of 1.0, show the plain Koester
-  circle beside the terrain-aware ring, and label it as uncalibrated.
-- **Friction table is a draft.** `nz/lcdb_friction.toml` is expert judgement, not measured NZ travel speeds. The
-  pipeline's impedance-to-friction bins are fixed (1.0 to 3.0, or 50 for barriers). It matters less than it looks:
-  on the test sites, swapping WorldCover for LCDB moved ring areas by 0-4%, because slope (Tobler's function applies
-  a factor of about 5-8 on 30 degree ground) and the calibration multipliers dominate, not land cover.
-- **LCDB limits.** LCDB does not separate understory (open beech vs supplejack and lawyer vine), so all indigenous forest
-  gets one value. Cells with no LCDB polygon (open sea) are treated as barriers. Chatham Islands are not covered.
-- **DEM coverage.** The LINZ 1 m DEM does not necessarily cover all of NZ. Gaps are unmapped; the national 8 m DEM is
-  the planned fallback.
-- **OSM tag sets** are WiSAR's US ones. Every `highway=track`, `service` road and power line becomes a friction-1.0
-  corridor, which includes farm tracks and distribution lines in NZ.
+- **Not calibrated.** WiSAR's percentile multipliers (1.05 / 1.35 / 1.80) come from Coconino County, Arizona. Applied
+  to NZ test sites they gave ring areas from 0.28x to 2.3x the plain Koester circle depending on terrain. There is no
+  NZ incident data, so TARR (percentile) mode is **not implemented**; only Travel Time mode is. When TARR mode is
+  added: multipliers configurable with a default of 1.0, the plain Koester circle shown beside the terrain-aware ring,
+  and no 25/50/75% containment claim.
+- **Travel time is not likelihood.** Contours show where a person could physically reach at the given flat-ground
+  speed. They say nothing about where a person is likely to be.
+- **Friction table is expert judgement** (`nz/lcdb_friction.toml`), accepted for v1, not measured NZ travel speeds. It
+  matters less than it looks: swapping land-cover datasets moved ring areas by 0-4% on the test sites, because slope
+  (Tobler's function applies a factor of about 5-8 at 30 degrees; designed for walking on tracks) dominates.
+- **LCDB limits.** No understory detail (all indigenous forest gets one value). Cells with no LCDB polygon are treated
+  as sea (barrier). Chatham Islands are not covered.
+- **OSM.** Every `highway=track` and `service` road is a friction-1.0 corridor, which includes farm tracks. Snapshot age
+  is reported (warning after 14 days).
+- **Dense urban areas are slower** (Auckland waterfront: 21 s on a laptop-class CPU) because of OSM feature counts.
+- **Runtime dependency on LINZ and Copernicus S3 buckets** for elevation. An outage there fails the analysis.
 
-## Planned next steps
+## Next steps
 
-1. Review and adjust the friction table with a SAR practitioner.
-2. Lambda handler and Dockerfile (container image), Travel Time mode first.
-3. Scheduled weekly OSM refresh to S3 in a format suited to range reads (FlatGeobuf or partitioned GeoParquet).
-4. Deploy from `utils-infra`; relay through the TAK-NZ CloudTAK fork.
+1. Upload `lcdb_2023_30m.tif`, `nz_osm.fgb` and `nz_osm_meta.geojson` to an S3 bucket (created by `utils-infra`).
+2. Weekly OSM refresh as a second handler in the same image, run by EventBridge.
+3. Measure a real Lambda cold start and S3 read times; set memory (2 GB is ample) and timeout (the ALB default idle
+   timeout is 60 s; the 30 km case took 38 s locally).
+4. `utils-infra`: construct, image build in CI, ALB target, and the CloudTAK relay in the TAK-NZ CloudTAK fork.
+5. TARR mode, once there is a defensible calibration.

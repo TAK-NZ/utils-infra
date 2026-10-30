@@ -1,7 +1,7 @@
 # LCDB v6.0 class -> terrain impedance for the WiSAR cost surface.
 #
-# DRAFT FOR REVIEW. These values are expert judgement, NOT measured NZ travel speeds and NOT calibrated
-# against incident data. Review and adjust them (ideally with a SAR practitioner) before relying on any output.
+# Accepted for v1 by the project owner (2026-10-30). These values are expert judgement, NOT measured NZ travel speeds
+# and NOT calibrated against incident data. Revisit them with a SAR practitioner before relying on any output.
 #
 # `impedance` is WiSAR's 0-99 scale (app/pipeline/shared.py). app/pipeline/cost_surface.py converts it to a
 # friction multiplier with fixed bins, so only these friction values are reachable:

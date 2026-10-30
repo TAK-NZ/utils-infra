@@ -1,0 +1,17 @@
+# TAK-NZ SAR engine as an AWS Lambda container image.
+# Build from the repository root:  docker build -f Dockerfile.lambda -t sar-engine .
+# Data (LCDB raster, OSM FlatGeobuf) is NOT in the image: set SAR_DATA_DIR to a local path or /vsis3/bucket/prefix.
+# Set SAR_API_KEY to the key the CloudTAK relay sends in the x-api-key header; with it unset only /health answers.
+FROM public.ecr.aws/lambda/python:3.12
+
+# The base image is minimal Amazon Linux; the GDAL inside the rasterio and pyogrio wheels needs libexpat.
+RUN dnf install -y expat && dnf clean all
+
+COPY nz/requirements-lambda.txt ${LAMBDA_TASK_ROOT}/requirements-lambda.txt
+RUN pip install --no-cache-dir --only-binary=:all: -r ${LAMBDA_TASK_ROOT}/requirements-lambda.txt
+
+# Upstream WiSAR analysis package, unmodified, plus the NZ layer.
+COPY app/pipeline/ ${LAMBDA_TASK_ROOT}/pipeline/
+COPY nz/handler.py nz/nz_sources.py nz/lcdb_friction.py nz/lcdb_friction.toml nz/osm_tags.py nz/dem_1m_index.json ${LAMBDA_TASK_ROOT}/
+
+CMD ["handler.lambda_handler"]
