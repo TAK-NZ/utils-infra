@@ -19,6 +19,7 @@ import { TerrainCloudFront } from './constructs/terrain-cloudfront';
 import { DisplayCloudFront } from './constructs/display-cloudfront';
 import { ApiAuth } from './constructs/api-auth';
 import { SitRepLambda } from './constructs/sitrep-lambda';
+import { SarEngine } from './constructs/sar-engine';
 
 // Utility imports
 import { ContextEnvironmentConfig } from './stack-config';
@@ -539,6 +540,50 @@ export class UtilsInfraStack extends cdk.Stack {
         value: sitrepLambda.fn.functionArn,
         description: 'SitRep generator Lambda ARN',
         exportName: `${id}-SitRepLambdaArn`,
+      });
+    }
+
+    // =================
+    // SAR ENGINE (Lambda behind the ALB, plus a monthly OSM refresh) -- see docs/SAR_ENGINE.md
+    // =================
+    // Off unless sarEngine.enabled is true: enabling needs the image in ECR (built by the build workflows from
+    // sarEngine.engineRepo at sarEngine.engineRef) and the data uploaded under sarEngine.dataPrefix.
+    if (envConfig.sarEngine?.enabled) {
+      const sarConfig = envConfig.sarEngine;
+      const ecrRepoArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ECR_REPO));
+      // "sar-engine" is the key the build workflows use in imageTagsJson; fall back to the configured version.
+      const sarImageTag = imageTagsMap['sar-engine'] ?? `utils-sar-engine-${sarConfig.imageTag}-${sarConfig.engineRef.slice(0, 7)}`;
+
+      const sarEngine = new SarEngine(this, 'SarEngine', {
+        config: sarConfig,
+        ecrRepositoryName: cdk.Token.asString(Fn.select(1, Fn.split('/', ecrRepoArn))),
+        imageTag: sarImageTag,
+        dataBucketName: cdk.Token.asString(artifactsBucketName),
+        configBucketName: cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn))),
+        kmsKeyArn: cdk.Token.asString(kmsKeyArn),
+        removalPolicy: envConfig.general.removalPolicy === 'DESTROY' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
+      });
+      alb.addContainerRule('sar-engine', sarConfig.path, sarEngine.targetGroup, sarConfig.priority);
+
+      new cdk.CfnOutput(this, 'SarEngineUrl', {
+        value: `https://${alb.utilsFqdn}${sarConfig.path}`,
+        description: 'SAR engine base URL (POST travel-time, GET health)',
+        exportName: `${id}-SarEngineUrl`,
+      });
+      new cdk.CfnOutput(this, 'SarEngineDataLocation', {
+        value: sarEngine.dataLocation,
+        description: 'Where the SAR engine data (land cover raster, OSM snapshots) must be uploaded',
+        exportName: `${id}-SarEngineDataLocation`,
+      });
+      new cdk.CfnOutput(this, 'SarEngineRefreshFunction', {
+        value: sarEngine.refreshFn.functionName,
+        description: 'Invoke this function to refresh the OpenStreetMap snapshot outside the monthly schedule',
+        exportName: `${id}-SarEngineRefreshFunction`,
+      });
+      new cdk.CfnOutput(this, 'SarEngineAlertsTopicArn', {
+        value: sarEngine.alertsTopic.topicArn,
+        description: 'Subscribe to this SNS topic to receive refresh-failure alarms (no subscribers by default)',
+        exportName: `${id}-SarEngineAlertsTopicArn`,
       });
     }
 

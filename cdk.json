@@ -106,6 +106,23 @@
         "enabled": true,
         "modelId": "anthropic.claude-sonnet-5"
       },
+      "sarEngine": {
+        "enabled": false,
+        "path": "/sar/",
+        "priority": 7,
+        "imageTag": "v0.1.0",
+        "engineRepo": "TAK-NZ/sar-engine",
+        "engineRef": "7029fe7c7a3c4ff2fe2cb0063a9ce48c05cefbd3",
+        "memorySize": 2048,
+        "timeoutSeconds": 55,
+        "dataPrefix": "sar-engine",
+        "apiKeysConfigKey": "Utils-SAR-Engine-Api-Keys.json",
+        "osmRefresh": {
+          "enabled": true,
+          "dayOfMonth": 3,
+          "hourUtc": 14
+        }
+      },
       "cloudfront": {
         "tileserver": {
           "enabled": true,
@@ -206,6 +223,23 @@
       "sitrep": {
         "enabled": true,
         "modelId": "anthropic.claude-sonnet-5"
+      },
+      "sarEngine": {
+        "enabled": false,
+        "path": "/sar/",
+        "priority": 7,
+        "imageTag": "v0.1.0",
+        "engineRepo": "TAK-NZ/sar-engine",
+        "engineRef": "7029fe7c7a3c4ff2fe2cb0063a9ce48c05cefbd3",
+        "memorySize": 2048,
+        "timeoutSeconds": 55,
+        "dataPrefix": "sar-engine",
+        "apiKeysConfigKey": "Utils-SAR-Engine-Api-Keys.json",
+        "osmRefresh": {
+          "enabled": true,
+          "dayOfMonth": 3,
+          "hourUtc": 14
+        }
       },
       "cloudfront": {
         "tileserver": {

@@ -130,6 +130,37 @@ jobs:
             
           done <<< "${{ steps.containers.outputs.enabled-containers }}"
           
+          # SAR engine: an AWS Lambda container image built from a pinned commit of the engine repository (not from
+          # this repository), only when it is enabled for this environment. The tag includes the first 7 characters of
+          # the pinned ref, so changing the ref always produces a new tag instead of reusing a stale image.
+          SAR_ENABLED=$(jq -r '.context["dev-test"].sarEngine.enabled // false' cdk.json)
+          if [[ "$SAR_ENABLED" == "true" ]]; then
+            SAR_REPO=$(jq -r '.context["dev-test"].sarEngine.engineRepo' cdk.json)
+            SAR_REF=$(jq -r '.context["dev-test"].sarEngine.engineRef' cdk.json)
+            SAR_VERSION=$(jq -r '.context["dev-test"].sarEngine.imageTag' cdk.json)
+            if [[ ! "$SAR_REPO" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]] || [[ ! "$SAR_REF" =~ ^([0-9a-f]{40}|v[0-9][A-Za-z0-9._-]*)$ ]]; then
+              echo "ERROR: sarEngine.engineRepo / engineRef in cdk.json are not a valid repository and commit SHA or version tag"
+              exit 1
+            fi
+            if [[ "${{ github.event.inputs.force_rebuild }}" == "true" ]]; then
+              SAR_TAG="utils-sar-engine-$(date +%Y%m%d-%H%M%S)"
+            else
+              SAR_TAG="utils-sar-engine-${SAR_VERSION}-${SAR_REF:0:7}"
+            fi
+            if aws ecr describe-images --repository-name $ECR_REPO_NAME --image-ids imageTag=$SAR_TAG >/dev/null 2>&1; then
+              echo "✅ sar-engine image already exists, skipping build"
+            else
+              echo "🔨 Building sar-engine image from $SAR_REPO@$SAR_REF"
+              git clone --quiet "https://github.com/${SAR_REPO}.git" "$RUNNER_TEMP/sar-engine"
+              git -C "$RUNNER_TEMP/sar-engine" checkout --quiet --detach "$SAR_REF"
+              # Lambda does not accept images with attestation manifests, hence the two --provenance/--sbom flags.
+              docker build --platform linux/amd64 --provenance=false --sbom=false \
+                -f "$RUNNER_TEMP/sar-engine/Dockerfile.lambda" -t $ECR_REPO_URI:$SAR_TAG "$RUNNER_TEMP/sar-engine"
+              docker push $ECR_REPO_URI:$SAR_TAG
+              echo "✅ sar-engine image pushed"
+            fi
+            IMAGE_TAGS_JSON=$(echo $IMAGE_TAGS_JSON | jq --arg value "$SAR_TAG" '. + {"sar-engine": $value}')
+          fi
           # Output JSON for deploy workflows (compact format for GitHub Actions)
           COMPACT_JSON=$(echo $IMAGE_TAGS_JSON | jq -c .)
           echo "image-tags-json=$COMPACT_JSON" >> $GITHUB_OUTPUT

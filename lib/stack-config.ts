@@ -38,6 +38,45 @@ export interface ContainerConfig {
 }
 
 /**
+ * SAR engine: terrain-aware travel-time analysis for search and rescue, as AWS Lambda functions.
+ * Source and build: https://github.com/TAK-NZ/sar-engine (see docs/SAR_ENGINE.md).
+ */
+export interface SarEngineConfig {
+  /** Off by default: enabling needs the image to exist in ECR and the data to be uploaded first. */
+  enabled: boolean;
+  /** ALB path prefix with a trailing slash, e.g. "/sar/" (the listener rule becomes "/sar/*"). */
+  path: string;
+  /** ALB listener rule priority; must be unique across the listener. */
+  priority: number;
+  /** Version label. The ECR tag is "utils-sar-engine-<imageTag>-<first 7 characters of engineRef>", so changing
+   *  engineRef always yields a new tag; bump imageTag as well to keep the label meaningful. */
+  imageTag: string;
+  /** GitHub repository the image is built from (owner/name). */
+  engineRepo: string;
+  /** Exact commit SHA or tag of engineRepo to build; pinned so builds are reproducible. */
+  engineRef: string;
+  /** Memory for the HTTP function in MB (2048 is ample; peak use measured at about 350 MB). */
+  memorySize: number;
+  /** Timeout in seconds. Keep it under the ALB idle timeout (60 s) so a slow run returns a clean error. */
+  timeoutSeconds: number;
+  /** Optional cap on parallel runs. Unset by default: AWS keeps 100 units of the account limit unreserved, so
+   *  this can be at most (account concurrency limit - 100), and reserving fails on accounts with a low limit. */
+  reservedConcurrency?: number;
+  /** Key prefix in the artifacts bucket for the data (land cover raster, OSM snapshots). */
+  dataPrefix: string;
+  /** Object in the config bucket holding the API keys (see nz/api_keys.py in sar-engine). */
+  apiKeysConfigKey: string;
+  /** Monthly refresh of the OpenStreetMap snapshot. */
+  osmRefresh: {
+    enabled: boolean;
+    /** Day of month, 1 to 28. */
+    dayOfMonth: number;
+    /** Hour of day, 0 to 23, UTC. */
+    hourUtc: number;
+  };
+}
+
+/**
  * Context-based configuration interface matching cdk.context.json structure
  */
 export interface ContextEnvironmentConfig {
@@ -60,6 +99,7 @@ export interface ContextEnvironmentConfig {
   docker: {
     usePreBuiltImages: boolean;
   };
+  sarEngine?: SarEngineConfig;
   sitrep?: {
     enabled: boolean;
     /** Bare Bedrock model id, e.g. "anthropic.claude-sonnet-5" — no region-profile
