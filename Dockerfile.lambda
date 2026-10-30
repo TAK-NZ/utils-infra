@@ -16,6 +16,15 @@ COPY app/pipeline/ ${LAMBDA_TASK_ROOT}/pipeline/
 COPY nz/handler.py nz/api_keys.py nz/nz_sources.py nz/lcdb_friction.py nz/lcdb_friction.toml nz/osm_tags.py \
      nz/osm_build.py nz/osm_refresh.py nz/dem_1m_index.json ${LAMBDA_TASK_ROOT}/
 
+# Lambda runs the function as an unprivileged user, not root. COPY keeps the file modes of the build context, so a
+# builder with a restrictive umask (modes 600/700) produces an image whose code only root can read: every request then
+# fails at import. Set the modes explicitly instead of relying on the builder.
+RUN chmod -R a+rX ${LAMBDA_TASK_ROOT}
+
+# Build-time guard: import the handlers as an unprivileged user, as Lambda will. A permission or missing-library
+# problem now fails the build, instead of failing every request after deployment. (Running as root would hide it.)
+RUN python -c "import os; os.setgid(1000); os.setuid(1000); import handler, osm_refresh; print('imports ok as uid 1000')"
+
 # Default: the HTTP handler. The scheduled OSM refresh uses the same image with the command overridden to
 # osm_refresh.lambda_handler (it needs about 1.6 GB of memory and about 1 GB of /tmp).
 CMD ["handler.lambda_handler"]
