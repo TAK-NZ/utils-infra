@@ -107,7 +107,7 @@
         "modelId": "anthropic.claude-sonnet-5"
       },
       "sarEngine": {
-        "enabled": false,
+        "enabled": true,
         "path": "/sar/",
         "priority": 7,
         "imageTag": "v0.1.0",
@@ -225,7 +225,7 @@
         "modelId": "anthropic.claude-sonnet-5"
       },
       "sarEngine": {
-        "enabled": false,
+        "enabled": true,
         "path": "/sar/",
         "priority": 7,
         "imageTag": "v0.1.0",

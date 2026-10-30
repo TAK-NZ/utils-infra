@@ -23,9 +23,9 @@ function synth(environment: 'dev-test' | 'prod', sarOverrides?: Record<string, u
 
 describe('SAR engine in the utils stack', () => {
   describe.each(['dev-test', 'prod'] as const)('%s', (environment) => {
-    it('ships disabled, with a complete and valid configuration', () => {
+    it('has a complete and valid configuration (whether or not it is switched on)', () => {
       const sar = cdkJson[environment].sarEngine;
-      expect(sar.enabled).toBe(false);
+      expect(typeof sar.enabled).toBe('boolean');
       expect(sar.path).toMatch(/^\/[a-z-]+\/$/);
       expect(sar.timeoutSeconds).toBeLessThan(60);
       expect(sar.engineRepo).toMatch(/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/);
@@ -44,7 +44,7 @@ describe('SAR engine in the utils stack', () => {
       expect(priorities).not.toContain(cdkJson[environment].sarEngine.priority);
     });
 
-    it('adds nothing to the stack while disabled: identical to a stack with no sarEngine section at all', () => {
+    it('adds nothing to the stack when switched off: identical to a stack with no sarEngine section at all', () => {
       const withoutSection = (() => {
         const app = new cdk.App();
         const base = JSON.parse(JSON.stringify(cdkJson[environment]));
@@ -54,7 +54,7 @@ describe('SAR engine in the utils stack', () => {
         });
         return Template.fromStack(stack).toJSON();
       })();
-      const shipped = synth(environment).toJSON();
+      const shipped = synth(environment, { enabled: false }).toJSON();      // forced off, whatever cdk.json ships
       // The existing CloudFront auth functions embed Date.now() in their names, so two synths never match exactly.
       const stable = (t: unknown) => JSON.parse(JSON.stringify(t).replace(/(api-auth-)\d{10,}/g, '$1<timestamp>'));
       expect(stable(shipped)).toEqual(stable(withoutSection));
@@ -98,7 +98,7 @@ describe('SAR engine in the utils stack', () => {
   });
 
   it('turning it on does not disturb the existing services', () => {
-    const before = synth('dev-test');
+    const before = synth('dev-test', { enabled: false });
     const after = synth('dev-test', { enabled: true });
     expect(Object.keys(after.findResources('AWS::ECS::Service')).sort()).toEqual(
       Object.keys(before.findResources('AWS::ECS::Service')).sort());
