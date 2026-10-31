@@ -12,10 +12,13 @@
  *
  * Data lives under one prefix of the existing artifacts bucket; both functions get access to that prefix only.
  */
+import * as fs from 'fs';
+import * as path from 'path';
 import { Construct } from 'constructs';
 import {
   aws_lambda as lambda,
   aws_ecr as ecr,
+  aws_ecr_assets as ecrAssets,
   aws_iam as iam,
   aws_events as events,
   aws_events_targets as eventTargets,
@@ -32,12 +35,27 @@ import {
 } from 'aws-cdk-lib';
 import type { SarEngineConfig } from '../stack-config';
 
+/**
+ * Files in a sar-engine checkout that the image build never needs. Without this the whole checkout (git history,
+ * local data and results, a virtualenv, .env files) would be hashed, copied into cdk.out and sent to Docker.
+ */
+export const SAR_ENGINE_ASSET_EXCLUDES = [
+  '.git', '.github', '.venv', 'venv', 'data', 'results', 'docs', '.env', '.env.*', '**/__pycache__', '**/*.pyc',
+  '**/.DS_Store', 'cdk.out',
+];
+
 export interface SarEngineProps {
   config: SarEngineConfig;
-  /** Name (not ARN) of the shared ECR repository. */
-  ecrRepositoryName: string;
-  /** Full image tag in that repository, e.g. "utils-sar-engine-v0.1.0". */
-  imageTag: string;
+  /** Name (not ARN) of the shared ECR repository. Needed when `sourcePath` is not set. */
+  ecrRepositoryName?: string;
+  /** Full image tag in that repository, e.g. "utils-sar-engine-v0.1.0". Needed when `sourcePath` is not set. */
+  imageTag?: string;
+  /**
+   * Directory of a sar-engine checkout (it holds Dockerfile.lambda). When set, `cdk deploy` builds the image from it,
+   * like the other containers in this repository, and the ECR repository and tag are not used. When not set, the
+   * image must already be in the shared ECR repository (built by the build workflows).
+   */
+  sourcePath?: string;
   /** Artifacts bucket that holds the data, under config.dataPrefix. */
   dataBucketName: string;
   /** Config bucket that holds the API keys file (config.apiKeysConfigKey). */
@@ -70,10 +88,7 @@ export class SarEngine extends Construct {
     const dataObjects = `${bucketArn}/${prefix}`;
     this.dataLocation = `s3://${props.dataBucketName}/${prefix}/`;
 
-    const repository = ecr.Repository.fromRepositoryName(this, 'Repository', props.ecrRepositoryName);
-    // The shared repository's resource policy already lets lambda.amazonaws.com pull images.
-    const image = (cmd?: string[]) =>
-      lambda.DockerImageCode.fromEcr(repository, { tagOrDigest: props.imageTag, ...(cmd ? { cmd } : {}) });
+    const image = this.imageCode(props);
 
     const logGroup = (name: string) => new logs.LogGroup(this, name, {
       retention: logs.RetentionDays.ONE_MONTH,
@@ -190,6 +205,31 @@ export class SarEngine extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     }).addAlarmAction(new cwActions.SnsAction(this.alertsTopic));
+  }
+
+  /** Builds the image from a local checkout, or points at an image that is already in ECR. */
+  private imageCode(props: SarEngineProps): (cmd?: string[]) => lambda.DockerImageCode {
+    if (props.sourcePath) {
+      const dir = path.resolve(props.sourcePath);
+      if (!fs.existsSync(path.join(dir, 'Dockerfile.lambda'))) {
+        throw new Error(`sarEngineSourcePath "${dir}" does not hold a Dockerfile.lambda: point it at a sar-engine checkout`);
+      }
+      // Lambda needs x86_64 (the functions are x86_64) and a plain Docker v2 manifest. Docker 29 and later add
+      // provenance attestations by default, which Lambda rejects: deploy with BUILDX_NO_DEFAULT_ATTESTATIONS=1.
+      return (cmd) => lambda.DockerImageCode.fromImageAsset(dir, {
+        file: 'Dockerfile.lambda',
+        platform: ecrAssets.Platform.LINUX_AMD64,
+        exclude: SAR_ENGINE_ASSET_EXCLUDES,
+        ...(cmd ? { cmd } : {}),
+      });
+    }
+    if (!props.ecrRepositoryName || !props.imageTag) {
+      throw new Error('SarEngine needs either sourcePath, or ecrRepositoryName and imageTag');
+    }
+    const repository = ecr.Repository.fromRepositoryName(this, 'Repository', props.ecrRepositoryName);
+    const tag = props.imageTag;
+    // The shared repository's resource policy already lets lambda.amazonaws.com pull images.
+    return (cmd) => lambda.DockerImageCode.fromEcr(repository, { tagOrDigest: tag, ...(cmd ? { cmd } : {}) });
   }
 
   /** KMS access for objects in the encrypted buckets, usable only through S3 in this region. */

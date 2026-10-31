@@ -21,6 +21,95 @@ function synth(environment: 'dev-test' | 'prod', sarOverrides?: Record<string, u
   return Template.fromStack(stack);
 }
 
+const FIXTURE = path.join(__dirname, 'fixtures', 'sar-engine-src');
+
+/** The SAR engine's docker image in the assets manifest (the other containers build assets too). */
+function sarImage(outdir: string) {
+  const assets = JSON.parse(fs.readFileSync(path.join(outdir, 'TestStack.assets.json'), 'utf8'));
+  const found = Object.entries<any>(assets.dockerImages ?? {}).filter(([, v]) => v.source.dockerFile === 'Dockerfile.lambda');
+  return found;
+}
+
+/** Synthesizes dev-test with the SAR engine on and returns the template plus the cloud assembly directory. */
+function synthWithAssembly(extraContext: Record<string, unknown>) {
+  const outdir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sar-asm-'));
+  const app = new cdk.App({ outdir, context: { ...extraContext } });
+  const base = JSON.parse(JSON.stringify(cdkJson['dev-test']));
+  base.sarEngine = { ...base.sarEngine, enabled: true };
+  const stack = new UtilsInfraStack(app, 'TestStack', {
+    environment: 'dev-test',
+    envConfig: applyContextOverrides(app, base),
+    env: { account: '123456789012', region: 'ap-southeast-2' },
+  });
+  const assembly = app.synth();
+  return { template: Template.fromStack(stack), outdir, assembly, stack };
+}
+
+describe('SAR engine image built by the deploy (sarEngineSourcePath)', () => {
+  const ctx = { sarEngineSourcePath: FIXTURE };
+
+  it('builds the image from the checkout instead of pointing at ECR (dev-test ships usePreBuiltImages=false)', () => {
+    expect(cdkJson['dev-test'].docker.usePreBuiltImages).toBe(false);
+    const { template, outdir } = synthWithAssembly(ctx);
+    const sarFns = Object.values<any>(template.findResources('AWS::Lambda::Function'))
+      .filter((f) => /SAR engine/.test(f.Properties.Description ?? ''));
+    expect(sarFns).toHaveLength(2);
+    sarFns.forEach((f) => {
+      const uri = JSON.stringify(f.Properties.Code.ImageUri);
+      expect(uri).not.toContain('utils-sar-engine-');   // no ECR tag: the image is a CDK asset
+      expect(uri).toContain('cdk-hnb659fds-container-assets');
+    });
+    // the refresh function still overrides the command
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      ImageConfig: { Command: ['osm_refresh.lambda_handler'] },
+    });
+    const images = sarImage(outdir);
+    expect(images).toHaveLength(1);                       // both functions share one image
+    expect(images[0][1].source.platform).toBe('linux/amd64');
+  });
+
+  it('keeps local data, results and git history out of the build context', () => {
+    const { outdir } = synthWithAssembly(ctx);
+    const files = fs.readdirSync(path.join(outdir, sarImage(outdir)[0][1].source.directory));
+    expect(files).toContain('Dockerfile.lambda');
+    expect(files).toContain('nz');
+    expect(files).not.toContain('results');
+    expect(files).not.toContain('data');
+  });
+
+  it('gives an image that changes when the checkout changes (so a new engine commit redeploys the Lambda)', () => {
+    const copy = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sar-src-'));
+    fs.cpSync(FIXTURE, copy, { recursive: true });
+    const hash = () => {
+      const { outdir } = synthWithAssembly({ sarEngineSourcePath: copy });
+      return sarImage(outdir)[0][0];
+    };
+    const before = hash();
+    fs.appendFileSync(path.join(copy, 'nz', 'handler.py'), '# changed\n');
+    expect(hash()).not.toEqual(before);
+  });
+
+  it('does not depend on the ECR tag when building from source', () => {
+    const { template } = synthWithAssembly({ ...ctx, imageTagsJson: JSON.stringify({ 'sar-engine': 'utils-sar-engine-x' }) });
+    expect(JSON.stringify(template.toJSON())).not.toContain('utils-sar-engine-x');
+  });
+
+  it('fails clearly when the path is not a sar-engine checkout', () => {
+    expect(() => synthWithAssembly({ sarEngineSourcePath: path.join(__dirname, 'fixtures') })).toThrow(/Dockerfile\.lambda/);
+  });
+
+  it('refuses to build when usePreBuiltImages=true: CI and prod take the image from ECR', () => {
+    expect(() => synthWithAssembly({ ...ctx, usePreBuiltImages: true })).toThrow(/usePreBuiltImages=false/);
+  });
+
+  it('warns, and still uses the ECR tag, when usePreBuiltImages is false and no source path is given', () => {
+    const { template, stack } = synthWithAssembly({});
+    expect(JSON.stringify(template.toJSON())).toMatch(/utils-sar-engine-v\d+\.\d+\.\d+-[0-9a-f]{7}/);
+    const { Annotations, Match: M } = require('aws-cdk-lib/assertions');
+    Annotations.fromStack(stack).hasWarning('*', M.stringLikeRegexp('sarEngineSourcePath'));
+  });
+});
+
 describe('SAR engine in the utils stack', () => {
   describe.each(['dev-test', 'prod'] as const)('%s', (environment) => {
     it('has a complete and valid configuration (whether or not it is switched on)', () => {
@@ -72,6 +161,18 @@ describe('SAR engine in the utils stack', () => {
       });
       ['SarEngineUrl', 'SarEngineDataLocation', 'SarEngineRefreshFunction', 'SarEngineAlertsTopicArn'].forEach((o) =>
         expect(template.toJSON().Outputs[o]).toBeDefined());
+    });
+
+    it('when enabled: the /sar/* rule also covers /sar/tarr, /sar/travel-time and /sar/health, and nothing outside /sar/', () => {
+      const template = synth(environment, { enabled: true });
+      const rules = Object.values<any>(template.findResources('AWS::ElasticLoadBalancingV2::ListenerRule'))
+        .filter((r) => r.Properties.Priority === 7);
+      expect(rules).toHaveLength(1);
+      const pattern: string = rules[0].Properties.Conditions[0].PathPatternConfig.Values[0];
+      // ALB wildcard: '*' matches any number of characters.
+      const regex = new RegExp(`^${pattern.split('*').map((p) => p.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`);
+      ['/sar/tarr', '/sar/travel-time', '/sar/health'].forEach((path) => expect(path).toMatch(regex));
+      expect('/saru/tarr').not.toMatch(regex);
     });
 
     it('when enabled: the image tag defaults to <version>-<first 7 of the ref>, matching what CI pushes', () => {

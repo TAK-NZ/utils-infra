@@ -69,8 +69,8 @@ TAK terrain tile proxy that converts LINZ NZ elevation data into TAK-compatible 
 - **Documentation**: [Terrain Proxy API](docs/TERRAIN_PROXY.md)
 
 ### sar-engine
-Terrain-aware search and rescue planning for New Zealand, as AWS Lambda functions (not an ECS container). Given an Initial Planning Point, a walking speed and time bands, it returns contours of where a person could physically reach. Planning aid only: no NZ calibration, not validated.
-- **Path**: `/sar/*` (`POST /sar/travel-time`, `GET /sar/health`)
+Terrain-aware search and rescue planning for New Zealand, as AWS Lambda functions (not an ECS container). Travel time: given an Initial Planning Point, a walking speed and time bands, it returns contours of where a person could physically reach. TARR: Koester subject-distance rings adjusted for terrain, scaled by Arizona multipliers and not calibrated for New Zealand. Planning aid only: not validated.
+- **Path**: `/sar/*` (`POST /sar/travel-time`, `POST /sar/tarr`, `GET /sar/health`)
 - **Authentication**: `x-api-key` header, keys in the config bucket (`Utils-SAR-Engine-Api-Keys.json`)
 - **Data**: land cover raster and a monthly-refreshed OpenStreetMap snapshot under `sar-engine/` in the artifacts bucket
 - **Status**: off by default (`sarEngine.enabled` in `cdk.json`)
@@ -193,6 +193,10 @@ cdk deploy --context envType=dev-test --context apiKeys='["key1","key2"]'
 
 # Deploy with pre-built images (new JSON format - recommended)
 cdk deploy --context envType=prod --context usePreBuiltImages=true --context imageTagsJson='{"weather-proxy":"v1.0.0","ais-proxy":"v1.0.0","tileserver-gl":"v1.0.0"}'
+
+# SAR engine (separate repository): build its image during a manual deploy from a local checkout (usePreBuiltImages=false)
+BUILDX_NO_DEFAULT_ATTESTATIONS=1 cdk deploy --context envType=dev-test --context sarEngineSourcePath=../sar-engine
+# (details in docs/SAR_ENGINE.md)
 
 # Deploy with pre-built images (legacy individual parameters - still supported)
 cdk deploy --context envType=prod --context usePreBuiltImages=true --context weatherProxyImageTag=v1.0.0 --context aisProxyImageTag=v1.0.0 --context tileserverGlImageTag=v1.0.0
