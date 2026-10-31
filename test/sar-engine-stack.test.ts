@@ -74,6 +74,18 @@ describe('SAR engine in the utils stack', () => {
         expect(template.toJSON().Outputs[o]).toBeDefined());
     });
 
+    it('when enabled: the /sar/* rule also covers /sar/tarr, /sar/travel-time and /sar/health, and nothing outside /sar/', () => {
+      const template = synth(environment, { enabled: true });
+      const rules = Object.values<any>(template.findResources('AWS::ElasticLoadBalancingV2::ListenerRule'))
+        .filter((r) => r.Properties.Priority === 7);
+      expect(rules).toHaveLength(1);
+      const pattern: string = rules[0].Properties.Conditions[0].PathPatternConfig.Values[0];
+      // ALB wildcard: '*' matches any number of characters.
+      const regex = new RegExp(`^${pattern.split('*').map((p) => p.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`);
+      ['/sar/tarr', '/sar/travel-time', '/sar/health'].forEach((path) => expect(path).toMatch(regex));
+      expect('/saru/tarr').not.toMatch(regex);
+    });
+
     it('when enabled: the image tag defaults to <version>-<first 7 of the ref>, matching what CI pushes', () => {
       const sar = cdkJson[environment].sarEngine;
       const expected = `utils-sar-engine-${sar.imageTag}-${sar.engineRef.slice(0, 7)}`;
