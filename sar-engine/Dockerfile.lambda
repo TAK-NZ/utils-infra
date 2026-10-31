@@ -1,0 +1,30 @@
+# TAK-NZ SAR engine as an AWS Lambda container image.
+# Build from the repository root:  docker build -f Dockerfile.lambda -t sar-engine .
+# Data (LCDB raster, OSM FlatGeobuf) is NOT in the image: set SAR_DATA_DIR to a local path or /vsis3/bucket/prefix.
+# API keys: SAR_CONFIG_BUCKET + SAR_CONFIG_KEY name a JSON file of keys (see nz/api_keys.py), or set SAR_API_KEY (16+
+# characters) for local use. With no valid key only /health answers.
+FROM public.ecr.aws/lambda/python:3.12
+
+# The base image is minimal Amazon Linux; the GDAL inside the rasterio and pyogrio wheels needs libexpat.
+RUN dnf install -y expat && dnf clean all
+
+COPY nz/requirements-lambda.txt ${LAMBDA_TASK_ROOT}/requirements-lambda.txt
+RUN pip install --no-cache-dir --only-binary=:all: -r ${LAMBDA_TASK_ROOT}/requirements-lambda.txt
+
+# Upstream WiSAR analysis package, unmodified, plus the NZ layer.
+COPY app/pipeline/ ${LAMBDA_TASK_ROOT}/pipeline/
+COPY nz/handler.py nz/api_keys.py nz/nz_sources.py nz/lcdb_friction.py nz/lcdb_friction.toml nz/osm_tags.py \
+     nz/osm_build.py nz/osm_refresh.py nz/fast_cost_distance.py nz/fast_cost_surface.py nz/density_guard.py nz/tarr.py nz/tarr_profiles.py nz/dem_1m_index.json ${LAMBDA_TASK_ROOT}/
+
+# Lambda runs the function as an unprivileged user, not root. COPY keeps the file modes of the build context, so a
+# builder with a restrictive umask (modes 600/700) produces an image whose code only root can read: every request then
+# fails at import. Set the modes explicitly instead of relying on the builder.
+RUN chmod -R a+rX ${LAMBDA_TASK_ROOT}
+
+# Build-time guard: import the handlers as an unprivileged user, as Lambda will. A permission or missing-library
+# problem now fails the build, instead of failing every request after deployment. (Running as root would hide it.)
+RUN python -c "import os; os.setgid(1000); os.setuid(1000); import handler, osm_refresh; print('imports ok as uid 1000')"
+
+# Default: the HTTP handler. The scheduled OSM refresh uses the same image with the command overridden to
+# osm_refresh.lambda_handler (it needs about 1.6 GB of memory and about 1 GB of /tmp).
+CMD ["handler.lambda_handler"]
