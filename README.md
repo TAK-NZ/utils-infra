@@ -68,6 +68,13 @@ TAK terrain tile proxy that converts LINZ NZ elevation data into TAK-compatible 
 - **Features**: EPSG:3857→4326 reprojection, Mapbox→TAK encoding, NZVD2016→HAE conversion
 - **Documentation**: [Terrain Proxy API](docs/TERRAIN_PROXY.md)
 
+### sar-engine
+Terrain-aware search and rescue planning for New Zealand, as AWS Lambda functions (not an ECS container). Given an Initial Planning Point, a walking speed and time bands, it returns contours of where a person could physically reach. Planning aid only: no NZ calibration, not validated.
+- **Path**: `/sar/*` (`POST /sar/travel-time`, `GET /sar/health`)
+- **Authentication**: `x-api-key` header, keys in the config bucket (`Utils-SAR-Engine-Api-Keys.json`)
+- **Data**: land cover raster and a monthly-refreshed OpenStreetMap snapshot under `sar-engine/` in the artifacts bucket
+- **Status**: off by default (`sarEngine.enabled` in `cdk.json`)
+- **Documentation**: [SAR Engine](docs/SAR_ENGINE.md); source and method in [TAK-NZ/sar-engine](https://github.com/TAK-NZ/sar-engine)
 ### display-proxy
 CloudTAK MJPEG display proxy. Opens CloudTAK in a headless Chromium browser and
 streams it as a continuous MJPEG video feed. Designed for digital signage platforms
