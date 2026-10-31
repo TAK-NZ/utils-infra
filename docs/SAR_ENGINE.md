@@ -112,15 +112,21 @@ disclaimer. Full details are in sar-engine's `NZ_PORT.md`.
 
 ## Operations
 
-- **Cost:** Lambda bills per run. A warm run takes 6 to 37 s at 2 GB (see below), which is roughly a tenth of a cent at
-  most, by my estimate from list prices. Nothing runs when idle.
-- **Speed:** measured on real Lambda in Test, warm: an 8 to 12 km radius takes about 6 s, 16 km about 15 s, 20 km about
-  22 s, and the 30 km maximum 25 to 37 s. Peak memory at 30 km was about 1 GB of the 2 GB allocated.
+- **Cost:** Lambda bills per run. A run takes 2 to 50 s at 2 GB (see below), which is roughly a tenth of a cent at most,
+  by my estimate from list prices. Nothing runs when idle.
+- **Speed**, measured on real Lambda in Test through the public ALB: an 8 km radius in backcountry takes about 2 s warm
+  and 12 s cold; 16 km about 7 s; the 30 km maximum about 14 s warm and 19 s cold. Wellington at 30 km takes 19 s.
+  Peak memory was 0.6 to 1.6 GB of the 2 GB allocated.
+- **Dense city cores are slower.** The trail and road burn-in scales with the number of segments (about 250,000 in central
+  Auckland at 30 km): central Auckland takes 26 s at 10 km and 50 s at 30 km warm, and 63 s cold, which exceeds the ALB's
+  60 s and would fail for a client. Central Christchurch is the next worst. Backcountry starts (every location surveyed has
+  under 6,000 segments within 20 km) are unaffected. See sar-engine's `NZ_PORT.md` for the cause.
 - **Timeouts:** the ALB's idle timeout is 60 s, so the HTTP function's timeout is 55 s and the configuration refuses 60 or
   more. A run that exceeds it fails and the caller sees a 5xx; the plugin should handle that.
-- **Cold starts:** after idle, the first request pays a start-up cost of roughly 15 to 20 s on top of the analysis, and
-  the first request after deploying a new image took 46 to 60 s. A 30 km request that hits a cold function can therefore
-  exceed the ALB's 60 s. If that matters during an incident, add provisioned concurrency to the HTTP function (not done).
+- **Cold starts** cost a few seconds to about 10 s for a backcountry request, so provisioned concurrency is not needed for
+  rare use. The first request after deploying a new image can be much slower, because the image is fetched lazily.
+- **Region:** Test runs in us-west-2 while the LINZ elevation bucket is in Sydney, so Test's elevation stage includes a
+  trans-Pacific round trip on every request. A deployment in ap-southeast-2 should be faster on that stage (not measured).
 - **Concurrency:** unrestricted by default. `sarEngine.reservedConcurrency` can cap parallel runs, but AWS keeps 100 units of the
   account limit unreserved, so the cap can be at most (account limit - 100) and deployment fails on accounts with a low
   limit (check yours with `aws lambda get-account-settings`).
