@@ -62,6 +62,24 @@ Limits: IPP inside mainland NZ and on land (a start in the sea or a lake returns
 intervals of 0.25 to 24 h, radius at most 30 km, body at most 8 KB. The pipeline prints the IPP, so its output is
 discarded; logs hold timings, sizes and error classes, never coordinates.
 
+**Dense-area guard.** After the OSM read, `density_guard.py` counts the trail, road and power-line segments and
+estimates the total time (`time used so far + 3 s + 0.15 ms x segments + 1 s`). If that exceeds the budget
+(`SAR_TIME_BUDGET_S`, default 45 s; a cold start adds up to about 10 s before the handler runs, under a 55 s function
+timeout and the 60 s ALB limit), the request ends at once with HTTP 422:
+
+```json
+{"status": "error", "code": "area_too_dense",
+ "message": "This area has too much road and trail data to analyse within the time limit. Try a radius of 29 km or less.",
+ "suggested_radius_km": 29}
+```
+
+When the radius is held up by the longest time band (speed x band + 2 km), the body carries `suggested_max_hours`
+instead, or as well as `suggested_radius_km` when an explicit radius is also too large; with no workable suggestion the
+message says to move the start point or shorten the bands. A request that fits is not changed in any way (the check
+compares contours with the guard on and off). The cost model has four measurements behind it, so treat the threshold as
+a calibrated guess. `check_density_guard.py [N] [--real]` holds the measurements, checks the decision and every
+suggestion on random inputs, and with `--real` runs the handler end to end.
+
 ## Data sources
 
 | Data | Source | Licence / attribution |
@@ -184,7 +202,8 @@ Test with `--user 1000:1000 --read-only` and only `/tmp` writable. A root-run te
    `lcdb_2023_30m.tif` to the artifacts bucket, enable the feature, run the first OSM refresh. It reuses the existing
    artifacts bucket under a `sar-engine/` prefix and refreshes OSM monthly.
 2. Dense city cores (central Auckland, and to a lesser extent Christchurch) are slow at large radii because of the
-   trail and road burn-in (see Measurements). Either cap the radius when the start is in a dense area, warn the caller, or
-   replace `rasterize` for lines with a faster approach.
+   trail and road burn-in (see Measurements). The dense-area guard (see API) now refuses what cannot finish in time with
+   a suggested smaller radius. Its threshold still needs calibrating on the deployed Lambda, and the slowness itself is
+   unchanged: replacing `rasterize` for lines with a faster approach is the only way to remove it.
 3. The `/api/sar/*` relay in the TAK-NZ CloudTAK fork, and the plugin itself.
 4. TARR mode, once there is a defensible calibration.

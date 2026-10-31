@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir --only-binary=:all: -r ${LAMBDA_TASK_ROOT}/requir
 # Upstream WiSAR analysis package, unmodified, plus the NZ layer.
 COPY app/pipeline/ ${LAMBDA_TASK_ROOT}/pipeline/
 COPY nz/handler.py nz/api_keys.py nz/nz_sources.py nz/lcdb_friction.py nz/lcdb_friction.toml nz/osm_tags.py \
-     nz/osm_build.py nz/osm_refresh.py nz/fast_cost_distance.py nz/fast_cost_surface.py nz/dem_1m_index.json ${LAMBDA_TASK_ROOT}/
+     nz/osm_build.py nz/osm_refresh.py nz/fast_cost_distance.py nz/fast_cost_surface.py nz/density_guard.py nz/dem_1m_index.json ${LAMBDA_TASK_ROOT}/
 
 # Lambda runs the function as an unprivileged user, not root. COPY keeps the file modes of the build context, so a
 # builder with a restrictive umask (modes 600/700) produces an image whose code only root can read: every request then

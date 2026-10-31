@@ -15,6 +15,10 @@ Authentication: HTTP events must carry an x-api-key header matching a key in the
 SAR_CONFIG_BUCKET / SAR_CONFIG_KEY (see api_keys.py), or SAR_API_KEY for local use. With no valid key configured,
 every route except /health is denied. Direct invokes rely on IAM and carry no key.
 
+Dense areas: after the OSM read, density_guard.py estimates whether the request can finish inside the time budget
+(SAR_TIME_BUDGET_S, default 45 s) and, if not, answers HTTP 422 straight away with {"code": "area_too_dense", "message",
+and "suggested_radius_km" and/or "suggested_max_hours"}. Requests that fit are not changed.
+
 Privacy: the pipeline prints the IPP and bounding box. Its output is captured and discarded; logs hold only
 timings, sizes and error classes, never coordinates.
 """
@@ -28,6 +32,7 @@ import traceback
 import warnings as pywarnings
 
 import api_keys
+import density_guard
 import nz_sources  # noqa: E402  (importing registers the LCDB codes and sets GDAL read options)
 from fast_cost_distance import compute_cost_distance      # same results as the upstream function, about 30x faster
 from fast_cost_surface import build_cost_surface           # same results as the upstream function, much faster
@@ -57,9 +62,10 @@ DISCLAIMER = ('Planning aid only. Travel-time contours show where a person could
 
 
 class ApiError(Exception):
-    def __init__(self, status, message):
+    """`extra` is merged into the JSON error body; `log` goes to the request log line (never coordinates)."""
+    def __init__(self, status, message, extra=None, log=None):
         super().__init__(message)
-        self.status, self.message = status, message
+        self.status, self.message, self.extra, self.log = status, message, extra or {}, log
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -136,6 +142,13 @@ def run_travel_time(lat, lng, speed_kmh, intervals, radius_km):
     warnings += osm.pop('_warnings', [])
     nhd, w = stage('hydrology', nz_sources.download_nhd_features, bbox)
     warnings += w
+    # Refuse now, with a smaller radius or shorter band that should fit, rather than run for a minute and fail.
+    refusal = density_guard.assess(time.time() - t_all, density_guard.segment_count(osm), radius, reach, speed_kmh,
+                                   density_guard.budget_seconds())
+    if refusal:
+        suggestions = {k: refusal[k] for k in ('suggested_radius_km', 'suggested_max_hours') if k in refusal}
+        raise ApiError(422, refusal['message'], extra={'code': 'area_too_dense', **suggestions},
+                       log={k: refusal[k] for k in ('estimated_s', 'budget_s', 'segments')})
     cost_path = stage('cost_surface', build_cost_surface, dem_path, lc_path, osm, nhd_features=nhd)
     # Contours are cut at the longest time band, so cells costing more than that are never used: stop searching there.
     cd_path = stage('cost_distance', compute_cost_distance, cost_path, lat, lng, dem_path,
@@ -195,6 +208,7 @@ def lambda_handler(event, context):
     started = time.time()
     request_id = getattr(context, 'aws_request_id', None)
     is_http = isinstance(event, dict) and ('httpMethod' in event or 'requestContext' in event)
+    guard_log = None
     try:
         if is_http:
             ctx = event.get('requestContext') or {}
@@ -220,12 +234,14 @@ def lambda_handler(event, context):
             headers, authenticated = {}, True
         status, payload = handle(method, path, headers, body, authenticated)
     except ApiError as e:
-        status, payload = e.status, {'status': 'error', 'message': e.message}
+        status, payload = e.status, {'status': 'error', 'message': e.message, **e.extra}
+        guard_log = e.log
     except Exception as e:                                      # noqa: BLE001 - never leak internals to the caller
         _log(event='error', request_id=request_id, error=type(e).__name__, trace=traceback.format_exc(limit=6))
         status, payload = 500, {'status': 'error', 'message': 'Analysis failed. Try again, or try a smaller area.'}
     _log(event='request', request_id=request_id, status=status, duration_s=round(time.time() - started, 2),
-         timings_s=payload.get('timings_s'), warnings=len(payload.get('warnings', [])) if status == 200 else None)
+         timings_s=payload.get('timings_s'), warnings=len(payload.get('warnings', [])) if status == 200 else None,
+         density_guard=guard_log)
     if not is_http:
         return payload if status == 200 else {'statusCode': status, **payload}
     return {'statusCode': status, 'statusDescription': f'{status} {"OK" if status == 200 else "Error"}',
