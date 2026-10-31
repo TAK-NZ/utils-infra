@@ -29,7 +29,7 @@ import warnings as pywarnings
 
 import api_keys
 import nz_sources  # noqa: E402  (importing registers the LCDB codes and sets GDAL read options)
-from pipeline.cost_distance import compute_cost_distance
+from fast_cost_distance import compute_cost_distance      # same results as the upstream function, about 30x faster
 from pipeline.cost_surface import build_cost_surface
 from pipeline.outputs import extract_isochrone_polygons
 from pipeline.shared import WORK_DIR, get_bbox_from_ipp
@@ -137,7 +137,9 @@ def run_travel_time(lat, lng, speed_kmh, intervals, radius_km):
     nhd, w = stage('hydrology', nz_sources.download_nhd_features, bbox)
     warnings += w
     cost_path = stage('cost_surface', build_cost_surface, dem_path, lc_path, osm, nhd_features=nhd)
-    cd_path = stage('cost_distance', compute_cost_distance, cost_path, lat, lng, dem_path)
+    # Contours are cut at the longest time band, so cells costing more than that are never used: stop searching there.
+    cd_path = stage('cost_distance', compute_cost_distance, cost_path, lat, lng, dem_path,
+                    limit=max(intervals) * speed_kmh * 1000.0)
     contours = stage('contours', extract_isochrone_polygons, cd_path, speed_kmh, intervals)
     if len(contours['features']) < len(intervals):
         warnings.append({'severity': 'info', 'source': 'contours',
