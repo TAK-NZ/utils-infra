@@ -110,6 +110,10 @@ km/h, 1 to 8 intervals of 0.25 to 24 h, radius at most 30 km. The response holds
 (for example when elevation was filled from a coarser source), the data versions, the required attributions and a
 disclaimer. Full details are in sar-engine's `NZ_PORT.md`.
 
+A request that cannot finish in time is refused straight away with HTTP 422 and
+`{"code": "area_too_dense", "message": "...", "suggested_radius_km": 17}`. When the longest time band is what holds the
+radius up, the body carries `suggested_max_hours` instead (or as well). Callers should offer the suggestion to the user.
+
 ## Operations
 
 - **Cost:** Lambda bills per run. A run takes 2 to 50 s at 2 GB (see below), which is roughly a tenth of a cent at most,
@@ -117,12 +121,18 @@ disclaimer. Full details are in sar-engine's `NZ_PORT.md`.
 - **Speed**, measured on real Lambda in Test through the public ALB: an 8 km radius in backcountry takes about 2 s warm
   and 12 s cold; 16 km about 7 s; the 30 km maximum about 14 s warm and 19 s cold. Wellington at 30 km takes 19 s.
   Peak memory was 0.6 to 1.6 GB of the 2 GB allocated.
-- **Dense city cores are slower.** The trail and road burn-in scales with the number of segments (about 250,000 in central
-  Auckland at 30 km): central Auckland takes 26 s at 10 km and 50 s at 30 km warm, and 63 s cold, which exceeds the ALB's
-  60 s and would fail for a client. Central Christchurch is the next worst. Backcountry starts (every location surveyed has
-  under 6,000 segments within 20 km) are unaffected. See sar-engine's `NZ_PORT.md` for the cause.
+- **Dense city cores are slower, and refused when they cannot finish.** The trail and road burn-in scales with the number
+  of segments (about 237,000 in central Auckland at 30 km): central Auckland takes 23 s at 10 km, 43 s at 20 km, and would
+  take 48 to 63 s at 30 km. The engine's dense-area guard (sar-engine `nz/density_guard.py`) counts the segments after
+  the OSM read and, if the estimated total exceeds the time budget, answers 422 `area_too_dense` in about 10 to 12 s with
+  the largest radius (or longest time band) that fits. On Test, Auckland at 30 km is refused with 17 km, and 17 km then
+  runs in 38 to 40 s. Christchurch at 30 km (30 s), Wellington (19 s) and backcountry (10 s) are not affected. The budget
+  is `SAR_TIME_BUDGET_S` (default 45 s: a 55 s function timeout minus up to about 10 s of container start). The time
+  model rests on four measurements, so the threshold is a calibrated guess and slightly conservative. If you change the
+  function timeout or the Lambda size, re-measure and set the variable (not set by this stack).
 - **Timeouts:** the ALB's idle timeout is 60 s, so the HTTP function's timeout is 55 s and the configuration refuses 60 or
-  more. A run that exceeds it fails and the caller sees a 5xx; the plugin should handle that.
+  more. A run that exceeds it fails and the caller sees a 5xx (an HTML body from the ALB); the plugin should handle
+  that. The dense-area guard exists to make this rare, not impossible.
 - **Cold starts** cost a few seconds to about 10 s for a backcountry request, so provisioned concurrency is not needed for
   rare use. The first request after deploying a new image can be much slower, because the image is fetched lazily.
 - **Region:** Test runs in us-west-2 while the LINZ elevation bucket is in Sydney, so Test's elevation stage includes a
