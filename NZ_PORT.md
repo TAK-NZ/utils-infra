@@ -84,23 +84,47 @@ consistent (median 13.7 degrees at the seam, between the 12.6 and 16.3 degree in
 
 ## Measurements
 
-All with the Lambda image under the Runtime Interface Emulator, limited to 1 CPU and 2 GB, data on local disk,
-unvalidated test sites. **Not yet measured:** a real Lambda cold start, and S3 read latency.
+**On real AWS Lambda** (Test environment, 2 GB, through the public ALB, warm function, October 2026; unvalidated test
+sites; data read from S3):
 
-| Case | Time | Notes |
+| Request | Time | Where it goes |
 |---|---|---|
-| Tararua bush, 10 km radius | 10 s | cost-distance 7 s |
-| Southland, 10 km, 37% Copernicus fill | 13 s | |
-| 30 km radius (maximum), 60 m cells | 38 s | grid is capped at 1000 x 1000 cells |
-| Peak container memory | 348 MiB | across all runs |
+| Bush, 8 km radius | 6 s | elevation 2 s, OSM 1 s, cost surface 2 s, Dijkstra 0.4 s |
+| Bush, 12 km | 6 s | |
+| Bush, 16 km (32 m cells) | 15 s | elevation 6 s, cost surface 7 s |
+| Bush, 20 km (40 m cells) | 22 s | |
+| Bush, 30 km (the maximum, 60 m cells) | 37 s | elevation 15 s, cost surface 17 s, OSM 4 s, Dijkstra 0.9 s |
+| Southland / Wellington, 30 km | 25 s / 31 s | |
+| Peak memory (30 km) | 1,011 MB of 2,048 MB | |
 
-The monthly refresh, run inside the Lambda image against the real Geofabrik download, took 73 s and published 971,529
-features (it needs about 1.6 GB of memory and 1 GB of `/tmp`).
+- **Cold start:** a Lambda start after idle adds a first-invoke cost. The first call after deploying a new image took 46
+  to 60 s (the image is fetched lazily; init is capped at 10 s and Lambda retries it inside the first invoke). Later
+  cold starts add roughly 15 to 20 s on top of the analysis. The ALB drops a request at 60 s, so a 30 km request that
+  hits a cold function can fail. Provisioned concurrency would remove this if it matters.
+- **The monthly refresh** takes about 100 s on Lambda (3 GB, 2 GB `/tmp`) and builds 971,529 features.
+- **Before the Dijkstra change** the same stage took 22 s at 12 km and did not finish at 16 km or more (the function
+  timed out at 55 s): the upstream pure-Python Dijkstra is about 2.2 times slower on a Lambda vCPU than on a desktop.
 
-Over HTTP range requests, a FlatGeobuf bounding-box read fetched 1.8 MB in 53 requests for an 8 km bush area, 2.7 MB
-for a 60 km mountain area, and 43.5 MB in 152 requests for a dense 40 km urban area (local emulation, not S3).
+Local figures (Lambda image under the Runtime Interface Emulator, one CPU, data on local disk) are lower than the real
+ones above and should not be used for sizing. Over HTTP range requests, a FlatGeobuf bounding-box read fetched 1.8 MB in
+53 requests for an 8 km bush area, 2.7 MB for a 60 km mountain area, and 43.5 MB in 152 requests for a dense 40 km urban
+area (local emulation).
 
-### Two bugs only the real runtime exposed
+### The cost-distance speed-up
+
+`nz/fast_cost_distance.py` replaces the upstream Dijkstra for the HTTP path. It computes the same edge costs (Tobler's
+hiking function, cross-slope penalty, 3-D surface distance, mean friction) for all edges at once with numpy, builds the
+8-connected graph as a sparse matrix and runs scipy's compiled Dijkstra. It also stops at the longest time band
+(`limit`), cropping the grid to the proven reach (every edge costs at least 0.84 x the smallest friction per metre).
+
+`python nz/check_cost_distance_parity.py [N] [--real]` checks it against the upstream function: random grids with NaN
+and out-of-range elevations and sanitised friction values (identical, worst relative difference 0), and real sites
+through the real pipeline (cell-for-cell identical, byte-identical contours with and without the limit). The upstream
+function rounds the IPP to a cell using the pixel's corner coordinate, which is half a cell off and can reject an IPP in
+the last row or column; the pipeline pads its grid so this does not occur in use, and the fast version keeps the
+behaviour so the two stay comparable.
+
+### Bugs only the real runtime exposed
 
 - The Lambda base image lacks `libexpat`, which the rasterio and pyogrio wheels need (import failure). The Dockerfile
   installs it.
@@ -108,6 +132,15 @@ for a 60 km mountain area, and 43.5 MB in 152 requests for a dense 40 km urban a
   The upstream cost-surface code enters one per stream (about 1,100 per run), which added about 25 s (`cost_surface`
   27 s against 1.5 s elsewhere). `nz_sources.py` hides boto3 from rasterio; GDAL still reads role credentials from the
   environment for `/vsis3/` paths. Re-check this if the base image or rasterio changes.
+
+- **Files only root could read.** The first deployed image returned 502 on every request: its files were mode 600
+  because the build checkout had a restrictive umask, and Lambda runs the code as an unprivileged user. The Dockerfile now
+  sets the modes and imports the code as uid 1000 during the build, so the build fails instead.
+- **Silent empty OSM build.** GDAL's OSM driver spills temp files into the current directory, which is read-only on
+  Lambda (`/var/task`), and the SQL read swallowed the error and returned zero rows. `osm_build` now reads from a
+  temporary directory and raises on an empty result; the refresh's minimum-feature check had already refused to publish.
+
+Test with `--user 1000:1000 --read-only` and only `/tmp` writable. A root-run test hid both bugs.
 
 ## Known gaps
 
@@ -134,7 +167,8 @@ for a 60 km mountain area, and 43.5 MB in 152 requests for a dense 40 km urban a
 1. Deploy via [`utils-infra`](https://github.com/TAK-NZ/utils-infra) (branch `feat/sar-engine`, see its `docs/SAR_ENGINE.md`): upload
    `lcdb_2023_30m.tif` to the artifacts bucket, enable the feature, run the first OSM refresh. It reuses the existing
    artifacts bucket under a `sar-engine/` prefix and refreshes OSM monthly.
-2. Measure a real Lambda cold start and S3 read times (not yet measured). The HTTP function is configured for 2 GB and a
-   55 s timeout, under the ALB's 60 s idle timeout; the 30 km case took 38 s locally.
+2. Decide about cold starts (see Measurements) and whether the 30 km case needs more margin: its warm time is 25 to 37 s
+   against the function's 55 s timeout and the ALB's 60 s. Elevation reads and the cost-surface build now dominate;
+   neither has been optimised.
 3. The `/api/sar/*` relay in the TAK-NZ CloudTAK fork, and the plugin itself.
 4. TARR mode, once there is a defensible calibration.
