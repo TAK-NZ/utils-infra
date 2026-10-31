@@ -72,6 +72,19 @@ Set `sarEngine.enabled` to `true` for the environment in `cdk.json` and merge. T
 builds `Dockerfile.lambda`, pushes `utils-sar-engine-<imageTag>-<first 7 of the ref>` to the shared ECR repository, and
 passes the tag to the deploy step as `imageTagsJson["sar-engine"]`.
 
+A manual deploy (no workflow) builds the image itself, like the other containers, from a local sar-engine checkout:
+```
+BUILDX_NO_DEFAULT_ATTESTATIONS=1 npm run cdk deploy -- --context envType=dev-test ... \
+  --context sarEngineSourcePath=/path/to/sar-engine
+```
+This needs `usePreBuiltImages` to be `false` (the `dev-test` default in `cdk.json`) and Docker running. The deploy builds
+`Dockerfile.lambda` from whatever is checked out there, so check out the commit you intend to ship first. The checkout
+is hashed without `.git`, `data`, `results`, `docs` and virtualenvs, so the image only changes when the engine code does.
+`BUILDX_NO_DEFAULT_ATTESTATIONS=1` is needed with Docker 29 or later, which otherwise adds provenance attestations that
+Lambda rejects ("image manifest ... is not supported"). Without `sarEngineSourcePath` the deploy points the functions at
+the ECR tag above and prints a warning; if that image is not in ECR the Lambda update fails and CloudFormation rolls back.
+`sarEngineSourcePath` together with `usePreBuiltImages=true` (CI, prod) is refused.
+
 ### 4. Run the first OSM refresh by hand
 
 Do not wait for the monthly schedule. Until a snapshot exists, trail data is missing. Invoke once, using the
@@ -210,7 +223,9 @@ silently. Travel time is not affected. No CDK change is needed for any of this.
 - **Versioned buckets (prod):** each refresh overwrites the small pointer and replaces one 350 MB snapshot. With
   versioning on, old versions stay. That is well under $1 a year, but it is unbounded unless a lifecycle rule for
   noncurrent versions under `sar-engine/` is added to the bucket in base-infra.
-- **Upgrading the engine:** change `sarEngine.engineRef` (and `imageTag`) in `cdk.json`. The new ref gives a new image
+- **Upgrading the engine by hand (Test):** check out the wanted commit in your sar-engine clone and deploy with
+  `--context sarEngineSourcePath=<clone>` (see step 3). Nothing needs pushing or pinning, and `engineRef` is not used.
+- **Upgrading the engine through the workflows:** change `sarEngine.engineRef` (and `imageTag`) in `cdk.json`. The new ref gives a new image
   tag, so CI builds it instead of reusing the old one. To ship TARR, in this order:
   1. Merge the sar-engine branch `feat/nz-tarr` and push it, so the commit exists on GitHub (the build clones the pinned ref).
   2. Set `sarEngine.engineRef` to the merged commit and bump `imageTag` in both environments of `cdk.json`, and merge that.

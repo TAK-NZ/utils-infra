@@ -546,18 +546,35 @@ export class UtilsInfraStack extends cdk.Stack {
     // =================
     // SAR ENGINE (Lambda behind the ALB, plus a monthly OSM refresh) -- see docs/SAR_ENGINE.md
     // =================
-    // Off unless sarEngine.enabled is true: enabling needs the image in ECR (built by the build workflows from
-    // sarEngine.engineRepo at sarEngine.engineRef) and the data uploaded under sarEngine.dataPrefix.
+    // Off unless sarEngine.enabled is true. Enabling needs the data uploaded under sarEngine.dataPrefix and an image:
+    //   - usePreBuiltImages=true (CI, prod): the image is already in ECR, built by the build workflows from
+    //     sarEngine.engineRepo at sarEngine.engineRef (or named by imageTagsJson["sar-engine"]).
+    //   - usePreBuiltImages=false (manual deploys): the image is built by this deploy from a sar-engine checkout, as for
+    //     the other containers. Name the checkout with --context sarEngineSourcePath=<dir>.
     if (envConfig.sarEngine?.enabled) {
       const sarConfig = envConfig.sarEngine;
       const ecrRepoArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ECR_REPO));
+      const sarSourcePathContext = this.node.tryGetContext('sarEngineSourcePath');
+      const sarSourcePath = typeof sarSourcePathContext === 'string' && sarSourcePathContext.trim() !== ''
+        ? sarSourcePathContext.trim() : undefined;
+      if (sarSourcePath && usePreBuiltImages) {
+        throw new Error('sarEngineSourcePath builds the SAR engine image during deploy, so it needs usePreBuiltImages=false. ' +
+          'Remove it, or remove --context usePreBuiltImages=true.');
+      }
+      if (!usePreBuiltImages && !sarSourcePath && !imageTagsMap['sar-engine']) {
+        cdk.Annotations.of(this).addWarning(
+          'usePreBuiltImages is false but sarEngineSourcePath is not set: the SAR engine image is NOT built by this deploy. ' +
+          'The Lambda functions need the image tag utils-sar-engine-<imageTag>-<first 7 of engineRef> to exist in ECR. ' +
+          'To build it now: --context sarEngineSourcePath=<path to a sar-engine checkout> (see docs/SAR_ENGINE.md).');
+      }
       // "sar-engine" is the key the build workflows use in imageTagsJson; fall back to the configured version.
       const sarImageTag = imageTagsMap['sar-engine'] ?? `utils-sar-engine-${sarConfig.imageTag}-${sarConfig.engineRef.slice(0, 7)}`;
 
       const sarEngine = new SarEngine(this, 'SarEngine', {
         config: sarConfig,
-        ecrRepositoryName: cdk.Token.asString(Fn.select(1, Fn.split('/', ecrRepoArn))),
-        imageTag: sarImageTag,
+        ...(sarSourcePath
+          ? { sourcePath: sarSourcePath }
+          : { ecrRepositoryName: cdk.Token.asString(Fn.select(1, Fn.split('/', ecrRepoArn))), imageTag: sarImageTag }),
         dataBucketName: cdk.Token.asString(artifactsBucketName),
         configBucketName: cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn))),
         kmsKeyArn: cdk.Token.asString(kmsKeyArn),

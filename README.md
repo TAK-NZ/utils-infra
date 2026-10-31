@@ -194,6 +194,10 @@ cdk deploy --context envType=dev-test --context apiKeys='["key1","key2"]'
 # Deploy with pre-built images (new JSON format - recommended)
 cdk deploy --context envType=prod --context usePreBuiltImages=true --context imageTagsJson='{"weather-proxy":"v1.0.0","ais-proxy":"v1.0.0","tileserver-gl":"v1.0.0"}'
 
+# SAR engine (separate repository): build its image during a manual deploy from a local checkout (usePreBuiltImages=false)
+BUILDX_NO_DEFAULT_ATTESTATIONS=1 cdk deploy --context envType=dev-test --context sarEngineSourcePath=../sar-engine
+# (details in docs/SAR_ENGINE.md)
+
 # Deploy with pre-built images (legacy individual parameters - still supported)
 cdk deploy --context envType=prod --context usePreBuiltImages=true --context weatherProxyImageTag=v1.0.0 --context aisProxyImageTag=v1.0.0 --context tileserverGlImageTag=v1.0.0
 ```
