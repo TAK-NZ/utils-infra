@@ -175,8 +175,10 @@ silently. Travel time is not affected. No CDK change is needed for any of this.
 ## Operations
 
 - **TARR timing:** TARR runs the same stages as travel time (elevation, land cover, OSM, cost surface, cost distance), so
-  its timings, the dense-area guard and the 55 s timeout behave the same way. The radius follows the profile: a Hiker
-  (about 5 km) is quick, a long-range profile such as Snowmobiler or Abduction reaches the 30 km limit.
+  its timings, the dense-area guard and the 55 s timeout behave the same way. The radius follows the profile and
+  the multiplier: a Hiker on the default row is about 5.7 km and Abduction is about 29 km (not clipped). Only a few rows
+  exceed 30 km and are clipped with a `limits` warning (Snowmobiler Temperate/Flat, Mental Illness
+  Temperate/Mountainous).
 - **Cost:** Lambda bills per run. A run takes 2 to 50 s at 2 GB (see below), which is roughly a tenth of a cent at most,
   by my estimate from list prices. Nothing runs when idle.
 - **Speed**, measured on real Lambda in Test through the public ALB: an 8 km radius in backcountry takes about 2 s warm
