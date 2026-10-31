@@ -238,7 +238,7 @@ Test with `--user 1000:1000 --read-only` and only `/tmp` writable. A root-run te
   containment probabilities; the plain Koester circle is drawn beside each terrain ring so users see how far terrain
   moved it; and the multipliers are configurable engine-side (see TARR), so an NZ set or 1.0 is a configuration change.
   Observed with the Arizona Hiker multiplier (1.15) on a steep bush site in the Tararua Range, the terrain-adjusted
-  rings covered about 10% of the area of the plain circles (75%: 3 km2 against 32.6 km2), and on a Kaweka site about
+  rings covered about 10% of the area of the plain circles (75%: 3 km2 against 32.6 km2), and at a second backcountry site (39.0 S, 176.0 E) about
   15%: terrain, not the multiplier, shrinks them. The reference site now uses a per-band set (for example Hiker
   1.00 / 1.10 / 1.40, default 1.05 / 1.35 / 1.80) applied in the browser, which is why the engine accepts per-band
   values; the single `server.py` values were used as instructed.
