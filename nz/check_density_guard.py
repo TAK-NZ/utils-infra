@@ -41,20 +41,26 @@ def check_model():
 
 
 def check_random(n):
+    """Random requests with a synthetic count(r) that does NOT follow the area: count = segments * (r / radius) ** p
+    with p between 0.4 (a dense isthmus such as central Auckland) and 2.2 (open country). Real data refused a
+    suggestion that an area formula had made, so the suggestion is checked against the counter, not a formula."""
     rng = random.Random(7)
     bad = 0
     refused = suggested_r = suggested_h = bare = 0
     for _ in range(n):
         speed = rng.choice([0.5, 1.0, 2.5, 4.0, 7.5, 10.0])
-        hours = rng.choice([0.5, 1, 2, 4, 8, 12, 24])
-        reach = speed * hours + g.RADIUS_MARGIN_KM
-        radius = max(rng.uniform(1, 30), reach)
-        radius = min(radius, 30.0)
-        reach = min(reach, 30.0)
-        segments = int(10 ** rng.uniform(2, 6))
+        band = rng.choice([0.5, 1, 2, 4, 8, 12, 24])
+        reach = min(speed * band + 2.0, 30.0)
+        radius = min(max(rng.uniform(1, 30), reach), 30.0)
+        total = int(10 ** rng.uniform(2, 6))
+        p = rng.uniform(0.4, 2.2)
+
+        def count(r, total=total, radius=radius, p=p):
+            return int(total * (r / radius) ** p)
+        segments = count(radius)
         elapsed = rng.uniform(1, 25)
         budget = rng.choice([20.0, 30.0, 45.0, 55.0])
-        out = g.assess(elapsed, segments, radius, reach, speed, budget)
+        out = g.assess(elapsed, segments, radius, reach, speed, budget, count)
         fits = g.estimated_total_seconds(elapsed, segments) <= budget
         if fits != (out is None):
             bad += 1
@@ -66,39 +72,41 @@ def check_random(n):
         if not out.get('message'):
             bad += 1
             print('FAIL no message', out)
-        # Apply the suggestion the way the engine would: the radius used is max(radius given, speed x band + 2 km).
-        # A caller who follows a hours-only suggestion keeps their radius only when it was not above the bands' reach.
+
+        def fits_at(r):
+            return g.estimated_total_seconds(elapsed, count(r)) <= budget
+        best = next((k for k in range(math.ceil(radius) - 1, 0, -1) if fits_at(k)), None)     # brute force
         hours = out.get('suggested_max_hours')
         given = out.get('suggested_radius_km')
         if hours is None and given is None:
             bare += 1
+            hours_possible = best is not None and best < reach and \
+                math.floor(max(best - 2.0, 0) / speed / 0.25) * 0.25 >= 0.25
+            if best is not None and (best >= reach or hours_possible):
+                bad += 1
+                print('FAIL no suggestion although one exists', out, 'best', best, radius, reach)
             continue
-        new_reach = (hours * speed + g.RADIUS_MARGIN_KM) if hours is not None else reach
-        new_radius = max(given if given is not None else (radius if radius > reach + 1e-9 else 0), new_reach)
-        if hours is not None and given is None and radius > reach + 1e-9:
-            bad += 1
-            print('FAIL hours-only suggestion although the explicit radius is above the reach', out, radius, reach)
-        scaled = segments * (new_radius / radius) ** 2          # segments grow with area
-        suggestion_ok = (new_radius <= radius + 1e-9 and (hours is None or hours >= g.MIN_HOURS)
-                         and (given is None or given >= 1)
-                         and g.estimated_total_seconds(elapsed, scaled) <= budget)
-        if hours is None:
-            suggested_r += 1
-            suggestion_ok &= given >= reach
-        else:
+        problems = []
+        if given is not None:
+            suggested_r += 1 if hours is None else 0
+            if not (1 <= given < radius and fits_at(given)):
+                problems.append('suggested radius does not fit')
+            if given != best:
+                problems.append(f'suggested radius is not the largest that fits ({best})')
+            if hours is None and given < reach:
+                problems.append('radius suggestion below the reach')
+        if hours is not None:
             suggested_h += 1
-        if not suggestion_ok:
+            new_reach = hours * speed + 2.0
+            if hours < 0.25 or best is None or new_reach > best + 1e-9 or not fits_at(new_reach):
+                problems.append('shorter band does not fit')
+            if (hours + 0.25) * speed + 2.0 <= best + 1e-9:
+                problems.append('shorter band is needlessly short')
+            if given is None and radius > reach + 1e-9:
+                problems.append('hours-only suggestion although the explicit radius is above the reach')
+        if problems:
             bad += 1
-            print('FAIL suggestion does not fit', out, radius, reach, segments)
-        # Tight, not just safe: within about 1 km of the largest radius the model allows, and one 0.25 h step more
-        # would already need more than the largest whole-km radius that fits.
-        allowed = (budget - elapsed - g.COST_SURFACE_BASE_S - g.AFTER_COST_SURFACE_S) / g.SECONDS_PER_SEGMENT
-        exact_fit = radius * math.sqrt(allowed / segments)
-        too_small = (given is not None and given <= exact_fit - 1 - 1e-9) or \
-                    (hours is not None and (hours + 0.25) * speed + g.RADIUS_MARGIN_KM <= math.floor(exact_fit))
-        if too_small:
-            bad += 1
-            print('FAIL suggestion is needlessly small', out, 'exact fit', round(exact_fit, 2), radius, reach)
+            print('FAIL', problems, out, 'radius', radius, 'reach', reach, 'best', best)
     print(f"{'PASS' if bad == 0 else 'FAIL'}  {n} random cases: {refused} refused "
           f"({suggested_r} with a radius, {suggested_h} with shorter hours, {bare} with a generic message), {bad} wrong")
     return bad == 0
@@ -106,7 +114,7 @@ def check_random(n):
 
 def check_light_never_refused():
     # 5,000 segments cost 3 + 0.75 + 1 = 4.75 s, so anything that has used under 40 s of a 45 s budget must pass.
-    bad = sum(g.assess(e / 2, 5000, 10, 4, 2.5, 45.0) is not None for e in range(0, 80))
+    bad = sum(g.assess(e / 2, 5000, 10, 4, 2.5, 45.0, lambda r: 5000) is not None for e in range(0, 80))
     print(f"{'PASS' if bad == 0 else 'FAIL'}  a light request (5,000 segments) is never refused while time remains")
     return bad == 0
 
@@ -139,6 +147,26 @@ def run_real():
     same = on.get('contours') == off.get('contours') and on.get('status') == 'ok'
     ok &= same
     print(f"{'PASS' if same else 'FAIL'}  bush 12 km: contours identical with the guard on and off")
+
+    # 4b. the counter agrees exactly with a fresh OSM read at each smaller radius (central Auckland: the count does
+    # not follow the area, 113,639 at 10 km against 204,351 at 20 km, which is why a formula was wrong)
+    import nz_sources
+    from pipeline.shared import get_bbox_from_ipp
+    lat0, lng0 = -36.85, 174.76
+    with contextlib.redirect_stdout(io.StringIO()):
+        full = nz_sources.download_osm_features(get_bbox_from_ipp(lat0, lng0, 30))
+        full.pop('_warnings', None)
+        counter = g.make_counter(full, lambda r: get_bbox_from_ipp(lat0, lng0, r))
+        exact = {r: g.segment_count({k: v for k, v in nz_sources.download_osm_features(get_bbox_from_ipp(lat0, lng0, r)).items()
+                                     if not k.startswith('_')}) for r in (5, 10, 20, 27, 30)}
+    # Segments that only touch the box edge are counted here and not by the file reader: the count is never lower
+    # (the safe direction) and differs by a handful of segments, so allow 0.05% over and no under-count.
+    mismatch = {r: (counter(r), e) for r, e in exact.items() if not 0 <= counter(r) - e <= max(10, e * 0.0005)}
+    mono = all(counter(r) <= counter(r + 1) for r in range(1, 30))
+    good = not mismatch and mono and counter(30) == g.segment_count(full)
+    ok &= good
+    print(f"{'PASS' if good else 'FAIL'}  counter equals a fresh read at {sorted(exact)} km: "
+          f"{ {r: exact[r] for r in sorted(exact)} }" + ('' if not mismatch else f'  mismatches {mismatch}'))
 
     # 5. dense city: refused, then the suggestion runs inside the budget
     auckland = {'ipp': {'lat': -36.85, 'lng': 174.76}, 'speed_kmh': 2.5, 'intervals_hours': [1, 2, 4], 'radius_km': 30}

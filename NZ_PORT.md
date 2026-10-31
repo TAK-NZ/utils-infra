@@ -73,6 +73,11 @@ timeout and the 60 s ALB limit), the request ends at once with HTTP 422:
  "suggested_radius_km": 29}
 ```
 
+The suggested radius is the largest whole kilometre whose segments, counted exactly from the data already in memory,
+fit the budget. It is counted rather than calculated from the area because segment counts do not follow the area:
+central Auckland has 113,752 segments within 10 km and 204,689 within 20 km, and a first version that scaled by area
+suggested a 27 km radius that the real handler then refused.
+
 When the radius is held up by the longest time band (speed x band + 2 km), the body carries `suggested_max_hours`
 instead, or as well as `suggested_radius_km` when an explicit radius is also too large; with no workable suggestion the
 message says to move the start point or shorten the bands. A request that fits is not changed in any way (the check

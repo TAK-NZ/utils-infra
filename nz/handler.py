@@ -144,7 +144,8 @@ def run_travel_time(lat, lng, speed_kmh, intervals, radius_km):
     warnings += w
     # Refuse now, with a smaller radius or shorter band that should fit, rather than run for a minute and fail.
     refusal = density_guard.assess(time.time() - t_all, density_guard.segment_count(osm), radius, reach, speed_kmh,
-                                   density_guard.budget_seconds())
+                                   density_guard.budget_seconds(),
+                                   density_guard.make_counter(osm, lambda r: get_bbox_from_ipp(lat, lng, r)))
     if refusal:
         suggestions = {k: refusal[k] for k in ('suggested_radius_km', 'suggested_max_hours') if k in refusal}
         raise ApiError(422, refusal['message'], extra={'code': 'area_too_dense', **suggestions},
