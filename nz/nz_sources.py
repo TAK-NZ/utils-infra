@@ -17,6 +17,7 @@ Data location: SAR_DATA_DIR (default: <repo>/data). It can be a local directory 
 import json
 import math
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import geopandas as gpd
@@ -113,6 +114,43 @@ def _warp_into(url, dst, transform, overview_level=None, src_nodata=None):
                   src_nodata=src_nodata, dst_nodata=NODATA, resampling=Resampling.average, init_dest_nodata=False)
 
 
+MAX_READ_THREADS = 8
+
+
+def _read_parts(urls, transform, shape, overview_level=None, src_nodata=None, skip_missing=False):
+    """Warp each raster into its own array, concurrently. Returns the arrays in the order of `urls`.
+
+    Reading the DEM is dominated by waiting for the network: every request to the (distant) bucket costs a round trip
+    and the sheets are independent, so they are fetched in parallel threads. Each thread opens its own dataset.
+    With skip_missing, a raster that does not exist yields None (open ocean has no Copernicus tile).
+    """
+    def one(url):
+        part = np.full(shape, NODATA, dtype=np.float32)
+        try:
+            _warp_into(url, part, transform, overview_level=overview_level, src_nodata=src_nodata)
+        except rasterio.errors.RasterioIOError:
+            if skip_missing:
+                return None
+            raise
+        return part
+    if len(urls) <= 1:
+        return [one(u) for u in urls]
+    with ThreadPoolExecutor(min(len(urls), MAX_READ_THREADS)) as pool:
+        return list(pool.map(one, urls))
+
+
+def _apply_in_order(dem, parts):
+    """Lay the parts onto dem in order: a later part overwrites an earlier one wherever it has data.
+
+    This is exactly what warping the rasters one after another into a shared array does (the LINZ sheets overlap by a
+    few thousand cells at their edges and adjacent surveys can disagree by metres, so the order matters).
+    """
+    for part in parts:
+        if part is not None:
+            written = part != NODATA
+            dem[written] = part[written]
+
+
 def _copernicus_tiles(bbox):
     west, south, east, north = bbox
     for lat in range(math.floor(south), math.floor(north) + 1):
@@ -132,18 +170,16 @@ def download_dem(bbox, output_path=None):
 
     sheets = _linz_sheets(bbox)
     level = _linz_overview_level(cell_size_m(bbox))
-    for sheet in sheets:
-        _warp_into(f'/vsicurl/{LINZ_DEM_BASE}{sheet}.tiff', dem, transform, overview_level=level, src_nodata=NODATA)
+    _apply_in_order(dem, _read_parts([f'/vsicurl/{LINZ_DEM_BASE}{sheet}.tiff' for sheet in sheets], transform,
+                                     (h_px, w_px), overview_level=level, src_nodata=NODATA))
     print(f"  LINZ DEM: {len(sheets)} sheet(s), overview level {level}, grid {w_px}x{h_px}")
 
     holes = dem <= -1000
     if holes.any():
         cop = np.full_like(dem, NODATA)
-        for url in _copernicus_tiles(bbox):
-            try:
-                _warp_into('/vsicurl/' + url, cop, transform)
-            except rasterio.errors.RasterioIOError:
-                pass                                              # no tile here (open ocean)
+        # a tile that does not exist (open ocean) is skipped
+        _apply_in_order(cop, _read_parts(['/vsicurl/' + u for u in _copernicus_tiles(bbox)], transform, (h_px, w_px),
+                                         skip_missing=True))
         have = cop > -1000
         overlap = ~holes & have
         # Heights are orthometric in both models but on different geoids, and Copernicus is a surface model

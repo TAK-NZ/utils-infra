@@ -30,7 +30,7 @@ import warnings as pywarnings
 import api_keys
 import nz_sources  # noqa: E402  (importing registers the LCDB codes and sets GDAL read options)
 from fast_cost_distance import compute_cost_distance      # same results as the upstream function, about 30x faster
-from pipeline.cost_surface import build_cost_surface
+from fast_cost_surface import build_cost_surface           # same results as the upstream function, much faster
 from pipeline.outputs import extract_isochrone_polygons
 from pipeline.shared import WORK_DIR, get_bbox_from_ipp
 
