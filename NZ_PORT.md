@@ -26,6 +26,8 @@ upstream changes merge without conflicts. The Flask app (`app/server.py`, `app/s
 | `nz/dem_1m_index.json` | Sheet bounding boxes of the LINZ 1 m DEM (bundled in the image). |
 | `nz/build_lcdb_raster.py` | LCDB v6.0 shapefile to a national 30 m COG (about 45 MB, 3 minutes). |
 | `nz/build_osm_lines.py` | Command-line build of the same FlatGeobuf plus the pointer sidecar, for local use (about 30 s). |
+| `nz/linz_water_build.py`, `nz/build_linz_water.py` | Build the optional LINZ waterways FlatGeobuf (streams and river areas) from the LINZ vector-tile MBTiles that utils-infra stores; the second is the command-line wrapper (about 1 minute, 1 GB). |
+| `nz/check_linz_water.py` | Checks for the LINZ waterways: builder, merge and its fallback, and the friction that reaches the cost surface (`--real` reads real areas). |
 | `nz/build_dem_index.py` | Regenerates `dem_1m_index.json` from the LINZ STAC collection. |
 | `nz/check_dem_coverage.py` | Samples random land points to estimate 1 m DEM coverage. |
 | `nz/run_spike.py`, `nz/report.py` | Run the pipeline on a site with timings; render ring-area comparison maps. |
@@ -136,10 +138,48 @@ the log gets `{"event":"tarr_calibration_invalid","error":"ConfigError"}`, with 
 | Elevation | LINZ NZ Elevation 1 m LiDAR DEM (COG, EPSG:2193), public S3 bucket `nz-elevation`; gaps filled from Copernicus GLO-30 (public S3 `copernicus-dem-30m`) | LINZ: CC BY 4.0 (per the STAC collection). Copernicus: see its licence terms; credit the Copernicus programme. |
 | Land cover | Landcare Research LCDB v6.0, 2023/24 epoch (LRIS shapefile download) | CC BY 4.0, attribute Landcare Research. |
 | Trails, roads, waterways, transmission lines | OpenStreetMap via the Geofabrik NZ extract | ODbL, attribute OpenStreetMap contributors. |
-| Hydrology | None (no NHD equivalent). Lakes and sea come from land cover, streams and rivers from OSM waterways. | |
+| Streams and river areas (optional) | LINZ Basemaps topographic vector tiles (`water_lines`, `water_polygons`), read from the MBTiles that utils-infra keeps as `linz-vector-tiles.mbtiles`. Added to the OSM waterways when published. | CC BY 4.0, attribute LINZ (Toitu Te Whenua). |
+| Hydrology | None (no NHD equivalent). Lakes and sea come from land cover, streams and rivers from OSM waterways and, when published, LINZ. | |
 
 OSM differs from WiSAR in one way: only `power=line` (transmission) is burned in as a cleared corridor. NZ `minor_line`
 is mostly pole wiring along roads and through paddocks. This removed about 97% of "power line corridors" near Masterton.
+
+### LINZ waterways (optional)
+
+OSM has far fewer streams than LINZ in the backcountry. On 30 m cells at five walking-track areas (Tararua, Tongariro,
+Routeburn, Abel Tasman, Arthurs Pass) LINZ had 1.4 to 5 times as many stream cells at four of them and about the same at
+Tongariro; 82 to 100 % of OSM's stream cells had a LINZ stream within one cell. In a 30 km request the OSM snapshot holds
+539 waterways in Westland and 6,397 in the Tararua; merged with LINZ it is 11,002 and 22,761.
+
+How it works. `nz/build_linz_water.py` reads the `water_lines` and `water_polygons` layers of the LINZ MBTiles at zoom 12
+(the stream network is already complete there and it is 6,000 tiles, not 519,000) and writes `linz_water.fgb` plus
+`linz_water_meta.geojson` in the same layout as the OSM snapshot. `nz_sources.download_osm_features` then appends those
+features to the `waterways` frame, so the cost-surface code is unchanged. Every LINZ line is typed `stream` (impedance 40,
+friction 1.60) and every `river` polygon `river` (impedance 60, friction 3.00). LINZ cannot say which lines are rivers
+(926,949 of 931,487 line fragments are `kind=river`), so the engine's river-versus-stream split comes from the polygons and
+from the OSM waterways kept alongside. The cost surface takes the maximum friction of whatever covers a cell, so a stream
+present in both sources costs no more than in one, and an OSM river line over a LINZ stream stays at the river value.
+
+- **Switch.** The sidecar `linz_water_meta.geojson` is the switch. Without it the engine behaves as before, with no warning
+  and no change to the response. Delete it to go back to OSM alone. Publish `linz_water.fgb` first, then the sidecar.
+- **If the file cannot be read** the request carries on with OSM waterways and adds a `warning` (`source: linz-water`) that
+  streams come from OpenStreetMap alone.
+- **Response.** When in use, `data.linz_waterways_built_at` is set and the attribution list gains a LINZ line before the
+  method line (CC BY 4.0).
+- **Refresh.** Stream data changes slowly, so there is no schedule: rebuild by hand when utils-infra's monthly tile update
+  has run and you want the new tiles.
+- **Not counted by the dense-area guard.** Waterways are rasterized in batched calls and cost about 0.08 ms each; the worst
+  30 km areas seen have about 24,000 (Urewera, 23,771; Tararua, 22,761), which added 1.3 s to the cost surface in the
+  Tararua 30 km request.
+
+Measured effect (engine run end to end on the local data, LINZ off against on): the cost-surface cells that change are 0.8
+to 2.3 % of the grid and every one rises. Ring and contour areas move by 0.5 % or less: Canterbury plains 2 h 92.62 to
+92.50 km2, Central Otago 1 h 14.07 to 14.01, Arthurs Pass 4 h 20.37 to 20.35; Tararua TARR, Westland, Auckland and the
+Tararua 30 km request are unchanged to two decimals. The reason is that a stream burns at friction 1.60, which is below
+the 1.80 that indigenous forest and scrub already have, so in bush the added streams change nothing; they only slow cells
+in open ground. The change is therefore about completeness of the data, not a visible shift in the rings. Cost-surface
+time rose 0.02 to 1.3 s and peak memory 4 to 65 MB; the fast and upstream cost surfaces stay cell-for-cell identical on
+real data (`check_cost_surface_parity.py --real`, including 22,761 waterways at 30 km).
 
 ### Elevation coverage
 
@@ -249,6 +289,9 @@ Test with `--user 1000:1000 --read-only` and only `/tmp` writable. A root-run te
   (Tobler's function applies a factor of about 5-8 at 30 degrees; designed for walking on tracks) dominates.
 - **LCDB limits.** No understory detail (all indigenous forest gets one value). Cells with no LCDB polygon are treated
   as sea (barrier). Chatham Islands are not covered.
+- **LINZ waterways are an addition, not a replacement, and are not validated on the ground.** They agree with OSM
+  where both have a stream, but nothing here says which source is right where they differ. Fences, which LINZ also has,
+  are deliberately not used (the model has no per-crossing cost, and the friction multiplier would depend on the cell size).
 - **OSM.** Every `highway=track` and `service` road is a friction-1.0 corridor, which includes farm tracks. The snapshot is
   refreshed monthly (about 1% of relevant ways change per month, extrapolated from a measured 0.21% over 5 days) and its
   age is reported (warning after 45 days).

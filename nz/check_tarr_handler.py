@@ -55,7 +55,7 @@ def spread_lines(n, lat, lng, half_width_km=30.0):
     return FakeLines(np.column_stack([xs, np.full(n, lat), xs, np.full(n, lat)]))
 
 
-STATE = {'osm_lines': None, 'water': 0.0, 'rings': None}
+STATE = {'osm_lines': None, 'water': 0.0, 'rings': None, 'linz': {}}
 
 
 def install_stubs():
@@ -73,6 +73,8 @@ def install_stubs():
                              'roads': None, 'powerlines': None, '_warnings': []})
     nz_sources.download_nhd_features = record('nhd', ('NHD', []))
     nz_sources.osm_metadata = record('meta', {'built_at': '2026-10-03T14:00:00+00:00'})
+    # Not recorded, so the stage orders below stay as they were. {} means the LINZ waterways are not published.
+    nz_sources.linz_water_metadata = lambda: STATE['linz']
     handler.build_cost_surface = record('cost_surface', '/tmp/cost.tif')
     handler.compute_cost_distance = record('cost_distance', '/tmp/cd.tif')
     handler.extract_isochrone_polygons = record(
@@ -106,10 +108,12 @@ def alb(path, body, key=KEY, method='POST'):
             'requestContext': {'elb': {}}}
 
 
-def call(event):
-    """Return (status, parsed body, captured stdout). Stages are stubs, so stdout holds the handler's log lines."""
+def call(event, **state):
+    """Return (status, parsed body, captured stdout). Stages are stubs, so stdout holds the handler's log lines.
+    Keyword arguments override the stub state for this call (for example linz={...})."""
     CALLS.clear()
-    STATE.update(osm_lines=None, water=0.0, rings=fake_rings)
+    STATE.update(osm_lines=None, water=0.0, rings=fake_rings, linz={})
+    STATE.update(state)
     sink = io.StringIO()
     with contextlib.redirect_stdout(sink):
         resp = handler.lambda_handler(event, None)
@@ -403,6 +407,30 @@ def run_real():
     check('real: the log lines contain no coordinates', '-40.87' not in printed and '175.45' not in printed, printed[:300])
 
 
+LINZ_META = {'built_at': '2026-10-31T00:00:00+00:00', 'source': 'linz-vector-tiles.mbtiles', 'features': 5}
+
+
+def check_linz_water():
+    """The LINZ waterways are credited and versioned only when they are published."""
+    off_status, off, _ = call(alb('/sar/travel-time', TT_BODY))
+    check('linz off: no LINZ attribution line, none in data versions',
+          off_status == 200 and off['attribution'] == handler.ATTRIBUTION and 'linz_waterways_built_at' not in off['data'],
+          (off['attribution'], off['data']))
+    status, body, _ = call(alb('/sar/travel-time', TT_BODY), linz=LINZ_META)
+    attribution = body['attribution']
+    check('linz on, travel-time: credited before the method line, other lines unchanged',
+          status == 200 and attribution == handler.ATTRIBUTION[:-1] + [handler.LINZ_WATER_ATTRIBUTION]
+          + handler.ATTRIBUTION[-1:] and 'CC BY 4.0' in handler.LINZ_WATER_ATTRIBUTION, attribution)
+    check('linz on, travel-time: build date in the data versions',
+          body['data'].get('linz_waterways_built_at') == LINZ_META['built_at']
+          and body['data']['osm_built_at'] == '2026-10-03T14:00:00+00:00', body['data'])
+    status, body, _ = call(alb('/sar/tarr', tarr_body()), linz=LINZ_META)
+    check('linz on, tarr: credited, with the Koester and calibration lines after it',
+          status == 200 and handler.LINZ_WATER_ATTRIBUTION in body['attribution'][:-2]
+          and body['attribution'][-2].startswith('Subject distances:')
+          and body['data'].get('linz_waterways_built_at') == LINZ_META['built_at'], body.get('attribution'))
+
+
 def main():
     if '--real' in sys.argv:
         check_real = True
@@ -414,6 +442,7 @@ def main():
         install_stubs()
         check_travel_time()
         check_tarr()
+        check_linz_water()
     if check_real:
         run_real()
     ok = all(RESULTS)

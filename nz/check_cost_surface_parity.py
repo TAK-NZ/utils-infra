@@ -3,7 +3,7 @@
 Usage (from the repo root):  python nz/check_cost_surface_parity.py [N_RANDOM] [--real]
 
 Random cases: small grids with a land cover raster at a different resolution (or none), random trails / roads /
-waterways (river and other types) / power lines, some empty or missing, and sometimes NHD-style polygons.
+waterways (river and other types; lines and polygons) / power lines, some empty or missing, and sometimes NHD-style polygons.
 --real: real NZ sites through the real data stages, up to a 30 km stream-dense bush request (needs the data directory).
 Outputs are compared as arrays, exactly. Exit status is 1 if anything differs.
 """
@@ -45,7 +45,13 @@ def lines(rng, n, bounds, kind):
     for _ in range(n):
         k = int(rng.integers(2, 6))
         pts = [(float(rng.uniform(west, east)), float(rng.uniform(south, north))) for _ in range(k)]
-        geoms.append(LineString(pts))
+        if kind == 'water' and rng.random() < 0.2:
+            # The LINZ river polygons: waterways may be areas as well as lines
+            cx, cy = pts[0]
+            r = float(rng.uniform(0.0001, 0.002))
+            geoms.append(Polygon([(cx - r, cy - r), (cx + r, cy - r * 0.5), (cx + r, cy + r), (cx - r, cy + r)]))
+        else:
+            geoms.append(LineString(pts))
         types.append(str(rng.choice(['river', 'stream', 'canal', 'drain', 'ditch'])) if kind == 'water' else 'path')
     cols = {'type': types, 'name': [''] * n}
     if kind == 'water':

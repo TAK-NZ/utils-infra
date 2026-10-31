@@ -65,6 +65,9 @@ ATTRIBUTION = [
     'Trails, roads and waterways: (c) OpenStreetMap contributors, ODbL',
     'Method: WiSAR Terrain-Aware Range Rings by J. Weleber (AGPL-3.0), TAK-NZ fork',
 ]
+# Added to the attribution (and the data versions) only when the LINZ waterways are published and in use.
+LINZ_WATER_ATTRIBUTION = ('Streams and river areas: LINZ Basemaps topographic data, (c) Toitu Te Whenua Land '
+                          'Information New Zealand, CC BY 4.0')
 DISCLAIMER = ('Planning aid only. Travel-time contours show where a person could physically reach at the given '
               'flat-ground speed. They do not show where a person is likely to be. The terrain model is not '
               'validated against New Zealand search and rescue data.')
@@ -211,6 +214,7 @@ def run_travel_time(lat, lng, speed_kmh, intervals, radius_km):
                                     'blocked by water).'})
     timings['total'] = round(time.time() - t_all, 2)
     meta = nz_sources.osm_metadata()
+    linz_meta = nz_sources.linz_water_metadata()
     return {
         'status': 'ok',
         'mode': 'travel-time',
@@ -219,17 +223,27 @@ def run_travel_time(lat, lng, speed_kmh, intervals, radius_km):
                        'cell_size_m': round(cell_m, 1)},
         'bbox': {'west': bbox[0], 'south': bbox[1], 'east': bbox[2], 'north': bbox[3]},
         'warnings': warnings,
-        'data': _data_versions(meta),
-        'attribution': ATTRIBUTION,
+        'data': _data_versions(meta, linz_meta),
+        'attribution': _attribution(linz_meta),
         'disclaimer': DISCLAIMER,
         'timings_s': timings,
     }
 
 
-def _data_versions(meta):
-    return {'land_cover': f"LCDB {nz_sources.LCDB_META['lcdb_version']} {nz_sources.LCDB_META['epoch']}",
-            'elevation': 'LINZ 1 m LiDAR DEM, Copernicus GLO-30 where missing',
-            'osm_built_at': meta.get('built_at')}
+def _data_versions(meta, linz_meta=None):
+    versions = {'land_cover': f"LCDB {nz_sources.LCDB_META['lcdb_version']} {nz_sources.LCDB_META['epoch']}",
+                'elevation': 'LINZ 1 m LiDAR DEM, Copernicus GLO-30 where missing',
+                'osm_built_at': meta.get('built_at')}
+    if linz_meta:
+        versions['linz_waterways_built_at'] = linz_meta.get('built_at')
+    return versions
+
+
+def _attribution(linz_meta=None):
+    """The attribution lines, with the LINZ waterways credited (before the method line) only when they are in use."""
+    if not linz_meta:
+        return ATTRIBUTION
+    return ATTRIBUTION[:-1] + [LINZ_WATER_ATTRIBUTION] + ATTRIBUTION[-1:]
 
 
 def _tarr_guard(osm, elapsed):
@@ -278,6 +292,7 @@ def run_tarr(lat, lng, profile, ecoregion, terrain):
                                     'cell, or blocked by water). Missing: ' + ', '.join(f'{p}%' for p in missing) + '.'})
     timings['total'] = round(time.time() - t_all, 2)
     meta = nz_sources.osm_metadata()
+    linz_meta = nz_sources.linz_water_metadata()
     return {
         'status': 'ok',
         'mode': 'tarr',
@@ -291,8 +306,8 @@ def run_tarr(lat, lng, profile, ecoregion, terrain):
                         'calibrated_for_nz': False, 'note': note},
         'bbox': {'west': bbox[0], 'south': bbox[1], 'east': bbox[2], 'north': bbox[3]},
         'warnings': warnings,
-        'data': _data_versions(meta),
-        'attribution': ATTRIBUTION + [f'Subject distances: {tarr.KOESTER_SOURCE}', calibration_line],
+        'data': _data_versions(meta, linz_meta),
+        'attribution': _attribution(linz_meta) + [f'Subject distances: {tarr.KOESTER_SOURCE}', calibration_line],
         'disclaimer': DISCLAIMER_TARR,
         'timings_s': timings,
     }

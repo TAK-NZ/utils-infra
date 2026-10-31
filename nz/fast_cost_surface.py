@@ -51,9 +51,11 @@ def _burn_waterways(waterways, shape, transform):
     for value, pick in ((60, is_river), (40, ~is_river)):
         shapes = [(geom, value) for geom, keep in zip(buffered, pick)
                   if keep and geom is not None and not geom.is_empty]
-        if shapes:
-            combined = np.maximum(combined, rasterize(shapes, out_shape=(height, width), transform=transform,
-                                                      fill=0, dtype=np.uint8))
+        # Batched like the trail burn: with the LINZ streams added a 30 km request can hold tens of thousands of
+        # waterways, and rasterize() holds every shape as a Python dictionary at once. Same raster, bounded memory.
+        for start in range(0, len(shapes), BURN_BATCH):
+            combined = np.maximum(combined, rasterize(shapes[start:start + BURN_BATCH], out_shape=(height, width),
+                                                      transform=transform, fill=0, dtype=np.uint8))
     return combined
 
 

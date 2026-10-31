@@ -9,10 +9,13 @@ download_nhd_features}: same signatures and return shapes, so app/pipeline/ is u
   Land cover Landcare Research LCDB v6.0, 2023/24, as a national 30 m COG built by build_lcdb_raster.py.
              Classes map to impedance through lcdb_friction.toml.
   OSM        Geofabrik NZ extract filtered to a FlatGeobuf by build_osm_lines.py, read by bounding box.
-  Hydrology  No NHD equivalent. Lakes and sea come from land cover; rivers and streams from OSM waterways.
+  LINZ water Streams and river polygons from the LINZ Basemaps vector tiles, built to a FlatGeobuf by
+             build_linz_water.py. Optional: used only when its sidecar is published, and added to the OSM waterways.
+  Hydrology  No NHD equivalent. Lakes and sea come from land cover; rivers and streams from OSM and LINZ waterways.
 
 Data location: SAR_DATA_DIR (default: <repo>/data). It can be a local directory or a GDAL virtual path such as
-/vsis3/bucket/prefix, and must hold lcdb_2023_30m.tif and nz_osm_meta.geojson, plus the OSM FlatGeobuf the sidecar names.
+/vsis3/bucket/prefix, and must hold lcdb_2023_30m.tif and nz_osm_meta.geojson, plus the OSM FlatGeobuf the sidecar names. It may also hold
+linz_water_meta.geojson and linz_water.fgb (the LINZ waterways); without the sidecar they are not used.
 """
 import json
 import math
@@ -22,6 +25,7 @@ from datetime import datetime, timezone
 
 import geopandas as gpd
 import numpy as np
+import pandas as pd
 import pyogrio
 import rasterio
 from rasterio.enums import Resampling
@@ -54,6 +58,8 @@ DATA_DIR = os.environ.get('SAR_DATA_DIR') or os.path.join(HERE, '..', 'data')
 LCDB_TIF = DATA_DIR + '/lcdb_2023_30m.tif'
 DEFAULT_OSM_FGB = 'nz_osm.fgb'                                    # used when the sidecar names no file
 OSM_META = DATA_DIR + '/nz_osm_meta.geojson'
+DEFAULT_LINZ_WATER_FGB = 'linz_water.fgb'                         # used when the LINZ sidecar names no file
+LINZ_WATER_META = DATA_DIR + '/linz_water_meta.geojson'          # present only when the LINZ waterways are published
 DEM_INDEX = os.path.join(HERE, 'dem_1m_index.json')            # bundled with the code
 LINZ_DEM_BASE = 'https://nz-elevation.s3-ap-southeast-2.amazonaws.com/new-zealand/new-zealand/dem_1m/2193/'
 COPERNICUS_BASE = 'https://copernicus-dem-30m.s3.amazonaws.com/'
@@ -257,10 +263,10 @@ def _empty(cols):
     return gpd.GeoDataFrame(columns=cols, geometry='geometry', crs='EPSG:4326')
 
 
-def osm_metadata():
-    """Build info written by build_osm_lines.py (a one-point GeoJSON, readable from any GDAL path), or {}."""
+def _sidecar(path):
+    """Read a build-info sidecar (a one-point GeoJSON, readable from any GDAL path), or {} if it is missing."""
     try:
-        row = pyogrio.read_dataframe(OSM_META).iloc[0]
+        row = pyogrio.read_dataframe(path).iloc[0]
         # pyogrio parses datetime-looking strings into pandas Timestamps; hand back plain Python values.
         meta = {'built_at': row['built_at'].isoformat(), 'source': str(row['source']), 'features': int(row['features'])}
         if 'file' in row and str(row['file']):
@@ -270,13 +276,41 @@ def osm_metadata():
         return {}
 
 
+def _data_file(name):
+    if name.startswith('/') or '..' in name.split('/'):
+        raise ValueError('data file name in a sidecar is not a relative path')
+    return f'{DATA_DIR}/{name}'
+
+
+def osm_metadata():
+    """Build info written by build_osm_lines.py, or {}."""
+    return _sidecar(OSM_META)
+
+
 def osm_fgb_path(meta=None):
     """Path of the current OSM snapshot. The sidecar names it, so the scheduled refresh can publish a new snapshot
     under a new key and switch to it with one small write; readers never see a half-written file."""
-    name = (meta if meta is not None else osm_metadata()).get('file') or DEFAULT_OSM_FGB
-    if name.startswith('/') or '..' in name.split('/'):
-        raise ValueError('OSM snapshot name in the sidecar is not a relative path')
-    return f'{DATA_DIR}/{name}'
+    return _data_file((meta if meta is not None else osm_metadata()).get('file') or DEFAULT_OSM_FGB)
+
+
+def linz_water_metadata():
+    """Build info written by build_linz_water.py, or {} when the LINZ waterways are not published. The sidecar is
+    what switches the data on: delete it to go back to OSM waterways alone."""
+    return _sidecar(LINZ_WATER_META)
+
+
+def linz_water_features(bbox, meta=None):
+    """LINZ streams (type 'stream') and river polygons (type 'river') inside bbox as a GeoDataFrame with the OSM
+    waterway columns (geometry, type, name, width), or None when the LINZ waterways are not published.
+    Raises when they are published but cannot be read; the caller decides what to do about it."""
+    meta = meta if meta is not None else linz_water_metadata()
+    if not meta:
+        return None
+    gdf = gpd.read_file(_data_file(meta.get('file') or DEFAULT_LINZ_WATER_FGB), bbox=tuple(bbox), engine='pyogrio')
+    out = gdf[['geometry', 'type']].copy().set_crs('EPSG:4326', allow_override=True)
+    out['name'] = ''
+    out['width'] = ''
+    return out[['geometry', 'type', 'name', 'width']]
 
 
 def download_osm_features(bbox):
@@ -298,6 +332,7 @@ def download_osm_features(bbox):
                 sub['width'] = ''
             if len(sub):
                 result[cat] = sub
+    _add_linz_waterways(result, bbox)
     built = meta.get('built_at')
     age_days = None
     if built:
@@ -311,6 +346,30 @@ def download_osm_features(bbox):
     print(f"  OSM: {len(result['trails'])} trails, {len(result['roads'])} roads, "
           f"{len(result['waterways'])} waterways, {len(result['powerlines'])} power lines")
     return result
+
+
+def _add_linz_waterways(result, bbox):
+    """Add the LINZ streams and river polygons to result['waterways'] when they are published.
+
+    Both sources are kept: OSM adds canals and typed rivers (burned harder than streams), LINZ adds the many streams OSM
+    has not mapped. The cost surface takes the maximum friction of whatever covers a cell, so a stream in both sources
+    costs no more than in one. If the LINZ file cannot be read the request carries on with OSM alone and says so.
+    """
+    try:
+        linz = linz_water_features(bbox)
+    except Exception as exc:
+        print(f"  LINZ waterways unreadable ({type(exc).__name__}); using OSM waterways only")
+        result['_warnings'].append({
+            'severity': 'warning', 'source': 'linz-water',
+            'message': 'LINZ stream data could not be read, so streams come from OpenStreetMap alone. Small streams '
+                       'may be missing and travel may look faster than it is.'})
+        return
+    if linz is None or len(linz) == 0:
+        return
+    osm_water = result['waterways']
+    merged = linz if len(osm_water) == 0 else pd.concat([osm_water, linz], ignore_index=True)
+    result['waterways'] = gpd.GeoDataFrame(merged, geometry='geometry', crs='EPSG:4326')
+    print(f"  LINZ: {len(linz)} stream and river features added")
 
 
 def download_nhd_features(bbox):
