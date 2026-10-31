@@ -84,45 +84,61 @@ consistent (median 13.7 degrees at the seam, between the 12.6 and 16.3 degree in
 
 ## Measurements
 
-**On real AWS Lambda** (Test environment, 2 GB, through the public ALB, warm function, October 2026; unvalidated test
-sites; data read from S3):
+**On real AWS Lambda** (Test environment in us-west-2, 2 GB, through the public ALB, October 2026; unvalidated test sites;
+data read from S3). Warm unless stated:
 
-| Request | Time | Where it goes |
+| Request | Time | Peak memory |
 |---|---|---|
-| Bush, 8 km radius | 6 s | elevation 2 s, OSM 1 s, cost surface 2 s, Dijkstra 0.4 s |
-| Bush, 12 km | 6 s | |
-| Bush, 16 km (32 m cells) | 15 s | elevation 6 s, cost surface 7 s |
-| Bush, 20 km (40 m cells) | 22 s | |
-| Bush, 30 km (the maximum, 60 m cells) | 37 s | elevation 15 s, cost surface 17 s, OSM 4 s, Dijkstra 0.9 s |
-| Southland / Wellington, 30 km | 25 s / 31 s | |
-| Peak memory (30 km) | 1,011 MB of 2,048 MB | |
+| Bush, 8 km radius | 2.3 s | 0.6 GB |
+| Bush, 16 km | 7 s | |
+| Bush, 30 km (the maximum, 60 m cells) | 14 s | 1.1 GB |
+| Southland, 30 km | 13 s | |
+| Wellington, 30 km | 19 s | 1.3 GB |
+| Auckland, 10 km | 26 s | |
+| **Auckland, 30 km** | **50 s** | 1.6 GB |
+| Cold first request, bush 8 km | 12 s | |
+| Cold, bush 30 km | 19 s | |
+| **Cold, Auckland 30 km** | **63 s** | |
 
-- **Cold start:** a Lambda start after idle adds a first-invoke cost. The first call after deploying a new image took 46
-  to 60 s (the image is fetched lazily; init is capped at 10 s and Lambda retries it inside the first invoke). Later
-  cold starts add roughly 15 to 20 s on top of the analysis. The ALB drops a request at 60 s, so a 30 km request that
-  hits a cold function can fail. Provisioned concurrency would remove this if it matters.
+- **Backcountry is comfortable.** Every backcountry location surveyed has under 6,000 trail and road segments within 20 km,
+  and a cold 30 km request takes 19 s.
+- **Dense cities are the slow path.** The cost surface scales with the number of trail and road segments: about 5 s at
+  12,000 segments, 11 s at 50,000 (Wellington), 17 s at 114,000 (central Auckland, 10 km) and 38 to 40 s at about 250,000
+  (central Auckland, 30 km). `rasterize` converts every polygon to a Python dictionary first, which dominates. A cold
+  central-Auckland request at 30 km exceeds the ALB's 60 s and would fail for a client. Central Christchurch is next
+  worst. Not optimised, because search and rescue starts are overwhelmingly outside city cores.
+- **Cold starts** now add little for backcountry requests (12 s for a small one). Provisioned concurrency is not needed
+  for rare use. The very first request after deploying a new image has been slower (46 to 60 s earlier, before these
+  changes), because the image is fetched lazily.
+- **Test is in us-west-2 and the LINZ elevation bucket is in Sydney**, so the elevation stage includes a trans-Pacific round
+  trip on every request. A deployment in ap-southeast-2 should be faster on that stage; not measured.
 - **The monthly refresh** takes about 100 s on Lambda (3 GB, 2 GB `/tmp`) and builds 971,529 features.
-- **Before the Dijkstra change** the same stage took 22 s at 12 km and did not finish at 16 km or more (the function
-  timed out at 55 s): the upstream pure-Python Dijkstra is about 2.2 times slower on a Lambda vCPU than on a desktop.
 
-Local figures (Lambda image under the Runtime Interface Emulator, one CPU, data on local disk) are lower than the real
-ones above and should not be used for sizing. Over HTTP range requests, a FlatGeobuf bounding-box read fetched 1.8 MB in
-53 requests for an 8 km bush area, 2.7 MB for a 60 km mountain area, and 43.5 MB in 152 requests for a dense 40 km urban
-area (local emulation).
+Local figures (Lambda image under the Runtime Interface Emulator, data on local disk) are lower than the real ones and
+should not be used for sizing.
 
-### The cost-distance speed-up
+### The speed-ups
 
-`nz/fast_cost_distance.py` replaces the upstream Dijkstra for the HTTP path. It computes the same edge costs (Tobler's
-hiking function, cross-slope penalty, 3-D surface distance, mean friction) for all edges at once with numpy, builds the
-8-connected graph as a sparse matrix and runs scipy's compiled Dijkstra. It also stops at the longest time band
-(`limit`), cropping the grid to the proven reach (every edge costs at least 0.84 x the smallest friction per metre).
+All of these replace upstream functions with drop-ins in `nz/`, and each has a checker that compares against the upstream
+or previous behaviour. Run them from the repository root.
 
-`python nz/check_cost_distance_parity.py [N] [--real]` checks it against the upstream function: random grids with NaN
-and out-of-range elevations and sanitised friction values (identical, worst relative difference 0), and real sites
-through the real pipeline (cell-for-cell identical, byte-identical contours with and without the limit). The upstream
-function rounds the IPP to a cell using the pixel's corner coordinate, which is half a cell off and can reject an IPP in
-the last row or column; the pipeline pads its grid so this does not occur in use, and the fast version keeps the
-behaviour so the two stay comparable.
+| Module | What it changes | Checker |
+|---|---|---|
+| `fast_cost_distance.py` | Upstream's pure-Python Dijkstra (22 s at 12 km on Lambda, timeout at 16 km and more) becomes scipy's compiled one on a sparse graph, with a search `limit` at the longest time band cropped to the proven reach. | `check_cost_distance_parity.py [N] [--real]` |
+| `fast_cost_surface.py` | Upstream burns OSM streams one `rasterize` call each (about 6,400 for a 30 km bush request, 9 of 12 s). All streams go in two calls, which gives the same result because a cell takes the maximum of the covering values. Trails, roads and power lines are burned in batches of 5,000 combined with `np.maximum`, which bounds memory (one call over central Auckland's segments held 1.3 GB). | `check_cost_surface_parity.py [N] [--real]` |
+| `nz_sources.download_dem` | The nine LINZ sheets of a 30 km request, and the Copernicus tiles, are read in parallel and laid on the grid in the original order. The sheets overlap by thousands of cells where adjacent surveys disagree by metres, so the order must be kept. | `check_dem_parallel_parity.py` |
+
+What the checks showed. Random grids with NaN and out-of-range elevations and sanitised friction values, and real sites
+through the real pipeline, give identical arrays and byte-identical contours; the cost-surface checker runs every random
+input at four batch sizes (1, 3, 7 and 5,000) so the batching really executes. Each checker was also run against
+deliberately broken versions of the code (a formula constant, a swapped impedance, overwriting instead of combining
+batches, reversing the merge order) and failed, so they can catch regressions. The responses of six requests across NZ
+were byte-identical before and after all three changes.
+
+Two upstream quirks are kept so results stay comparable. The IPP is converted to a cell by rounding the pixel's corner
+coordinate, which is half a cell off and can reject an IPP in the last row or column of the grid (the pipeline pads the
+grid, so this cannot occur). Upstream's waterway loop aborts at the first stream with a missing geometry; the fast version
+skips it, and the data the service reads never has missing geometries.
 
 ### Bugs only the real runtime exposed
 
@@ -167,8 +183,8 @@ Test with `--user 1000:1000 --read-only` and only `/tmp` writable. A root-run te
 1. Deploy via [`utils-infra`](https://github.com/TAK-NZ/utils-infra) (branch `feat/sar-engine`, see its `docs/SAR_ENGINE.md`): upload
    `lcdb_2023_30m.tif` to the artifacts bucket, enable the feature, run the first OSM refresh. It reuses the existing
    artifacts bucket under a `sar-engine/` prefix and refreshes OSM monthly.
-2. Decide about cold starts (see Measurements) and whether the 30 km case needs more margin: its warm time is 25 to 37 s
-   against the function's 55 s timeout and the ALB's 60 s. Elevation reads and the cost-surface build now dominate;
-   neither has been optimised.
+2. Dense city cores (central Auckland, and to a lesser extent Christchurch) are slow at large radii because of the
+   trail and road burn-in (see Measurements). Either cap the radius when the start is in a dense area, warn the caller, or
+   replace `rasterize` for lines with a faster approach.
 3. The `/api/sar/*` relay in the TAK-NZ CloudTAK fork, and the plugin itself.
 4. TARR mode, once there is a defensible calibration.
