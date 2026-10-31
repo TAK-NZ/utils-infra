@@ -14,7 +14,9 @@ upstream changes merge without conflicts. The Flask app (`app/server.py`, `app/s
 
 | Path | Purpose |
 |---|---|
-| `nz/handler.py` | Lambda handler: routing, authentication, input validation, the travel-time analysis. |
+| `nz/handler.py` | Lambda handler: routing, authentication, input validation, the travel-time and TARR analyses. |
+| `nz/tarr.py`, `nz/tarr_profiles.py` | TARR logic (subject selection, multiplier configuration, plain circles, ring features; standard library only) and the Koester table generated from `app/static/app.js`. |
+| `nz/check_tarr.py`, `nz/check_tarr_handler.py` | Checks for the above: pure logic (also runs under plain `python3`), and the handler with the heavy stages stubbed (`--real` runs a bush site through the real data). |
 | `nz/nz_sources.py` | Replacements for the four US data functions in `app/pipeline/downloads.py` (elevation, land cover, OSM, hydrology), plus the start-point water check. |
 | `nz/lcdb_friction.toml`, `nz/lcdb_friction.py` | LCDB class to terrain impedance (reviewed table with a rationale per class), and the loader that registers it with the pipeline. `python nz/lcdb_friction.py` prints the table with the resulting friction. |
 | `nz/osm_tags.py` | OSM tag sets used by the builder and the runtime. |
@@ -41,6 +43,7 @@ docker run -p 9000:8080 -v /path/to/data:/data:ro -e SAR_DATA_DIR=/data -e SAR_A
 | `SAR_DATA_DIR` | Directory (or GDAL path such as `/vsis3/bucket/prefix`) holding `lcdb_2023_30m.tif`, `nz_osm_meta.geojson` and the OSM FlatGeobuf the sidecar names. Not baked into the image. |
 | `SAR_CONFIG_BUCKET`, `SAR_CONFIG_KEY` | S3 object holding the API keys (`{"apiKeys": {"name": {"key": "...", "enabled": true}}}`). Cached for five minutes. |
 | `SAR_API_KEY` | A single key for local use (16 characters or more). |
+| `SAR_TARR_MULTIPLIERS` | Optional JSON replacing the TARR multipliers (see TARR below). |
 
 With no valid key configured, every route except `/health` is denied. Direct (IAM-authorised) invokes do not use keys.
 
@@ -57,6 +60,10 @@ invoke are all understood.
   `{"ipp": {"lat": -40.87, "lng": 175.45}, "speed_kmh": 2.0, "intervals_hours": [1, 2, 4], "radius_km": 10}`
   (`radius_km` optional) and returns GeoJSON `contours`, `parameters`, `bbox`, `warnings`, `data` versions,
   `attribution`, a `disclaimer` and per-stage `timings_s`.
+- `POST /tarr` takes
+  `{"ipp": {"lat": -40.87, "lng": 175.45}, "profile": "Hiker", "ecoregion": "Dry", "terrain": "Mountainous"}`
+  (`ecoregion` and `terrain` optional) and returns `mode: "tarr"`, GeoJSON `contours`, `parameters`, `calibration`,
+  `bbox`, `warnings`, `data`, `attribution`, a `disclaimer` and `timings_s`. See TARR below.
 
 Limits: IPP inside mainland NZ and on land (a start in the sea or a lake returns 422), speed 0.1 to 10 km/h, 1 to 8
 intervals of 0.25 to 24 h, radius at most 30 km, body at most 8 KB. The pipeline prints the IPP, so its output is
@@ -84,6 +91,43 @@ message says to move the start point or shorten the bands. A request that fits i
 compares contours with the guard on and off). The cost model has four measurements behind it, so treat the threshold as
 a calibrated guess. `check_density_guard.py [N] [--real]` holds the measurements, checks the decision and every
 suggestion on random inputs, and with `--real` runs the handler end to end.
+
+### TARR (Terrain-Aware Range Rings)
+The 28 subject profiles and their Koester (2008) 25/50/75% distances (via Ferguson 2013, IGT4SAR) are in
+`nz/tarr_profiles.py`, generated from `app/static/app.js`; `check_tarr.py` re-parses that file and fails if they differ.
+`ecoregion` (Temperate, Dry, Urban) and `terrain` (Mountainous, Flat) pick a row as in the upstream UI: the exact
+row, else the ecoregion's row, else the profile's default row. A combination the profile does not list is a 400.
+
+The route uses the same NZ stages as `/travel-time` (LCDB, LINZ elevation, OSM; one shared function in the handler).
+Per request: the Koester distances are multiplied by the calibration multipliers; the analysis radius is the
+calibrated 75% distance + 2 km (as upstream), clipped to the 30 km limit with a `limits` warning; cost distance is
+searched up to the calibrated 75% distance; the upstream `extract_contour_polygons` cuts the three rings. The start-point
+water rejection and the dense-area estimate are the same as for travel time. A refusal has no suggestion fields, because
+the caller has no radius or band to change: the message says to move the start point or pick a profile with a shorter
+search distance.
+
+The response has six features, largest first: for each percent a plain Koester circle (72-vertex spherical circle,
+uncalibrated, no multiplier) and the terrain-adjusted ring above it. Rings are named by distance and source, for
+example `Koester 50%, terrain-adjusted` and `Koester 50%, plain circle`. `calibration` reports the region, where the
+multipliers came from (`built-in`, `environment`, `config-file`), whether the profile had its own multiplier, the
+multiplier per band, `calibrated_for_nz: false` and a note; `parameters` has the Koester row used, the calibrated
+distances and the radius. Every response carries a `calibration` warning and a disclaimer saying the percentages are
+not New Zealand containment probabilities. A terrain ring that produced no polygon is left out with an info warning;
+the plain circle is always present.
+
+**Multipliers.** The default is the Arizona set of `app/server.py` (`CALIBRATION_MULTIPLIERS`, `CALIBRATION_DEFAULT`):
+Hiker 1.15, Skier (Alpine) 2.15, Dementia 2.55, Mental Illness 4.05, Despondent 1.65, Hunter 0.80, Child (10-12) 1.55,
+every other profile 1.40, one value for all three bands. Replace them without a code change, first match wins:
+`SAR_TARR_MULTIPLIERS` (JSON, at most 4096 characters, for local runs), then the key `tarrMultipliers` in the
+config-bucket JSON file that holds the API keys (same permissions, same 5-minute cache), then the built-in set.
+```json
+{"label": "Coconino County, Arizona", "default": 1.40,
+ "profiles": {"Hiker": 1.15, "Dementia": {"p25": 2.50, "p50": 2.55, "p75": 2.50}}}
+```
+A value is a number or `{p25, p50, p75}`, each between 0.1 and 10; `default` is required; profile names must exist; a
+configured set replaces the built-in set completely. Anything invalid fails closed: every `/tarr` request answers 500 and
+the log gets `{"event":"tarr_calibration_invalid","error":"ConfigError"}`, with no fallback to the Arizona set.
+`/travel-time` is not affected.
 
 ## Data sources
 
@@ -183,11 +227,21 @@ Test with `--user 1000:1000 --read-only` and only `/tmp` writable. A root-run te
 
 ## Known gaps
 
-- **Not calibrated.** WiSAR's percentile multipliers (1.05 / 1.35 / 1.80) come from Coconino County, Arizona. Applied
-  to NZ test sites they gave ring areas from 0.28x to 2.3x the plain Koester circle depending on terrain. There is no
-  NZ incident data, so TARR (percentile) mode is **not implemented**; only Travel Time mode is. When TARR mode is
-  added: multipliers configurable with a default of 1.0, the plain Koester circle shown beside the terrain-aware ring,
-  and no 25/50/75% containment claim.
+- **Not calibrated, and TARR is now implemented anyway (decision changed).** The earlier decision was to leave TARR
+  out until there was NZ incident data, and if it was added, to default the multipliers to 1.0. WiSAR's multipliers come
+  from Coconino County, Arizona; applied to NZ test sites they gave ring areas from 0.28x to 2.3x the plain Koester
+  circle depending on terrain, and there is still no NZ incident data. The decision was changed at the owner's request:
+  start from the Arizona per-profile multipliers of `app/server.py` so NZ rings are comparable with the reference tool
+  (`sar.weleber.net`) that planners already know, instead of an invented 1.0 that would be no more NZ-valid. What keeps
+  this honest: every response says the multipliers are not calibrated for New Zealand (`calibration`, a `calibration`
+  warning, the disclaimer, the attribution); the multiplier used is reported; the percentages are explicitly not NZ
+  containment probabilities; the plain Koester circle is drawn beside each terrain ring so users see how far terrain
+  moved it; and the multipliers are configurable engine-side (see TARR), so an NZ set or 1.0 is a configuration change.
+  Observed with the Arizona Hiker multiplier (1.15) on a steep bush site in the Tararua Range, the terrain-adjusted
+  rings covered about 10% of the area of the plain circles (75%: 3 km2 against 32.6 km2), and on a Kaweka site about
+  15%: terrain, not the multiplier, shrinks them. The reference site now uses a per-band set (for example Hiker
+  1.00 / 1.10 / 1.40, default 1.05 / 1.35 / 1.80) applied in the browser, which is why the engine accepts per-band
+  values; the single `server.py` values were used as instructed.
 - **Travel time is not likelihood.** Contours show where a person could physically reach at the given flat-ground
   speed. They say nothing about where a person is likely to be.
 - **Friction table is expert judgement** (`nz/lcdb_friction.toml`), accepted for v1, not measured NZ travel speeds. It
@@ -211,4 +265,4 @@ Test with `--user 1000:1000 --read-only` and only `/tmp` writable. A root-run te
    a suggested smaller radius. Its threshold still needs calibrating on the deployed Lambda, and the slowness itself is
    unchanged: replacing `rasterize` for lines with a faster approach is the only way to remove it.
 3. The `/api/sar/*` relay in the TAK-NZ CloudTAK fork, and the plugin itself.
-4. TARR mode, once there is a defensible calibration.
+4. NZ calibration of the TARR multipliers (replace the Arizona default through `SAR_TARR_MULTIPLIERS` or `tarrMultipliers`, and set `calibrated_for_nz` only when real NZ data exist).
