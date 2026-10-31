@@ -112,10 +112,15 @@ disclaimer. Full details are in sar-engine's `NZ_PORT.md`.
 
 ## Operations
 
-- **Cost:** Lambda bills per run. A typical run is 10 to 40 s at 2 GB, roughly a tenth of a cent. Nothing runs when idle.
+- **Cost:** Lambda bills per run. A warm run takes 6 to 37 s at 2 GB (see below), which is roughly a tenth of a cent at
+  most, by my estimate from list prices. Nothing runs when idle.
+- **Speed:** measured on real Lambda in Test, warm: an 8 to 12 km radius takes about 6 s, 16 km about 15 s, 20 km about
+  22 s, and the 30 km maximum 25 to 37 s. Peak memory at 30 km was about 1 GB of the 2 GB allocated.
 - **Timeouts:** the ALB's idle timeout is 60 s, so the HTTP function's timeout is 55 s and the configuration refuses 60 or
-  more. A run that exceeds it fails and the caller sees a 5xx; the plugin should handle that. Measured worst case (30 km
-  radius, local data) was 38 s.
+  more. A run that exceeds it fails and the caller sees a 5xx; the plugin should handle that.
+- **Cold starts:** after idle, the first request pays a start-up cost of roughly 15 to 20 s on top of the analysis, and
+  the first request after deploying a new image took 46 to 60 s. A 30 km request that hits a cold function can therefore
+  exceed the ALB's 60 s. If that matters during an incident, add provisioned concurrency to the HTTP function (not done).
 - **Concurrency:** unrestricted by default. `sarEngine.reservedConcurrency` can cap parallel runs, but AWS keeps 100 units of the
   account limit unreserved, so the cap can be at most (account limit - 100) and deployment fails on accounts with a low
   limit (check yours with `aws lambda get-account-settings`).
@@ -137,16 +142,30 @@ disclaimer. Full details are in sar-engine's `NZ_PORT.md`.
 - **TAK-NZ CloudTAK fork:** a `/api/sar/*` relay (like the weather one) that holds the key and calls this endpoint, and
   the `cloudtak-plugin-sar` plugin itself. Neither exists yet.
 
-## Not verified until the first real deployment
+## What has and has not been verified
 
-This was tested with the Lambda runtime emulator and a local S3 stand-in, plus `cdk synth` and `cfn-lint`, never in AWS.
-The items that can only be confirmed by deploying:
+Verified in the Test environment (account 453572736517, us-west-2), October 2026:
 
-- Lambda pulling the image from the shared KMS-encrypted ECR repository. The repository's policy already allows
-  `lambda.amazonaws.com`, but no existing function here uses it.
-- Real S3 read latency for a request (the emulated test fetched 1.8 MB in 53 requests for a bush area, 43.5 MB in 152 for
-  dense urban), and a real cold start.
-- That the `kms:ViaService` condition covers every KMS call S3 makes on the function's behalf. If reads fail with
-  access-denied on KMS, this is the first thing to check.
-- The refresh function reaching `download.geofabrik.de` (the functions are not placed in a VPC, so they have normal
-  internet access).
+- Lambda pulls the image from the shared KMS-encrypted ECR repository (the repository policy is sufficient).
+- The `kms:ViaService` condition works: the HTTP function reads the land cover raster, the OSM snapshot and the API key
+  file, and the refresh function writes the snapshot, all through S3.
+- The public ALB path (`/sar/*`), authentication (missing or wrong key gives 401), validation, the sea-start rejection
+  and real analyses at radii up to the 30 km maximum.
+- The first OSM refresh: dry run and publish, 971,529 features in about 100 s, KMS-encrypted, pointer updated.
+- Request logs contain timings, sizes and status only; none of the coordinates used in testing appeared.
+
+**Not verified:**
+
+- The Demo environment (not deployed; its ECR holds only an older, broken image tag).
+- The monthly schedule actually firing, and the failure alarm and SNS delivery (the topic has no subscribers).
+- Production.
+- Behaviour under concurrent requests.
+- Reaching `download.geofabrik.de` worked from the refresh function (functions are not placed in a VPC), but a Geofabrik
+  outage or rate limit has not been exercised.
+
+## Lessons from the first deployment
+
+Two defects reached Test because all local tests ran as root, which Lambda does not: an image whose files were readable
+only by root (every request returned 502), and an OSM build that silently produced no features when run from Lambda's
+read-only working directory. Both are fixed in sar-engine and guarded (the image build fails if the code cannot be
+imported as an unprivileged user). Test engine changes with `--user 1000:1000 --read-only` and only `/tmp` writable.
