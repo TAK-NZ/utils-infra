@@ -21,6 +21,7 @@ import { DisplayCloudFront } from './constructs/display-cloudfront';
 import { ApiAuth } from './constructs/api-auth';
 import { SitRepLambda } from './constructs/sitrep-lambda';
 import { SarEngine } from './constructs/sar-engine';
+import { TerrainProxy } from './constructs/terrain-proxy';
 
 // Utility imports
 import { ContextEnvironmentConfig } from './stack-config';
@@ -276,6 +277,13 @@ export class UtilsInfraStack extends cdk.Stack {
       }
     }
 
+    // terrain-proxy runs as a Lambda function (see TERRAIN PROXY below), configured under "terrainProxy". Two copies
+    // would also fight over the same listener rule, DNS record and CloudFront distribution.
+    if (envConfig.containers['terrain-proxy']?.enabled) {
+      throw new Error('terrain-proxy now runs as a Lambda function: remove it from "containers" and configure it ' +
+        'under "terrainProxy" in cdk.json');
+    }
+
     // Deploy each enabled container
     Object.entries(envConfig.containers).forEach(([containerName, containerConfig]) => {
       if (!containerConfig.enabled) {
@@ -325,9 +333,6 @@ export class UtilsInfraStack extends cdk.Stack {
           const artifactsBucketName = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ARTIFACTS_BUCKET));
           environmentVariables.S3_BUCKET = cdk.Token.asString(artifactsBucketName);
         }
-      } else if (containerName === 'terrain-proxy') {
-        environmentVariables.CONFIG_BUCKET = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
-        environmentVariables.CONFIG_KEY = 'Utils-Terrain-Proxy-Config.json';
       } else if (containerName === 'display-proxy') {
         environmentVariables.CONFIG_BUCKET = cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn)));
         environmentVariables.CONFIG_KEY = 'Utils-Display-Proxy-Config.json';
@@ -411,45 +416,6 @@ export class UtilsInfraStack extends cdk.Stack {
             description: 'CloudFront distribution domain name',
             exportName: `${id}-CloudFrontDomain`,
           });
-        } else if (containerName === 'terrain-proxy') {
-          // Create CloudFront distribution for terrain proxy
-          const terrainCfCert = new acm.DnsValidatedCertificate(this, 'TerrainCloudFrontCertificate', {
-            domainName: `${containerConfig.hostname}.${hostedZone.zoneName}`,
-            hostedZone,
-            region: 'us-east-1',
-          });
-
-          const apiKeys = this.node.tryGetContext('apiKeys') || [];
-
-          const terrainCloudFront = new TerrainCloudFront(this, 'TerrainCloudFront', {
-            albDomainName: alb.dnsName,
-            certificate: terrainCfCert,
-            hostedZone,
-            hostname: containerConfig.hostname,
-            apiKeys,
-          });
-
-          new route53.ARecord(this, `${containerName}ARecord`, {
-            zone: hostedZone,
-            recordName: containerConfig.hostname,
-            target: route53.RecordTarget.fromAlias(
-              new targets.CloudFrontTarget(terrainCloudFront.distribution)
-            ),
-          });
-
-          new route53.AaaaRecord(this, `${containerName}AaaaRecord`, {
-            zone: hostedZone,
-            recordName: containerConfig.hostname,
-            target: route53.RecordTarget.fromAlias(
-              new targets.CloudFrontTarget(terrainCloudFront.distribution)
-            ),
-          });
-
-          new cdk.CfnOutput(this, 'TerrainCloudFrontDomain', {
-            value: terrainCloudFront.domainName,
-            description: 'Terrain CloudFront distribution domain name',
-            exportName: `${id}-TerrainCloudFrontDomain`,
-          });
         } else {
           // Create Route53 record for hostname (direct ALB)
           new route53.ARecord(this, `${containerName}ARecord`, {
@@ -478,6 +444,82 @@ export class UtilsInfraStack extends cdk.Stack {
         );
       }
     });
+
+    // =================
+    // TERRAIN PROXY (Lambda behind the ALB, with CloudFront in front) -- see docs/TERRAIN_PROXY.md
+    // =================
+    // The image comes from the terrain-proxy/ folder of this repository:
+    //   - usePreBuiltImages=true (CI, prod): the image is already in ECR, pushed by the build workflows and named by
+    //     imageTagsJson["terrain-proxy"].
+    //   - usePreBuiltImages=false (manual deploys): the image is built by this deploy.
+    // The construct IDs below (listener rule, certificate, CloudFront, DNS records, outputs) are the ones the ECS
+    // version used, so a stack that ran terrain-proxy on ECS keeps those resources and only the target changes.
+    if (envConfig.terrainProxy?.enabled) {
+      const terrainConfig = envConfig.terrainProxy;
+      const terrainEcrRepoArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ECR_REPO));
+      const terrainProxy = new TerrainProxy(this, 'TerrainProxy', {
+        environment,
+        config: terrainConfig,
+        ...(usePreBuiltImages
+          ? {
+              ecrRepositoryName: cdk.Token.asString(Fn.select(1, Fn.split('/', terrainEcrRepoArn))),
+              // The build workflows add the utils- prefix; "terrain-proxy" is the key they use in imageTagsJson.
+              imageTag: imageTagsMap['terrain-proxy'] ?? `utils-terrain-proxy-${terrainConfig.imageTag}`,
+            }
+          : { sourcePath: path.resolve(__dirname, '..', 'terrain-proxy') }),
+        configBucketName: cdk.Token.asString(Fn.select(5, Fn.split(':', configBucketArn))),
+        configKey: 'Utils-Terrain-Proxy-Config.json',
+        kmsKeyArn: cdk.Token.asString(kmsKeyArn),
+        removalPolicy: envConfig.general.removalPolicy === 'DESTROY' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
+      });
+
+      alb.addHostnameRule('terrain-proxy', terrainConfig.hostname, terrainProxy.targetGroup, terrainConfig.priority);
+
+      // CloudFront distribution (API key check, one-year tile cache); the certificate must be in us-east-1
+      const terrainCfCert = new acm.DnsValidatedCertificate(this, 'TerrainCloudFrontCertificate', {
+        domainName: `${terrainConfig.hostname}.${hostedZone.zoneName}`,
+        hostedZone,
+        region: 'us-east-1',
+      });
+
+      const terrainApiKeys = this.node.tryGetContext('apiKeys') || [];
+
+      const terrainCloudFront = new TerrainCloudFront(this, 'TerrainCloudFront', {
+        albDomainName: alb.dnsName,
+        certificate: terrainCfCert,
+        hostedZone,
+        hostname: terrainConfig.hostname,
+        apiKeys: terrainApiKeys,
+      });
+
+      new route53.ARecord(this, 'terrain-proxyARecord', {
+        zone: hostedZone,
+        recordName: terrainConfig.hostname,
+        target: route53.RecordTarget.fromAlias(
+          new targets.CloudFrontTarget(terrainCloudFront.distribution)
+        ),
+      });
+
+      new route53.AaaaRecord(this, 'terrain-proxyAaaaRecord', {
+        zone: hostedZone,
+        recordName: terrainConfig.hostname,
+        target: route53.RecordTarget.fromAlias(
+          new targets.CloudFrontTarget(terrainCloudFront.distribution)
+        ),
+      });
+
+      new cdk.CfnOutput(this, 'TerrainCloudFrontDomain', {
+        value: terrainCloudFront.domainName,
+        description: 'Terrain CloudFront distribution domain name',
+        exportName: `${id}-TerrainCloudFrontDomain`,
+      });
+
+      new cdk.CfnOutput(this, 'terrain-proxyUrl', {
+        value: `https://${terrainConfig.hostname}.${hostedZone.zoneName}`,
+        description: 'terrain-proxy service URL',
+        exportName: `${id}-terrain-proxyUrl`,
+      });
+    }
 
     // =================
     // DISPLAY CLOUDFRONT (Legacy Lambda+S3 approach — skipped when display-proxy ECS container is enabled)

@@ -14,8 +14,20 @@ const CONFIG_KEY = process.env.CONFIG_KEY || 'Utils-Terrain-Proxy-Config.json';
 
 let LINZ_API_KEY = process.env.LINZ_API_KEY || 'PLACEHOLDER_API_KEY';
 
-// Cache tiles in memory (elevation data is static)
-const tileCache = new NodeCache({ stdTTL: 0, maxKeys: 50000 });
+// Cache tiles in memory (elevation data is static). The defaults suit a long-running container. On Lambda, where
+// memory is fixed and each environment has its own cache, the stack sets a smaller key limit and an expiry.
+const TILE_CACHE_MAX_KEYS = parseInt(process.env.TILE_CACHE_MAX_KEYS, 10) || 50000;
+const TILE_CACHE_TTL_SECONDS = parseInt(process.env.TILE_CACHE_TTL_SECONDS, 10) || 0;
+const tileCache = new NodeCache({ stdTTL: TILE_CACHE_TTL_SECONDS, maxKeys: TILE_CACHE_MAX_KEYS });
+
+// NodeCache.set() throws once maxKeys is reached. A full cache must only mean "not cached", never a failed tile.
+function cacheTile(key, buffer) {
+  try {
+    tileCache.set(key, buffer);
+  } catch {
+    /* cache full: serve this tile uncached */
+  }
+}
 
 const TILE_SIZE = 256;
 const MAX_ZOOM = 14;
@@ -27,11 +39,12 @@ const manifestTemplate = fs.readFileSync(
   'utf8'
 );
 
-// Load config from S3 (LINZ API key)
+// Load config from S3 (LINZ API key). Resolves to false when the config could not be read, so that a caller which can
+// retry (the Lambda handler) does not keep serving tiles with the placeholder key.
 async function loadConfigFromS3() {
   if (!CONFIG_BUCKET) {
     console.warn('CONFIG_BUCKET not set, using LINZ_API_KEY from environment');
-    return;
+    return true;
   }
   try {
     const command = new GetObjectCommand({ Bucket: CONFIG_BUCKET, Key: CONFIG_KEY });
@@ -42,9 +55,20 @@ async function loadConfigFromS3() {
       LINZ_API_KEY = config.apikey;
       console.log('Loaded LINZ API key from S3 config');
     }
+    return true;
   } catch (error) {
     console.error('Failed to load config from S3:', error.message);
+    return false;
   }
+}
+
+// Loads everything the routes need before the first request: the LINZ API key and the geoid model. Rejects when the
+// config cannot be read; lambda.js then answers 503 and tries again on the next request.
+async function prepare() {
+  if (!(await loadConfigFromS3())) {
+    throw new Error('Could not load the terrain proxy config from S3');
+  }
+  loadGeoidModel();
 }
 
 // --- Coordinate conversion ---
@@ -94,6 +118,21 @@ function getMercatorTilesForBounds(bounds, mercZoom) {
 
 // --- LINZ tile fetching ---
 
+// A LINZ tile that could not be obtained for a reason other than "there is no data here": a bad or expired API key,
+// rate limiting, a LINZ outage, a timeout, or an unreadable tile. The route answers these with 503 and no-store, because
+// a tile built without the data would be wrong, and a cached wrong tile stays wrong for the cache's lifetime.
+class TileSourceError extends Error {}
+
+// HTTP statuses that mean LINZ has no elevation data for a tile (open ocean, outside coverage). Such a tile is
+// elevation 0 by design. Every other non-OK status is a failure. Comma separated; override with LINZ_NO_DATA_STATUSES.
+const LINZ_NO_DATA_STATUSES = new Set(
+  (process.env.LINZ_NO_DATA_STATUSES || '404')
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter(Number.isInteger)
+);
+
+// Resolves to the tile, or null when LINZ has no data for it. Rejects with TileSourceError when it could not be fetched.
 async function fetchLinzTile(z, x, y) {
   const cacheKey = `linz-${z}-${x}-${y}`;
   const cached = tileCache.get(cacheKey);
@@ -108,14 +147,22 @@ async function fetchLinzTile(z, x, y) {
       signal: controller.signal,
       headers: { 'User-Agent': 'terrain-proxy/1.0 (TAK-NZ)' },
     });
-    clearTimeout(timeoutId);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      if (LINZ_NO_DATA_STATUSES.has(res.status)) return null;
+      throw new TileSourceError(`LINZ tile ${z}/${x}/${y} returned HTTP ${res.status}`);
+    }
     const buffer = Buffer.from(await res.arrayBuffer());
-    tileCache.set(cacheKey, buffer);
+    cacheTile(cacheKey, buffer);
     return buffer;
-  } catch {
+  } catch (error) {
+    if (error instanceof TileSourceError) throw error;
+    // Not error.message alone for a timeout: it is just "This operation was aborted". The URL (which holds the API
+    // key) is never logged.
+    const reason = error.name === 'AbortError' ? 'timed out' : `failed (${error.message})`;
+    throw new TileSourceError(`LINZ tile ${z}/${x}/${y} ${reason}`);
+  } finally {
     clearTimeout(timeoutId);
-    return null;
   }
 }
 
@@ -206,7 +253,7 @@ async function generateTerrainTile(z, x, y) {
 
   if (!tileOverlapsNZ(z, x, y)) {
     const tile = await getSeaLevelTile();
-    tileCache.set(cacheKey, tile);
+    cacheTile(cacheKey, tile);
     return tile;
   }
 
@@ -215,13 +262,19 @@ async function generateTerrainTile(z, x, y) {
   const mercTiles = getMercatorTilesForBounds(bounds, mercZoom);
   if (mercTiles.length === 0) return getSeaLevelTile();
 
-  // Fetch all needed LINZ tiles in parallel
-  const fetched = await Promise.all(
+  // Fetch all needed LINZ tiles in parallel. Wait for all of them, so the ones that did arrive are cached and a retry
+  // only has to fetch the ones that failed. If any failed, the output tile cannot be built correctly: throw, so it is
+  // neither cached nor served. (A source tile with no data, null, is fine: that area is elevation 0.)
+  const results = await Promise.allSettled(
     mercTiles.map(async (t) => ({ ...t, data: await fetchLinzTile(t.z, t.x, t.y) }))
   );
+  const failure = results.find((r) => r.status === 'rejected');
+  if (failure) throw failure.reason;
+  const fetched = results.map((r) => r.value);
 
   // Decode source tiles into raw pixel arrays
   const srcMap = new Map();
+  const undecodable = [];
   for (const t of fetched) {
     if (!t.data) continue;
     try {
@@ -230,9 +283,18 @@ async function generateTerrainTile(z, x, y) {
         pixels: data, width: info.width, height: info.height, channels: info.channels,
         tileX: t.x, tileY: t.y,
       });
-    } catch { /* skip bad tiles */ }
+    } catch {
+      // Do not keep an unreadable tile in the cache, or every retry would fail on it. Check all of them first, so one
+      // retry is enough when several are unreadable.
+      tileCache.del(`linz-${t.z}-${t.x}-${t.y}`);
+      undecodable.push(`${t.z}/${t.x}/${t.y}`);
+    }
+  }
+  if (undecodable.length > 0) {
+    throw new TileSourceError(`LINZ tile(s) could not be decoded: ${undecodable.join(', ')}`);
   }
 
+  // Every source tile had no data (open ocean): the whole output tile is elevation 0
   if (srcMap.size === 0) return getSeaLevelTile();
 
   // Sample elevation for each output pixel
@@ -273,7 +335,7 @@ async function generateTerrainTile(z, x, y) {
     raw: { width: TILE_SIZE, height: TILE_SIZE, channels: 4 },
   }).png({ compressionLevel: 6 }).toBuffer();
 
-  tileCache.set(cacheKey, pngBuffer);
+  cacheTile(cacheKey, pngBuffer);
   return pngBuffer;
 }
 
@@ -340,14 +402,16 @@ app.get('/terrain/:z/:x/:y.png', async (req, res) => {
     });
     res.send(tile);
   } catch (error) {
+    // Never answer with a made-up (sea-level) tile: a client would take it for real elevation, and a cache would keep
+    // it. An error is not cached for long (CloudFront holds 5xx responses for seconds), and the client can retry.
     console.error(`Error generating terrain tile ${z}/${x}/${y}:`, error.message);
-    try {
-      const fallback = await getSeaLevelTile();
-      res.set({ 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300' });
-      res.send(fallback);
-    } catch {
-      res.status(500).json({ error: 'Failed to generate terrain tile' });
-    }
+    const sourceProblem = error instanceof TileSourceError;
+    res.status(sourceProblem ? 503 : 500).set({
+      'Cache-Control': 'no-store',
+      ...(sourceProblem ? { 'Retry-After': '5' } : {}),
+    }).json({
+      error: sourceProblem ? 'Elevation source temporarily unavailable' : 'Failed to generate terrain tile',
+    });
   }
 });
 
@@ -366,3 +430,5 @@ if (require.main === module) {
 }
 
 module.exports = app;
+// Used by lambda.js. (Not named "init": Express apps already have an init() method.)
+module.exports.prepare = prepare;

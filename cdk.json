@@ -74,16 +74,6 @@
             ]
           }
         },
-        "terrain-proxy": {
-          "enabled": true,
-          "hostname": "terrain",
-          "healthCheckPath": "/terrain/health",
-          "port": 3000,
-          "cpu": 512,
-          "memory": 1024,
-          "priority": 5,
-          "imageTag": "v1.0.1"
-        },
         "display-proxy": {
           "enabled": true,
           "hostname": "display",
@@ -105,6 +95,14 @@
       "sitrep": {
         "enabled": true,
         "modelId": "anthropic.claude-sonnet-5"
+      },
+      "terrainProxy": {
+        "enabled": true,
+        "hostname": "terrain",
+        "priority": 5,
+        "imageTag": "v2.0.0",
+        "memorySize": 1024,
+        "timeoutSeconds": 30
       },
       "sarEngine": {
         "enabled": true,
@@ -190,16 +188,6 @@
             ]
           }
         },
-        "terrain-proxy": {
-          "enabled": true,
-          "hostname": "terrain",
-          "healthCheckPath": "/terrain/health",
-          "port": 3000,
-          "cpu": 512,
-          "memory": 1024,
-          "priority": 5,
-          "imageTag": "v1.0.1"
-        },
         "display-proxy": {
           "enabled": true,
           "hostname": "display",
@@ -221,6 +209,14 @@
       "sitrep": {
         "enabled": true,
         "modelId": "anthropic.claude-sonnet-5"
+      },
+      "terrainProxy": {
+        "enabled": true,
+        "hostname": "terrain",
+        "priority": 5,
+        "imageTag": "v2.0.0",
+        "memorySize": 1024,
+        "timeoutSeconds": 30
       },
       "sarEngine": {
         "enabled": true,

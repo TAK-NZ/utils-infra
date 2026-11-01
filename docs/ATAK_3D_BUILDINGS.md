@@ -490,6 +490,12 @@ existing `update-linz-tiles.yml` workflow for the refresh.
 
 ## 6. Deliverable 3 — CDK and CI wiring
 
+> **Note:** `terrain-proxy` has since moved from an ECS container to an AWS Lambda function (see
+> `docs/TERRAIN_PROXY.md`), so the `terrain-proxy` references in this section describe the ECS pattern it
+> used to follow, not its current wiring. For an ECS container with its own hostname, CloudFront and API-key
+> auth, `tileserver-gl` is now the closest analogue (`lib/constructs/cloudfront.ts`). The `terrain-cloudfront.ts`
+> construct is still the template for the `?api=` CloudFront Function. Line numbers below predate that change.
+
 Follow `terrain-proxy` exactly; it is the closest analogue (own hostname + CloudFront + API-key auth).
 
 1. **`cdk.json`** — add to `context.<env>.containers` for both `dev-test` and `prod`:

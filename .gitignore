@@ -4,6 +4,7 @@
 !weather-proxy/server.js
 !camera-proxy/server.js
 !terrain-proxy/server.js
+!terrain-proxy/lambda.js
 !sar-engine/app/static/*.js
 !scripts/*.js
 *.d.ts
