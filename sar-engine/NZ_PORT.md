@@ -3,10 +3,12 @@
 This is TAK-NZ's fork of [WiSAR Terrain-Aware Range Rings](https://github.com/clptak/WiSAR-Terrain-Aware-Range-Rings)
 by Jamie F. Weleber (AGPL-3.0). It is the backend for the
 [`cloudtak-plugin-sar`](https://github.com/TAK-NZ/cloudtak-plugin-sar) CloudTAK plugin: terrain-aware travel-time
-contours from New Zealand data, packaged as a container-image AWS Lambda for deployment from
-[`utils-infra`](https://github.com/TAK-NZ/utils-infra).
+contours from New Zealand data, packaged as a container-image AWS Lambda. It lives in the `sar-engine/` folder of
+[`utils-infra`](https://github.com/TAK-NZ/utils-infra), which builds and deploys it (it was a separate repository,
+`TAK-NZ/sar-engine`, until it was vendored there with its history).
 
-Branch policy: `main` mirrors upstream (`git fetch upstream`). NZ work happens on `nz-port` and its successors.
+Upstream: the original project is the `upstream` remote of the old repository; merge it into this folder with
+`git subtree pull --prefix=sar-engine https://github.com/clptak/WiSAR-Terrain-Aware-Range-Rings.git main` (not tried yet).
 The upstream `app/pipeline/` package is deliberately **not modified**; everything NZ-specific lives in `nz/`, so
 upstream changes merge without conflicts. The Flask app (`app/server.py`, `app/static/`) is not used by the Lambda.
 
@@ -300,9 +302,9 @@ Test with `--user 1000:1000 --read-only` and only `/tmp` writable. A root-run te
 
 ## Next steps
 
-1. Deploy via [`utils-infra`](https://github.com/TAK-NZ/utils-infra) (branch `feat/sar-engine`, see its `docs/SAR_ENGINE.md`): upload
-   `lcdb_2023_30m.tif` to the artifacts bucket, enable the feature, run the first OSM refresh. It reuses the existing
-   artifacts bucket under a `sar-engine/` prefix and refreshes OSM monthly.
+1. Deployment is done from this repository (see `docs/SAR_ENGINE.md` one level up): upload `lcdb_2023_30m.tif` to the
+   artifacts bucket, enable the feature, run the first OSM refresh. It reuses the existing artifacts bucket under a
+   `sar-engine/` prefix and refreshes OSM monthly. Running on Test; Demo and production still to receive this version.
 2. Dense city cores (central Auckland, and to a lesser extent Christchurch) are slow at large radii because of the
    trail and road burn-in (see Measurements). The dense-area guard (see API) now refuses what cannot finish in time with
    a suggested smaller radius. Its threshold still needs calibrating on the deployed Lambda, and the slowness itself is
