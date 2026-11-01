@@ -85,7 +85,7 @@ The browser stays open permanently — CDP screencast pushes JPEG frames only wh
 the page content changes, so bandwidth is near-zero when the map is static and
 briefly higher when icons or data update.
 
-- **Hostname**: `display.{domain}` (e.g. `display.demo.tak.nz`)
+- **Hostname**: `display.{domain}` (e.g. `display.example.com`)
 - **Health Check**: `/health`
 - **Stream**: `GET /stream?key=<token>` — raw MJPEG stream (`<img src="...">` or AbleSign image URL)
 - **View**: `GET /view?key=<token>` — full-screen HTML wrapper (for browsers / AbleSign web page mode)
@@ -95,7 +95,7 @@ briefly higher when icons or data update.
 **S3 config format:**
 ```json
 {
-    "cloudtak_url":        "https://map.demo.tak.nz",
+    "cloudtak_url":        "https://map.example.com",
     "cloudtak_token":      "etl.<jwt>",
     "display_url_params":  "/",
     "viewport_width":      1920,
@@ -112,12 +112,12 @@ briefly higher when icons or data update.
 ```bash
 aws s3 cp display-proxy/Utils-Display-Proxy-Config.json \
     s3://<config-bucket>/Utils-Display-Proxy-Config.json \
-    --profile tak-nz-demo --region ap-southeast-2
+    --profile <aws-profile> --region <aws-region>
 ```
 
 **Use in AbleSign or Fire TV:**
 ```
-https://display.demo.tak.nz/view?key=<your-random-token>
+https://display.example.com/view?key=<your-random-token>
 ```
 
 

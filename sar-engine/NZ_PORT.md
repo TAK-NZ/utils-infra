@@ -193,7 +193,7 @@ consistent (median 13.7 degrees at the seam, between the 12.6 and 16.3 degree in
 
 ## Measurements
 
-**On real AWS Lambda** (Test environment in us-west-2, 2 GB, through the public ALB, October 2026; unvalidated test sites;
+**On real AWS Lambda** (a non-production deployment, 2 GB, through the public ALB, October 2026; unvalidated test sites;
 data read from S3). Warm unless stated:
 
 | Request | Time | Peak memory |
@@ -219,8 +219,9 @@ data read from S3). Warm unless stated:
 - **Cold starts** now add little for backcountry requests (12 s for a small one). Provisioned concurrency is not needed
   for rare use. The very first request after deploying a new image has been slower (46 to 60 s earlier, before these
   changes), because the image is fetched lazily.
-- **Test is in us-west-2 and the LINZ elevation bucket is in Sydney**, so the elevation stage includes a trans-Pacific round
-  trip on every request. A deployment in ap-southeast-2 should be faster on that stage; not measured.
+- **The LINZ elevation bucket is in Sydney (ap-southeast-2).** The measurements above came from a deployment in another
+  region, so their elevation stage includes a trans-ocean round trip on every request. A deployment in ap-southeast-2 should be
+  faster on that stage; not measured.
 - **The monthly refresh** takes about 100 s on Lambda (3 GB, 2 GB `/tmp`) and builds 971,529 features.
 
 Local figures (Lambda image under the Runtime Interface Emulator, data on local disk) are lower than the real ones and
@@ -304,7 +305,7 @@ Test with `--user 1000:1000 --read-only` and only `/tmp` writable. A root-run te
 
 1. Deployment is done from this repository (see `docs/SAR_ENGINE.md` one level up): upload `lcdb_2023_30m.tif` to the
    artifacts bucket, enable the feature, run the first OSM refresh. It reuses the existing artifacts bucket under a
-   `sar-engine/` prefix and refreshes OSM monthly. Running on Test; Demo and production still to receive this version.
+   `sar-engine/` prefix and refreshes OSM monthly. Each environment needs the image built from this folder and its own data files.
 2. Dense city cores (central Auckland, and to a lesser extent Christchurch) are slow at large radii because of the
    trail and road burn-in (see Measurements). The dense-area guard (see API) now refuses what cannot finish in time with
    a suggested smaller radius. Its threshold still needs calibrating on the deployed Lambda, and the slowness itself is
