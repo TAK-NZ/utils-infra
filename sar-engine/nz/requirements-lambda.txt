@@ -1,0 +1,10 @@
+# Runtime dependencies of the Lambda image. Versions match app/requirements.txt (the set WiSAR is known to run on).
+# Left out on purpose: Flask, gunicorn (web server), fiona, pillow (only server.py uses them), pyarrow (only the
+# upstream OSM cache builder uses it). The GDAL libraries ship inside the rasterio and pyogrio wheels.
+rasterio==1.5.0
+geopandas==1.1.3
+shapely==2.1.2
+pyogrio==0.12.1
+numpy==2.4.3
+scipy==1.17.1
+requests==2.32.5

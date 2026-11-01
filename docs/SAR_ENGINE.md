@@ -6,9 +6,10 @@ Terrain-aware search-and-rescue planning for New Zealand with two modes. **Trave
 Koester 25%, 50% and 75% distances, each adjusted for terrain, with a plain circle of the same distance beside it. It is the backend for the
 [`cloudtak-plugin-sar`](https://github.com/TAK-NZ/cloudtak-plugin-sar) CloudTAK plugin.
 
-- **Source, data pipeline and method:** [TAK-NZ/sar-engine](https://github.com/TAK-NZ/sar-engine) (a fork of WiSAR
-  Terrain-Aware Range Rings, AGPL-3.0). Read its `NZ_PORT.md` for the data sources, measurements and known gaps.
-- **This repository:** deploys it as two AWS Lambda functions from one container image, behind the existing ALB.
+- **Source, data pipeline and method:** the [`sar-engine/`](../sar-engine) folder of this repository (a fork of WiSAR
+  Terrain-Aware Range Rings, AGPL-3.0, vendored with its history; see "Where the engine code comes from"). Read its
+  `NZ_PORT.md` for the data sources, measurements and known gaps.
+- **This repository:** builds it into one container image and deploys it as two AWS Lambda functions behind the existing ALB.
 
 **Planning aid only.** Travel-time contours show reach, not likelihood, and the terrain model is not validated against
 New Zealand search and rescue data. TARR rings are offered as **uncalibrated for New Zealand**: the distances are
@@ -55,7 +56,7 @@ Keys shorter than 16 characters are ignored. To rotate, add the new key, switch 
 
 ### 2. Upload the land cover raster
 
-Build `lcdb_2023_30m.tif` once with `nz/build_lcdb_raster.py` in sar-engine (needs the LCDB v6.0 shapefile from
+Build `lcdb_2023_30m.tif` once with `sar-engine/nz/build_lcdb_raster.py` (needs the LCDB v6.0 shapefile from
 [LRIS](https://lris.scinfo.org.nz/), CC BY 4.0), then:
 
 ```
@@ -68,21 +69,24 @@ The bucket name is the `AppImagesBucket` export of the BaseInfra stack. After de
 ### 3. Deploy with the feature on
 
 Set `sarEngine.enabled` to `true` for the environment in `cdk.json` and merge. The build workflow
-(`demo-build.yml` / `production-build.yml`) then clones `sarEngine.engineRepo` at the pinned `sarEngine.engineRef`,
-builds `Dockerfile.lambda`, pushes `utils-sar-engine-<imageTag>-<first 7 of the ref>` to the shared ECR repository, and
-passes the tag to the deploy step as `imageTagsJson["sar-engine"]`.
+(`demo-build.yml` / `production-build.yml`) then builds `sar-engine/Dockerfile.lambda`, pushes
+`utils-sar-engine-<imageTag>-<hash>` to the shared ECR repository, and passes the tag to the deploy step as
+`imageTagsJson["sar-engine"]`. The hash covers only the files the image copies (`Dockerfile.lambda`, `.dockerignore`,
+`nz/` and `app/pipeline/`), so any change to the engine code gives a new tag and a change to its docs does not. Bump
+`sarEngine.imageTag` when you want the label to say something. `demo-build.yml` starts on a push to `main` that touches
+`sar-engine/**`.
 
-A manual deploy (no workflow) builds the image itself, like the other containers, from a local sar-engine checkout:
+A manual deploy (no workflow) builds the image itself from the same folder, like the other containers:
 ```
-BUILDX_NO_DEFAULT_ATTESTATIONS=1 npm run cdk deploy -- --context envType=dev-test ... \
-  --context sarEngineSourcePath=/path/to/sar-engine
+BUILDX_NO_DEFAULT_ATTESTATIONS=1 npm run cdk deploy -- --context envType=dev-test ...
 ```
 This needs `usePreBuiltImages` to be `false` (the `dev-test` default in `cdk.json`) and Docker running. The deploy builds
-`Dockerfile.lambda` from whatever is checked out there, so check out the commit you intend to ship first. The checkout
+`sar-engine/Dockerfile.lambda` from whatever is in the working tree, so commit what you intend to ship first. The folder
 is hashed without `.git`, `data`, `results`, `docs` and virtualenvs, so the image only changes when the engine code does.
-`BUILDX_NO_DEFAULT_ATTESTATIONS=1` is needed with Docker 29 or later, which otherwise adds provenance attestations that
-Lambda rejects ("image manifest ... is not supported"). Without `sarEngineSourcePath` the deploy points the functions at
-the ECR tag above and prints a warning; if that image is not in ECR the Lambda update fails and CloudFormation rolls back.
+`--context sarEngineSourcePath=<dir>` builds from another checkout instead. `BUILDX_NO_DEFAULT_ATTESTATIONS=1` is needed
+with Docker 29 or later, which otherwise adds provenance attestations that Lambda rejects ("image manifest ... is not
+supported"). With `usePreBuiltImages=true` and no `imageTagsJson["sar-engine"]` the deploy prints a warning and points the
+functions at `utils-sar-engine-<imageTag>`, which CI does not push; the deploy workflows always pass the real tag.
 `sarEngineSourcePath` together with `usePreBuiltImages=true` (CI, prod) is refused.
 
 ### 4. Run the first OSM refresh by hand
@@ -118,6 +122,36 @@ curl -X POST https://utils.<domain>/sar/tarr -H 'x-api-key: <key>' -H 'content-t
 The TARR answer has `"mode": "tarr"`, six features in `contours` and a `calibration` object. A 404 from `/sar/tarr` means
 the deployed image predates the route (see "Upgrading the engine").
 
+## Optional: LINZ stream data
+
+OSM maps far fewer streams than LINZ in the backcountry (Westland: 539 OSM waterways in a 30 km request against 11,002 with
+LINZ added). The engine can add the LINZ streams and river areas to its OSM waterways. It is **off until you publish two
+files**, needs **no CDK change** (the HTTP function already reads everything under `sar-engine/`), and the monthly OSM
+refresh never touches it. It needs an engine image that contains the feature (any build of `sar-engine/` since the LINZ
+streams were added); an older image ignores the files.
+
+The source is the LINZ vector tile file this repository already keeps in the same bucket
+(`linz-vector-tiles.mbtiles`, refreshed monthly by `update-linz-tiles.yml`). Build once from the `sar-engine/` folder, with
+the engine's Python environment (about a minute, 1 GB of memory):
+
+```
+aws s3 cp s3://<artifacts-bucket>/linz-vector-tiles.mbtiles .
+python sar-engine/nz/build_linz_water.py linz-vector-tiles.mbtiles          # writes data/linz_water.fgb and data/linz_water_meta.geojson
+aws s3 cp data/linz_water.fgb           s3://<artifacts-bucket>/sar-engine/linz_water.fgb
+aws s3 cp data/linz_water_meta.geojson  s3://<artifacts-bucket>/sar-engine/linz_water_meta.geojson
+```
+
+Upload the `.fgb` first and the sidecar last: the sidecar is the switch. To turn it off, delete
+`sar-engine/linz_water_meta.geojson`. Stream data changes slowly, so there is no schedule; rebuild by hand when you want newer
+tiles. When it is in use, responses carry `data.linz_waterways_built_at` and a LINZ attribution line (CC BY 4.0). If the file
+cannot be read, a request still succeeds from OSM alone and carries a `linz-water` warning.
+
+Measured effect: ring and contour areas moved by 0.5 % or less at six test sites, cost-surface time rose 0.02 to 1.3 s and
+memory 4 to 65 MB. The Test and Demo copies of the tile file hold the same data (same tile counts at every zoom). The files
+were uploaded to both the Test and the Demo artifacts bucket on 2026-10-31 (each built from that environment's copy of the
+tiles). Test's functions run code that reads them; Demo's do once the image built from this folder is deployed. See
+`sar-engine/NZ_PORT.md` ("LINZ waterways").
+
 ## API
 
 `POST /sar/travel-time` with header `x-api-key`:
@@ -129,7 +163,7 @@ the deployed image predates the route (see "Upgrading the engine").
 `radius_km` is optional. Limits: IPP on land in mainland NZ (a start in the sea or a lake returns 422), speed 0.1 to 10
 km/h, 1 to 8 intervals of 0.25 to 24 h, radius at most 30 km. The response holds GeoJSON `contours`, `warnings`
 (for example when elevation was filled from a coarser source), the data versions, the required attributions and a
-disclaimer. Full details are in sar-engine's `NZ_PORT.md`.
+disclaimer. Full details are in `sar-engine/NZ_PORT.md`.
 
 A request that cannot finish in time is refused straight away with HTTP 422 and
 `{"code": "area_too_dense", "message": "...", "suggested_radius_km": 17}`. When the longest time band is what holds the
@@ -158,7 +192,7 @@ multiplied distances (`calibrated_km`) and the radius. `calibration` reports wha
 `calibrated_for_nz` is always `false`. Every response also carries a `calibration` warning and a `disclaimer` stating that the
 percentages are not New Zealand containment probabilities. A start point in water gives the same 422 as travel time. A dense
 area gives 422 `area_too_dense` with a message but no suggestion fields (there is no radius or band to change): move the
-start point or pick a profile with a shorter search distance. The contract is in sar-engine's `NZ_PORT.md` (section TARR) and
+start point or pick a profile with a shorter search distance. The contract is in `sar-engine/NZ_PORT.md` (section TARR) and
 in the plugin's TARR contract.
 
 ### TARR multiplier configuration
@@ -199,7 +233,7 @@ silently. Travel time is not affected. No CDK change is needed for any of this.
   Peak memory was 0.6 to 1.6 GB of the 2 GB allocated.
 - **Dense city cores are slower, and refused when they cannot finish.** The trail and road burn-in scales with the number
   of segments (about 237,000 in central Auckland at 30 km): central Auckland takes 23 s at 10 km, 43 s at 20 km, and would
-  take 48 to 63 s at 30 km. The engine's dense-area guard (sar-engine `nz/density_guard.py`) counts the segments after
+  take 48 to 63 s at 30 km. The engine's dense-area guard (`sar-engine/nz/density_guard.py`) counts the segments after
   the OSM read and, if the estimated total exceeds the time budget, answers 422 `area_too_dense` in about 10 to 12 s with
   the largest radius (or longest time band) that fits. On Test, Auckland at 30 km is refused with 17 km, and 17 km then
   runs in 38 to 40 s. Christchurch at 30 km (30 s), Wellington (19 s) and backcountry (10 s) are not affected. The budget
@@ -223,20 +257,29 @@ silently. Travel time is not affected. No CDK change is needed for any of this.
 - **Versioned buckets (prod):** each refresh overwrites the small pointer and replaces one 350 MB snapshot. With
   versioning on, old versions stay. That is well under $1 a year, but it is unbounded unless a lifecycle rule for
   noncurrent versions under `sar-engine/` is added to the bucket in base-infra.
-- **Upgrading the engine by hand (Test):** check out the wanted commit in your sar-engine clone and deploy with
-  `--context sarEngineSourcePath=<clone>` (see step 3). Nothing needs pushing or pinning, and `engineRef` is not used.
-- **Upgrading the engine through the workflows:** change `sarEngine.engineRef` (and `imageTag`) in `cdk.json`. The new ref gives a new image
-  tag, so CI builds it instead of reusing the old one. To ship TARR, in this order:
-  1. Merge the sar-engine branch `feat/nz-tarr` and push it, so the commit exists on GitHub (the build clones the pinned ref).
-  2. Set `sarEngine.engineRef` to the merged commit and bump `imageTag` in both environments of `cdk.json`, and merge that.
-  3. Let `demo-build.yml` / `production-build.yml` build and push the image, then deploy. The CDK stack itself is unchanged
-     by TARR; only the image tag differs.
-  4. Check with the `/sar/tarr` request from step 6.
-  5. Then roll out the CloudTAK `/api/sar/tarr` relay and the plugin. They need the new engine first: an older engine
-     answers 404 on `/tarr`, which the relay reports as "SAR service unavailable".
-  `engineRef` stays at its current pin until step 1 is done; a local, unpushed commit would break the image build.
+- **Upgrading the engine by hand (Test):** change the code in `sar-engine/`, commit it, and deploy with
+  `usePreBuiltImages=false` (step 3). Nothing needs pushing or pinning.
+- **Upgrading the engine through the workflows:** merge a change under `sar-engine/`. `demo-build.yml` builds a new image
+  whenever the hash of the files the image copies changes (bump `sarEngine.imageTag` as well, to keep the label meaningful),
+  then `demo-deploy.yml` deploys it. Production builds on a `v*` tag. An engine change reaches production with the next
+  release, because the engine is part of this repository. To ship a new engine version, in this order:
+  1. Merge the change, and let `demo-build.yml` / `demo-deploy.yml` build, push and deploy the image.
+  2. Check with the `/sar/tarr` and `/sar/travel-time` requests from step 6.
+  3. Then roll out the CloudTAK relay and the plugin. They need the new engine first: an older engine answers 404 on
+     `/tarr`, which the relay reports as "SAR service unavailable".
   Optionally add `tarrMultipliers` to the keys file in the config bucket at any time.
 - **Turning it off:** set `enabled` to `false`. The functions, rule, alarm and topic are removed; the data in S3 stays.
+
+## Where the engine code comes from
+
+`sar-engine/` is the TAK-NZ fork of [WiSAR Terrain-Aware Range Rings](https://github.com/clptak/WiSAR-Terrain-Aware-Range-Rings)
+(AGPL-3.0, like this repository). It was vendored from `TAK-NZ/sar-engine` (commit `925f562`, branch `feat/linz-waterways`)
+with `git subtree add`, without squashing, so its 75 commits and authors are kept: `git log --graph -- sar-engine` and
+`git blame sar-engine/nz/tarr.py` still work. Before that the engine lived in its own repository and this repository built it
+from a pinned commit (`sarEngine.engineRepo` / `engineRef`); those settings are gone. The separate repository is no longer
+where changes are made. The upstream `app/pipeline/` package is deliberately not modified, so upstream changes can still be
+merged with `git subtree pull --prefix=sar-engine <upstream-url> main` (not tried here). The engine's own deploy workflow
+(it rsynced the Flask app to the original WiSAR server) was removed: it does not apply to the Lambda deployment.
 
 ## Changes needed outside this repository
 
@@ -261,10 +304,12 @@ Verified in the Test environment (account 453572736517, us-west-2), October 2026
 
 **Not verified:**
 
-- The Demo environment (not deployed; its ECR holds only an older, broken image tag).
+- The Demo environment with the current engine. Demo was last deployed on 2026-10-31 (21:12 UTC) with the CI image built from
+  the old pin (`utils-sar-engine-v0.1.0-e486f52`), which predates TARR and the LINZ streams, so `/sar/tarr` there is expected
+  to answer 404 until the image built from `sar-engine/` is deployed. The LINZ data files are already in the Demo bucket.
 - The monthly schedule actually firing, and the failure alarm and SNS delivery (the topic has no subscribers).
 - Production.
-- TARR (`/sar/tarr`) on a deployed environment. It was checked locally against the engine's own check scripts only.
+- TARR (`/sar/tarr`) on Demo or production. On Test it answered `ok` with six features when invoked directly on 2026-10-31.
 - Behaviour under concurrent requests.
 - Reaching `download.geofabrik.de` worked from the refresh function (functions are not placed in a VPC), but a Geofabrik
   outage or rate limit has not been exercised.
@@ -273,5 +318,5 @@ Verified in the Test environment (account 453572736517, us-west-2), October 2026
 
 Two defects reached Test because all local tests ran as root, which Lambda does not: an image whose files were readable
 only by root (every request returned 502), and an OSM build that silently produced no features when run from Lambda's
-read-only working directory. Both are fixed in sar-engine and guarded (the image build fails if the code cannot be
+read-only working directory. Both are fixed in `sar-engine/` and guarded (the image build fails if the code cannot be
 imported as an unprivileged user). Test engine changes with `--user 1000:1000 --read-only` and only `/tmp` writable.

@@ -123,32 +123,30 @@ jobs:
             
           done <<< "${{ steps.containers.outputs.enabled-containers }}"
           
-          # SAR engine: an AWS Lambda container image built from a pinned commit of the engine repository (not from
-          # this repository), only when it is enabled for this environment. The tag includes the first 7 characters of
-          # the pinned ref, so changing the ref always produces a new tag instead of reusing a stale image.
+          # SAR engine: an AWS Lambda container image built from the sar-engine/ folder of this repository, only when it
+          # is enabled for this environment. The tag ends in a hash of the files Dockerfile.lambda copies into the image
+          # (not of the whole folder, so engine docs and check scripts do not trigger a rebuild), so any change to the
+          # engine code gives a new tag instead of reusing a stale image.
           SAR_ENABLED=$(jq -r '.context["prod"].sarEngine.enabled // false' cdk.json)
           if [[ "$SAR_ENABLED" == "true" ]]; then
-            SAR_REPO=$(jq -r '.context["prod"].sarEngine.engineRepo' cdk.json)
-            SAR_REF=$(jq -r '.context["prod"].sarEngine.engineRef' cdk.json)
             SAR_VERSION=$(jq -r '.context["prod"].sarEngine.imageTag' cdk.json)
-            if [[ ! "$SAR_REPO" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]] || [[ ! "$SAR_REF" =~ ^([0-9a-f]{40}|v[0-9][A-Za-z0-9._-]*)$ ]]; then
-              echo "ERROR: sarEngine.engineRepo / engineRef in cdk.json are not a valid repository and commit SHA or version tag"
+            SAR_HASH=$(git ls-tree -r HEAD -- sar-engine/Dockerfile.lambda sar-engine/.dockerignore sar-engine/nz sar-engine/app/pipeline | sha1sum | cut -c1-7)
+            if [[ ! "$SAR_VERSION" =~ ^v[0-9][A-Za-z0-9._-]*$ ]] || [[ ! "$SAR_HASH" =~ ^[0-9a-f]{7}$ ]]; then
+              echo "ERROR: sarEngine.imageTag in cdk.json is not a version label, or the engine files could not be hashed"
               exit 1
             fi
             if [[ "${{ github.event.inputs.force_rebuild }}" == "true" ]]; then
               SAR_TAG="utils-sar-engine-$(date +%Y%m%d-%H%M%S)"
             else
-              SAR_TAG="utils-sar-engine-${SAR_VERSION}-${SAR_REF:0:7}"
+              SAR_TAG="utils-sar-engine-${SAR_VERSION}-${SAR_HASH}"
             fi
             if aws ecr describe-images --repository-name $ECR_REPO_NAME --image-ids imageTag=$SAR_TAG >/dev/null 2>&1; then
               echo "✅ sar-engine image already exists, skipping build"
             else
-              echo "🔨 Building sar-engine image from $SAR_REPO@$SAR_REF"
-              git clone --quiet "https://github.com/${SAR_REPO}.git" "$RUNNER_TEMP/sar-engine"
-              git -C "$RUNNER_TEMP/sar-engine" checkout --quiet --detach "$SAR_REF"
+              echo "🔨 Building sar-engine image ($SAR_TAG)"
               # Lambda does not accept images with attestation manifests, hence the two --provenance/--sbom flags.
               docker build --platform linux/amd64 --provenance=false --sbom=false \
-                -f "$RUNNER_TEMP/sar-engine/Dockerfile.lambda" -t $ECR_REPO_URI:$SAR_TAG "$RUNNER_TEMP/sar-engine"
+                -f sar-engine/Dockerfile.lambda -t $ECR_REPO_URI:$SAR_TAG ./sar-engine
               docker push $ECR_REPO_URI:$SAR_TAG
               echo "✅ sar-engine image pushed"
             fi

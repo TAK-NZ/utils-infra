@@ -1,0 +1,8 @@
+# CalTopo credentials for docker compose. See .env.example.
+.env
+
+# NZ port (nz/): downloaded source data, spike output and local venv
+/data
+/results
+/venv
+__pycache__/

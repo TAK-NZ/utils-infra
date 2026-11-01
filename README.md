@@ -74,7 +74,7 @@ Terrain-aware search and rescue planning for New Zealand, as AWS Lambda function
 - **Authentication**: `x-api-key` header, keys in the config bucket (`Utils-SAR-Engine-Api-Keys.json`)
 - **Data**: land cover raster and a monthly-refreshed OpenStreetMap snapshot under `sar-engine/` in the artifacts bucket
 - **Status**: off by default (`sarEngine.enabled` in `cdk.json`)
-- **Documentation**: [SAR Engine](docs/SAR_ENGINE.md); source and method in [TAK-NZ/sar-engine](https://github.com/TAK-NZ/sar-engine)
+- **Documentation**: [SAR Engine](docs/SAR_ENGINE.md); source and method in [`sar-engine/`](sar-engine) (see its `NZ_PORT.md`)
 ### display-proxy
 CloudTAK MJPEG display proxy. Opens CloudTAK in a headless Chromium browser and
 streams it as a continuous MJPEG video feed. Designed for digital signage platforms
@@ -194,8 +194,8 @@ cdk deploy --context envType=dev-test --context apiKeys='["key1","key2"]'
 # Deploy with pre-built images (new JSON format - recommended)
 cdk deploy --context envType=prod --context usePreBuiltImages=true --context imageTagsJson='{"weather-proxy":"v1.0.0","ais-proxy":"v1.0.0","tileserver-gl":"v1.0.0"}'
 
-# SAR engine (separate repository): build its image during a manual deploy from a local checkout (usePreBuiltImages=false)
-BUILDX_NO_DEFAULT_ATTESTATIONS=1 cdk deploy --context envType=dev-test --context sarEngineSourcePath=../sar-engine
+# SAR engine (sar-engine/ folder): with usePreBuiltImages=false (the dev-test default) the deploy builds its image from this repository
+BUILDX_NO_DEFAULT_ATTESTATIONS=1 cdk deploy --context envType=dev-test
 # (details in docs/SAR_ENGINE.md)
 
 # Deploy with pre-built images (legacy individual parameters - still supported)
