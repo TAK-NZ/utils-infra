@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { StackProps, Fn, RemovalPolicy } from 'aws-cdk-lib';
@@ -546,30 +547,32 @@ export class UtilsInfraStack extends cdk.Stack {
     // =================
     // SAR ENGINE (Lambda behind the ALB, plus a monthly OSM refresh) -- see docs/SAR_ENGINE.md
     // =================
-    // Off unless sarEngine.enabled is true. Enabling needs the data uploaded under sarEngine.dataPrefix and an image:
-    //   - usePreBuiltImages=true (CI, prod): the image is already in ECR, built by the build workflows from
-    //     sarEngine.engineRepo at sarEngine.engineRef (or named by imageTagsJson["sar-engine"]).
-    //   - usePreBuiltImages=false (manual deploys): the image is built by this deploy from a sar-engine checkout, as for
-    //     the other containers. Name the checkout with --context sarEngineSourcePath=<dir>.
+    // Off unless sarEngine.enabled is true. Enabling needs the data uploaded under sarEngine.dataPrefix and an image,
+    // built from the sar-engine/ folder of this repository:
+    //   - usePreBuiltImages=true (CI, prod): the image is already in ECR, pushed by the build workflows and named by
+    //     imageTagsJson["sar-engine"].
+    //   - usePreBuiltImages=false (manual deploys): the image is built by this deploy from sar-engine/, as for the
+    //     other containers. --context sarEngineSourcePath=<dir> builds from another checkout instead.
     if (envConfig.sarEngine?.enabled) {
       const sarConfig = envConfig.sarEngine;
       const ecrRepoArn = Fn.importValue(createBaseImportValue(stackNameComponent, BASE_EXPORT_NAMES.ECR_REPO));
       const sarSourcePathContext = this.node.tryGetContext('sarEngineSourcePath');
-      const sarSourcePath = typeof sarSourcePathContext === 'string' && sarSourcePathContext.trim() !== ''
+      const sarSourcePathOverride = typeof sarSourcePathContext === 'string' && sarSourcePathContext.trim() !== ''
         ? sarSourcePathContext.trim() : undefined;
-      if (sarSourcePath && usePreBuiltImages) {
+      if (sarSourcePathOverride && usePreBuiltImages) {
         throw new Error('sarEngineSourcePath builds the SAR engine image during deploy, so it needs usePreBuiltImages=false. ' +
           'Remove it, or remove --context usePreBuiltImages=true.');
       }
-      if (!usePreBuiltImages && !sarSourcePath && !imageTagsMap['sar-engine']) {
+      // Built by this deploy from the vendored sar-engine/ folder unless the image comes pre-built from ECR.
+      const sarSourcePath = usePreBuiltImages ? undefined : (sarSourcePathOverride ?? path.resolve(__dirname, '..', 'sar-engine'));
+      if (usePreBuiltImages && !imageTagsMap['sar-engine']) {
         cdk.Annotations.of(this).addWarning(
-          'usePreBuiltImages is false but sarEngineSourcePath is not set: the SAR engine image is NOT built by this deploy. ' +
-          'The Lambda functions need the image tag utils-sar-engine-<imageTag>-<first 7 of engineRef> to exist in ECR. ' +
-          'To build it now: --context sarEngineSourcePath=<path to a sar-engine checkout> (see docs/SAR_ENGINE.md).');
+          'usePreBuiltImages is true but imageTagsJson does not name "sar-engine": the SAR engine functions point at the ' +
+          'placeholder tag utils-sar-engine-<imageTag>, which the build workflows do not push (they add a hash of the engine ' +
+          'code). Deploy through the workflows, or pass imageTagsJson with the tag the build step printed.');
       }
-      // "sar-engine" is the key the build workflows use in imageTagsJson; fall back to the configured version.
-      const sarImageTag = imageTagsMap['sar-engine'] ?? `utils-sar-engine-${sarConfig.imageTag}-${sarConfig.engineRef.slice(0, 7)}`;
-
+      // "sar-engine" is the key the build workflows use in imageTagsJson.
+      const sarImageTag = imageTagsMap['sar-engine'] ?? `utils-sar-engine-${sarConfig.imageTag}`;
       const sarEngine = new SarEngine(this, 'SarEngine', {
         config: sarConfig,
         ...(sarSourcePath

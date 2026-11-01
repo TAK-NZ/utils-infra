@@ -39,7 +39,7 @@ export interface ContainerConfig {
 
 /**
  * SAR engine: terrain-aware travel-time analysis for search and rescue, as AWS Lambda functions.
- * Source and build: https://github.com/TAK-NZ/sar-engine (see docs/SAR_ENGINE.md).
+ * Source: the sar-engine/ folder of this repository (see docs/SAR_ENGINE.md).
  */
 export interface SarEngineConfig {
   /** Off by default: enabling needs the image to exist in ECR and the data to be uploaded first. */
@@ -48,13 +48,10 @@ export interface SarEngineConfig {
   path: string;
   /** ALB listener rule priority; must be unique across the listener. */
   priority: number;
-  /** Version label. The ECR tag is "utils-sar-engine-<imageTag>-<first 7 characters of engineRef>", so changing
-   *  engineRef always yields a new tag; bump imageTag as well to keep the label meaningful. */
+  /** Version label. The build workflows push the image as "utils-sar-engine-<imageTag>-<7 characters of a hash of the
+   *  files the image copies>", so any change to the engine code yields a new tag; bump imageTag as well to keep the
+   *  label meaningful. */
   imageTag: string;
-  /** GitHub repository the image is built from (owner/name). */
-  engineRepo: string;
-  /** Exact commit SHA or tag of engineRepo to build; pinned so builds are reproducible. */
-  engineRef: string;
   /** Memory for the HTTP function in MB (2048 is ample; peak use measured at about 350 MB). */
   memorySize: number;
   /** Timeout in seconds. Keep it under the ALB idle timeout (60 s) so a slow run returns a clean error. */

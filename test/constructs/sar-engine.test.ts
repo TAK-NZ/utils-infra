@@ -8,8 +8,6 @@ const baseConfig: SarEngineConfig = {
   path: '/sar/',
   priority: 7,
   imageTag: 'v0.1.0',
-  engineRepo: 'TAK-NZ/sar-engine',
-  engineRef: '7029fe7c7a3c4ff2fe2cb0063a9ce48c05cefbd3',
   memorySize: 2048,
   timeoutSeconds: 55,
   dataPrefix: 'sar-engine',
@@ -23,7 +21,7 @@ function build(overrides: Partial<SarEngineConfig> = {}) {
   const sar = new SarEngine(stack, 'Sar', {
     config: { ...baseConfig, ...overrides },
     ecrRepositoryName: 'tak-dev-artifacts',
-    imageTag: 'utils-sar-engine-v0.1.0-7029fe7',
+    imageTag: 'utils-sar-engine-v0.2.0-535ffff',
     dataBucketName: 'tak-dev-artifacts-bucket',
     configBucketName: 'tak-dev-config-bucket',
     kmsKeyArn: 'arn:aws:kms:ap-southeast-2:123456789012:key/abc',
@@ -48,7 +46,7 @@ describe('SarEngine construct', () => {
     fns.forEach((fn) => {
       expect(fn.Properties.PackageType).toBe('Image');
       expect(fn.Properties.Architectures).toEqual(['x86_64']);
-      expect(JSON.stringify(fn.Properties.Code.ImageUri)).toContain('utils-sar-engine-v0.1.0-7029fe7');
+      expect(JSON.stringify(fn.Properties.Code.ImageUri)).toContain('utils-sar-engine-v0.2.0-535ffff');
       expect(JSON.stringify(fn.Properties.Code.ImageUri)).toContain('tak-dev-artifacts');
     });
   });

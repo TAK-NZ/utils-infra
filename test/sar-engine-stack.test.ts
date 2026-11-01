@@ -102,11 +102,44 @@ describe('SAR engine image built by the deploy (sarEngineSourcePath)', () => {
     expect(() => synthWithAssembly({ ...ctx, usePreBuiltImages: true })).toThrow(/usePreBuiltImages=false/);
   });
 
-  it('warns, and still uses the ECR tag, when usePreBuiltImages is false and no source path is given', () => {
-    const { template, stack } = synthWithAssembly({});
-    expect(JSON.stringify(template.toJSON())).toMatch(/utils-sar-engine-v\d+\.\d+\.\d+-[0-9a-f]{7}/);
+  it('builds from the vendored sar-engine/ folder of this repository when no source path is given', () => {
+    const { template, outdir } = synthWithAssembly({});
+    const images = sarImage(outdir);
+    expect(images).toHaveLength(1);
+    const files = fs.readdirSync(path.join(outdir, images[0][1].source.directory));
+    expect(files).toContain('Dockerfile.lambda');
+    expect(files).toContain('nz');
+    expect(files).toContain('app');
+    expect(files).not.toContain('data');
+    expect(files).not.toContain('.git');
+    expect(JSON.stringify(template.toJSON())).not.toContain('utils-sar-engine-');   // a CDK asset, not an ECR tag
+  });
+  it('ships a vendored folder the image build can use (Dockerfile.lambda and every file it copies exist)', () => {
+    const root = path.join(__dirname, '..', 'sar-engine');
+    const dockerfile = fs.readFileSync(path.join(root, 'Dockerfile.lambda'), 'utf8').replace(/\\\n/g, ' ');
+    const sources = dockerfile.split('\n').filter((l) => /^COPY /.test(l) && !l.includes('--from'))
+      .flatMap((l) => l.replace(/^COPY /, '').trim().split(/\s+/).slice(0, -1))
+      .filter((p) => !p.includes('${'));
+    expect(sources.length).toBeGreaterThan(5);
+    sources.forEach((p) => expect(fs.existsSync(path.join(root, p))).toBe(true));
+  });
+  it('sarEngineSourcePath still overrides the vendored folder', () => {
+    const { outdir } = synthWithAssembly(ctx);
+    const files = fs.readdirSync(path.join(outdir, sarImage(outdir)[0][1].source.directory));
+    expect(files).not.toContain('app');                  // the fixture has no app/ folder; the vendored folder does
+  });
+  it('with usePreBuiltImages=true and no imageTagsJson: placeholder tag and a warning (the workflows always pass the tag)', () => {
+    const { template, stack } = synthWithAssembly({ usePreBuiltImages: true });
+    expect(JSON.stringify(template.toJSON())).toContain('utils-sar-engine-v');
     const { Annotations, Match: M } = require('aws-cdk-lib/assertions');
-    Annotations.fromStack(stack).hasWarning('*', M.stringLikeRegexp('sarEngineSourcePath'));
+    Annotations.fromStack(stack).hasWarning('*', M.stringLikeRegexp('imageTagsJson does not name'));
+  });
+  it('with usePreBuiltImages=true and imageTagsJson naming the image: uses that tag and does not warn', () => {
+    const tag = 'utils-sar-engine-v0.2.0-abc1234';
+    const { template, stack } = synthWithAssembly({ usePreBuiltImages: true, imageTagsJson: JSON.stringify({ 'sar-engine': tag }) });
+    expect(JSON.stringify(template.toJSON())).toContain(tag);
+    const { Annotations, Match: M } = require('aws-cdk-lib/assertions');
+    Annotations.fromStack(stack).hasNoWarning('*', M.stringLikeRegexp('imageTagsJson does not name'));
   });
 });
 
@@ -117,9 +150,10 @@ describe('SAR engine in the utils stack', () => {
       expect(typeof sar.enabled).toBe('boolean');
       expect(sar.path).toMatch(/^\/[a-z-]+\/$/);
       expect(sar.timeoutSeconds).toBeLessThan(60);
-      expect(sar.engineRepo).toMatch(/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/);
-      // pinned to an exact commit, never a branch name
-      expect(sar.engineRef).toMatch(/^[0-9a-f]{40}$/);
+      // the engine lives in this repository's sar-engine/ folder: there is no separate repository or commit to pin
+      expect(sar.engineRepo).toBeUndefined();
+      expect(sar.engineRef).toBeUndefined();
+      expect(sar.imageTag).toMatch(/^v\d+\.\d+\.\d+$/);
       expect(sar.osmRefresh.dayOfMonth).toBeGreaterThanOrEqual(1);
       expect(sar.osmRefresh.dayOfMonth).toBeLessThanOrEqual(28);
       expect(sar.osmRefresh.hourUtc).toBeGreaterThanOrEqual(0);
@@ -175,19 +209,16 @@ describe('SAR engine in the utils stack', () => {
       expect('/saru/tarr').not.toMatch(regex);
     });
 
-    it('when enabled: the image tag defaults to <version>-<first 7 of the ref>, matching what CI pushes', () => {
-      const sar = cdkJson[environment].sarEngine;
-      const expected = `utils-sar-engine-${sar.imageTag}-${sar.engineRef.slice(0, 7)}`;
-      const text = JSON.stringify(synth(environment, { enabled: true }).toJSON());
-      expect(text).toContain(expected);
-    });
-
-    it('when enabled: CI can override the tag through imageTagsJson (the build workflows do)', () => {
+    it('when enabled and pre-built: CI names the image through imageTagsJson (the build workflows do)', () => {
       const text = JSON.stringify(synth(environment, { enabled: true },
-        { imageTagsJson: JSON.stringify({ 'sar-engine': 'utils-sar-engine-20261030-120000' }) }).toJSON());
+        { usePreBuiltImages: true, imageTagsJson: JSON.stringify({ 'sar-engine': 'utils-sar-engine-20261030-120000' }) }).toJSON());
       expect(text).toContain('utils-sar-engine-20261030-120000');
     });
-
+    it('when enabled and pre-built without imageTagsJson: the placeholder tag is <version> alone', () => {
+      const sar = cdkJson[environment].sarEngine;
+      const text = JSON.stringify(synth(environment, { enabled: true }, { usePreBuiltImages: true }).toJSON());
+      expect(text).toContain(`utils-sar-engine-${sar.imageTag}"`);
+    });
     it('when enabled: the data bucket grant is the artifacts bucket under the configured prefix only', () => {
       const template = synth(environment, { enabled: true });
       const statements = Object.values<any>(template.findResources('AWS::IAM::Policy'))
