@@ -160,6 +160,32 @@ jobs:
             fi
             IMAGE_TAGS_JSON=$(echo $IMAGE_TAGS_JSON | jq --arg value "$SAR_TAG" '. + {"sar-engine": $value}')
           fi
+          # terrain-proxy: an AWS Lambda container image built from the terrain-proxy/ folder, only when it is enabled
+          # for this environment. It is not an ECS service, so it is not in "containers" and the loop above skips it.
+          TERRAIN_ENABLED=$(jq -r '.context["dev-test"].terrainProxy.enabled // false' cdk.json)
+          if [[ "$TERRAIN_ENABLED" == "true" ]]; then
+            TERRAIN_VERSION=$(jq -r '.context["dev-test"].terrainProxy.imageTag' cdk.json)
+            if [[ ! "$TERRAIN_VERSION" =~ ^v[0-9][A-Za-z0-9._-]*$ ]]; then
+              echo "ERROR: terrainProxy.imageTag in cdk.json is not a version label"
+              exit 1
+            fi
+            if [[ "${{ github.event.inputs.force_rebuild }}" == "true" ]]; then
+              TERRAIN_TAG="utils-terrain-proxy-$(date +%Y%m%d-%H%M%S)"
+            else
+              TERRAIN_TAG="utils-terrain-proxy-${TERRAIN_VERSION}"
+            fi
+            if aws ecr describe-images --repository-name $ECR_REPO_NAME --image-ids imageTag=$TERRAIN_TAG >/dev/null 2>&1; then
+              echo "✅ terrain-proxy image already exists, skipping build"
+            else
+              echo "🔨 Building terrain-proxy image ($TERRAIN_TAG)"
+              # Lambda does not accept images with attestation manifests, hence the two --provenance/--sbom flags.
+              docker build --platform linux/amd64 --provenance=false --sbom=false \
+                -t $ECR_REPO_URI:$TERRAIN_TAG ./terrain-proxy
+              docker push $ECR_REPO_URI:$TERRAIN_TAG
+              echo "✅ terrain-proxy image pushed"
+            fi
+            IMAGE_TAGS_JSON=$(echo $IMAGE_TAGS_JSON | jq --arg value "$TERRAIN_TAG" '. + {"terrain-proxy": $value}')
+          fi
           # Output JSON for deploy workflows (compact format for GitHub Actions)
           COMPACT_JSON=$(echo $IMAGE_TAGS_JSON | jq -c .)
           echo "image-tags-json=$COMPACT_JSON" >> $GITHUB_OUTPUT

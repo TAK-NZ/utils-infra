@@ -164,6 +164,8 @@ describe('SAR engine in the utils stack', () => {
       const priorities = Object.values<any>(cdkJson[environment].containers)
         .filter((c) => c.enabled && c.priority)
         .map((c) => c.priority);
+      // terrain-proxy is a Lambda function with its own section, but it shares the listener
+      if (cdkJson[environment].terrainProxy?.enabled) priorities.push(cdkJson[environment].terrainProxy.priority);
       expect(priorities).not.toContain(cdkJson[environment].sarEngine.priority);
     });
 

@@ -38,6 +38,28 @@ export interface ContainerConfig {
 }
 
 /**
+ * Terrain proxy: LINZ elevation to TAK terrain tiles, as an AWS Lambda function behind the ALB (not an ECS container).
+ * Source: the terrain-proxy/ folder of this repository (see docs/TERRAIN_PROXY.md).
+ */
+export interface TerrainProxyConfig {
+  enabled: boolean;
+  /** Hostname label under the hosted zone, e.g. "terrain". CloudFront and the ALB rule both use it. */
+  hostname: string;
+  /** ALB listener rule priority; must be unique across the listener. */
+  priority: number;
+  /** Version label. The build workflows push the image as "utils-terrain-proxy-<imageTag>" and skip the build when
+   *  that tag already exists, so bump it whenever the terrain-proxy code or its Dockerfile changes. */
+  imageTag: string;
+  /** Memory for the function in MB. Lambda gives CPU in proportion, and a tile is mostly CPU work. */
+  memorySize: number;
+  /** Timeout in seconds. Keep it under the ALB idle timeout (60 s) so a slow tile returns a clean error. */
+  timeoutSeconds: number;
+  /** Optional cap on parallel executions, to limit how hard a burst of uncached tiles hits the LINZ API. Unset by
+   *  default: AWS keeps 100 units of the account limit unreserved, so this can be at most (account limit - 100). */
+  reservedConcurrency?: number;
+}
+
+/**
  * SAR engine: terrain-aware travel-time analysis for search and rescue, as AWS Lambda functions.
  * Source: the sar-engine/ folder of this repository (see docs/SAR_ENGINE.md).
  */
@@ -96,6 +118,7 @@ export interface ContextEnvironmentConfig {
   docker: {
     usePreBuiltImages: boolean;
   };
+  terrainProxy?: TerrainProxyConfig;
   sarEngine?: SarEngineConfig;
   sitrep?: {
     enabled: boolean;

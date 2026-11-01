@@ -10,6 +10,7 @@ This CDK stack deploys containerized utility services to the existing TAK infras
 
 - **Application Load Balancer (ALB)** - Routes traffic to different services based on path
 - **ECS Fargate Services** - Individual container services for each utility
+- **Lambda functions** - `terrain-proxy` and `sar-engine` run as Lambda container images behind the ALB instead of as ECS services
 - **Route53 DNS** - `utils.{domain}` hostname with IPv4/IPv6 support
 - **Security Groups** - Network security for ALB and ECS tasks
 - **Auto Scaling** - Production environment auto-scaling based on CPU/memory
@@ -58,9 +59,9 @@ MapTiler TileServer GL providing vector and raster tile services for New Zealand
 - **API Keys**: Managed via CDK context or fallback defaults
 
 ### terrain-proxy
-TAK terrain tile proxy that converts LINZ NZ elevation data into TAK-compatible terrain-RGB tiles for 3D rendering, line-of-sight analysis, and elevation profiles.
+TAK terrain tile proxy that converts LINZ NZ elevation data into TAK-compatible terrain-RGB tiles for 3D rendering, line-of-sight analysis, and elevation profiles. Runs as an AWS Lambda function (container image) behind the ALB, with CloudFront caching tiles in front of it.
 
-- **Path**: `/terrain/*`
+- **Hostname**: `terrain.{domain}` (`/terrain/*`), API key required via `?api=your-key`
 - **Manifest**: `/terrain/t3-taknz-elevation-manifest.json`
 - **Health Check**: `/terrain/health`
 - **Data Source**: LINZ NZ Elevation (Terrain-RGB tiles)
@@ -194,9 +195,10 @@ cdk deploy --context envType=dev-test --context apiKeys='["key1","key2"]'
 # Deploy with pre-built images (new JSON format - recommended)
 cdk deploy --context envType=prod --context usePreBuiltImages=true --context imageTagsJson='{"weather-proxy":"v1.0.0","ais-proxy":"v1.0.0","tileserver-gl":"v1.0.0"}'
 
-# SAR engine (sar-engine/ folder): with usePreBuiltImages=false (the dev-test default) the deploy builds its image from this repository
+# SAR engine (sar-engine/ folder) and terrain-proxy (terrain-proxy/ folder) are Lambda container images: with
+# usePreBuiltImages=false (the dev-test default) the deploy builds their images from this repository
 BUILDX_NO_DEFAULT_ATTESTATIONS=1 cdk deploy --context envType=dev-test
-# (details in docs/SAR_ENGINE.md)
+# (details in docs/SAR_ENGINE.md and docs/TERRAIN_PROXY.md)
 
 # Deploy with pre-built images (legacy individual parameters - still supported)
 cdk deploy --context envType=prod --context usePreBuiltImages=true --context weatherProxyImageTag=v1.0.0 --context aisProxyImageTag=v1.0.0 --context tileserverGlImageTag=v1.0.0
