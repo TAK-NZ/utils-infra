@@ -58,6 +58,8 @@ Returns vessel data with enhanced information and metadata.
       "lastUpdate": "2025-01-02T21:33:15.123Z",
       "category": "vessel",
       "nameSource": "ais",
+      "providers": ["aisstream", "openwaters"],
+      "lastProvider": "openwaters",
       "enrichedData": null
     }
   ],
@@ -141,7 +143,9 @@ The v2 API includes additional fields not available in the AISHub-compatible v1 
 - `messageType` - Type of AIS message received
 - `valid` - Message validity flag
 - `lastUpdate` - When this vessel was last updated in our cache
-- `nameSource` - Source of vessel name: `"ais"` (from AIS data), `"lookup"` (from external API), or `null` (no name)
+- `nameSource` - Source of vessel name: `"ais"` (from AIS static data), `"ais-metadata"` (provider `ShipName` on position reports), `"marinesia"`/`"lookup"` (from external API), `"identity-cache"` (previously learned), or `null` (no name)
+- `providers` - Sources that have delivered this vessel: `"aisstream"`, `"openwaters"`, `"upload"`
+- `lastProvider` - Source of the most recent accepted update
 - `enrichedData` - Additional data from external lookup (only present when `nameSource` is `"lookup"`)
 
 ### Structured Data

@@ -142,12 +142,49 @@ async function loadApiKeys() {
   }
 }
 
-// Get AISStream API key
-async function getAISStreamKey() {
-  const keys = await loadApiKeys();
-  return keys.aisstream?.primary?.key || keys.aisstream?.backup?.key;
+// Upstream AIS data providers. Both speak the aisstream.io WebSocket protocol,
+// so only the URL and the config section holding the key differ.
+const AIS_PROVIDERS = {
+  aisstream: { name: 'AISStream', url: 'wss://stream.aisstream.io/v0/stream' },
+  openwaters: { name: 'Open Waters', url: 'wss://ais.openwaters.io/v0/stream' }
+};
+const DEFAULT_AIS_PROVIDER = 'aisstream';
+const warnedProviders = new Set();
+
+// Resolve which providers to run from the S3 config. Preferred form is an array,
+// e.g. "aisProviders": ["aisstream", "openwaters"], which runs them side by side.
+// The older single-value "aisProvider": "openwaters" is still accepted.
+function resolveAISProviderIds(keys) {
+  let requested = keys.aisProviders !== undefined && keys.aisProviders !== null && keys.aisProviders !== ''
+    ? keys.aisProviders
+    : keys.aisProvider;
+  if (requested === undefined || requested === null || requested === '') return [DEFAULT_AIS_PROVIDER];
+  if (!Array.isArray(requested)) requested = [requested];
+  const ids = [];
+  for (const candidate of requested) {
+    if (typeof candidate === 'string' && Object.prototype.hasOwnProperty.call(AIS_PROVIDERS, candidate)) {
+      if (!ids.includes(candidate)) ids.push(candidate);
+      continue;
+    }
+    const label = sanitizeLogInput(String(candidate));
+    if (!warnedProviders.has(label)) {
+      warnedProviders.add(label);
+      console.warn(`Unknown AIS provider "${label}" in config, ignoring`);
+    }
+  }
+  if (ids.length === 0) return [DEFAULT_AIS_PROVIDER];
+  return ids;
 }
 
+function getProviderKey(keys, providerId) {
+  return keys[providerId]?.primary?.key || keys[providerId]?.backup?.key;
+}
+
+// Get the configured providers with their ids, names, URLs and API keys
+async function getActiveAISProviders() {
+  const keys = await loadApiKeys();
+  return resolveAISProviderIds(keys).map(id => ({ id, ...AIS_PROVIDERS[id], apiKey: getProviderKey(keys, id) }));
+}
 // Get Marinesia API key
 async function getMarinesiaKey() {
   const keys = await loadApiKeys();
@@ -325,13 +362,18 @@ function recordStaticIdentity(mmsi, fields, source) {
   if (fields.CALLSIGN && fields.CALLSIGN !== existing.CALLSIGN) { existing.CALLSIGN = fields.CALLSIGN; changed = true; }
   if ((fields.TYPE !== null && fields.TYPE !== undefined && fields.TYPE !== 0) && fields.TYPE !== existing.TYPE) { existing.TYPE = fields.TYPE; changed = true; }
   if (fields.IMO && fields.IMO !== existing.IMO) { existing.IMO = fields.IMO; changed = true; }
+  // Transponder class. Only Class B is stored, because a Class A style report is not proof of Class A
+  // (feeds that relay data without the raw AIS message report Class B vessels that way).
+  let classChanged = false;
+  if (fields.CLASS === 'B' && existing.CLASS !== 'B') { existing.CLASS = 'B'; classChanged = true; }
   if (fields.A && fields.A !== existing.A) { existing.A = fields.A; changed = true; }
   if (fields.B && fields.B !== existing.B) { existing.B = fields.B; changed = true; }
   if (fields.C && fields.C !== existing.C) { existing.C = fields.C; changed = true; }
   if (fields.D && fields.D !== existing.D) { existing.D = fields.D; changed = true; }
 
-  if (changed) {
-    existing.source = source || existing.source || null;
+  if (changed || classChanged) {
+    // The source describes where the name/identity came from; a class-only update must not change it
+    if (changed) existing.source = source || existing.source || null;
     existing.lastLearned = Date.now();
     staticIdentityCache.set(mmsi, existing);
     staticIdentityDirty = true;
@@ -345,6 +387,7 @@ function recordStaticIdentity(mmsi, fields, source) {
 function applyStaticIdentity(vessel) {
   const identity = staticIdentityCache.get(vessel.MMSI);
   if (!identity) return;
+  if (identity.CLASS === 'B') vessel._classB = true;
   if (!vessel.NAME && identity.NAME) {
     vessel.NAME = identity.NAME;
     vessel._nameSource = identity.source || 'identity-cache';
@@ -356,123 +399,354 @@ function applyStaticIdentity(vessel) {
   if ((vessel.C === null || vessel.C === 0) && identity.C) { vessel.C = identity.C; vessel.D = identity.D; }
 }
 
-// WebSocket connection state
-let wsConnection = null;
-let reconnectAttempts = 0;
-let pingInterval = null;
+// Per-provider connection state. Providers run side by side; each has its own
+// WebSocket, ping timer and reconnect backoff.
+const providerConnections = new Map(); // providerId -> connection record
 const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_RECONNECT_DELAY = 1000;
+const PROVIDER_RECONCILE_INTERVAL = 300000; // 5 minutes
+const PROVIDER_ACTIVITY_TTL = 6 * 3600000; // matches vessel cache retention
 
-// Connect to AISStream WebSocket
-async function connectToAISStream() {
-  const apiKey = await getAISStreamKey();
-  if (!apiKey) {
-    console.error('No AISStream API key available');
-    setTimeout(connectToAISStream, 30000); // Retry in 30 seconds
+// Per-source delivery statistics, used to compare providers. A "source" is an
+// upstream provider id, or "upload" for client-uploaded JSONAIS.
+const providerStats = new Map(); // sourceId -> stats
+
+function getProviderStats(sourceId) {
+  let stats = providerStats.get(sourceId);
+  if (!stats) {
+    stats = {
+      startedAt: Date.now(),
+      messages: 0,
+      messagesByType: {},
+      positionAccepted: 0,
+      positionStale: 0,
+      lastMessageAt: null,
+      mmsiSeen: new Map() // mmsi -> { last: ms, named: boolean }
+    };
+    providerStats.set(sourceId, stats);
+  }
+  return stats;
+}
+
+function recordProviderMessage(sourceId, mmsi, messageType, hasName) {
+  const stats = getProviderStats(sourceId);
+  const now = Date.now();
+  stats.messages++;
+  stats.messagesByType[messageType] = (stats.messagesByType[messageType] || 0) + 1;
+  stats.lastMessageAt = now;
+  const entry = stats.mmsiSeen.get(mmsi);
+  if (entry) {
+    entry.last = now;
+    if (hasName) entry.named = true;
+  } else {
+    stats.mmsiSeen.set(mmsi, { last: now, named: !!hasName });
+  }
+}
+
+function pruneProviderStats() {
+  const cutoff = Date.now() - PROVIDER_ACTIVITY_TTL;
+  for (const stats of providerStats.values()) {
+    for (const [mmsi, entry] of stats.mmsiSeen) {
+      if (entry.last < cutoff) stats.mmsiSeen.delete(mmsi);
+    }
+  }
+}
+setInterval(pruneProviderStats, 3600000);
+
+// Summarise delivery per source over a window (default 1 hour)
+function getProviderStatsSummary(windowMs = 3600000) {
+  const cutoff = Date.now() - windowMs;
+  const recent = new Map(); // sourceId -> Set of MMSIs
+  for (const [sourceId, stats] of providerStats) {
+    const set = new Set();
+    for (const [mmsi, entry] of stats.mmsiSeen) if (entry.last >= cutoff) set.add(mmsi);
+    recent.set(sourceId, set);
+  }
+  const summary = {};
+  for (const [sourceId, stats] of providerStats) {
+    const mine = recent.get(sourceId);
+    let exclusive = 0;
+    let named = 0;
+    for (const mmsi of mine) {
+      let seenElsewhere = false;
+      for (const [otherId, otherSet] of recent) {
+        if (otherId !== sourceId && otherSet.has(mmsi)) { seenElsewhere = true; break; }
+      }
+      if (!seenElsewhere) exclusive++;
+      if (stats.mmsiSeen.get(mmsi)?.named) named++;
+    }
+    const uptimeMin = Math.max((Date.now() - stats.startedAt) / 60000, 1 / 60);
+    summary[sourceId] = {
+      messagesTotal: stats.messages,
+      messagesPerMinute: Math.round((stats.messages / uptimeMin) * 10) / 10,
+      messagesByType: stats.messagesByType,
+      uniqueVessels: mine.size,
+      exclusiveVessels: exclusive,
+      namedVessels: named,
+      positionUpdatesAccepted: stats.positionAccepted,
+      positionUpdatesStale: stats.positionStale,
+      lastMessageAt: stats.lastMessageAt ? new Date(stats.lastMessageAt).toISOString() : null,
+      windowMinutes: Math.round(windowMs / 60000)
+    };
+  }
+  return summary;
+}
+
+function getConnectionRecord(providerId) {
+  let rec = providerConnections.get(providerId);
+  if (!rec) {
+    rec = {
+      id: providerId,
+      ws: null,
+      pingInterval: null,
+      reconnectTimer: null,
+      reconnectAttempts: 0,
+      generation: 0, // bumps on every (re)connect so stale events from a replaced socket are ignored
+      state: 'idle', // idle | connecting | connected | reconnecting | auth-failed | stopped
+      lastKey: null,
+      connectedAt: null,
+      lastCloseCode: null
+    };
+    providerConnections.set(providerId, rec);
+  }
+  return rec;
+}
+
+function teardownConnection(rec, closeCode, closeReason) {
+  if (rec.reconnectTimer) { clearTimeout(rec.reconnectTimer); rec.reconnectTimer = null; }
+  if (rec.pingInterval) { clearInterval(rec.pingInterval); rec.pingInterval = null; }
+  if (rec.ws) {
+    const ws = rec.ws;
+    rec.ws = null;
+    rec.generation++;
+    ws.removeAllListeners();
+    ws.on('error', () => {}); // a socket closed mid-handshake emits an error
+    try { ws.close(closeCode, closeReason); } catch (e) { /* already closed */ }
+  }
+}
+
+// Connect one provider's WebSocket (AISStream or Open Waters)
+async function connectProvider(providerId) {
+  const rec = getConnectionRecord(providerId);
+  rec.reconnectTimer = null;
+  const providers = await getActiveAISProviders();
+  const provider = providers.find(p => p.id === providerId);
+  if (!provider) {
+    // Removed from config since this attempt was scheduled
+    teardownConnection(rec);
+    providerConnections.delete(providerId);
     return;
   }
-  
+  const apiKey = provider.apiKey;
+  rec.lastKey = apiKey || null;
+  if (!apiKey) {
+    console.error(`No ${provider.name} API key available`);
+    rec.state = 'reconnecting';
+    rec.reconnectTimer = setTimeout(() => connectProvider(providerId), 30000); // Retry in 30 seconds
+    return;
+  }
+
   // Close existing connection if any
-  if (wsConnection) {
-    wsConnection.removeAllListeners();
-    wsConnection.close();
-    wsConnection = null;
-  }
-  
-  if (pingInterval) {
-    clearInterval(pingInterval);
-    pingInterval = null;
-  }
-  
+  teardownConnection(rec);
+  rec.state = 'connecting';
+  const generation = ++rec.generation;
+
   const boundingBox = [[-48.0, 166.0], [-34.0, 179.0]]; // NZ region
-  
+
   const subscriptionMessage = {
     APIKey: apiKey,
     BoundingBoxes: [boundingBox],
     FilterMessageTypes: ["PositionReport", "ShipStaticData", "StandardClassBPositionReport", "ExtendedClassBPositionReport", "StaticDataReport", "AidsToNavigationReport"]
   };
 
-  wsConnection = new WebSocket('wss://stream.aisstream.io/v0/stream');
-  
-  wsConnection.on('open', () => {
-    console.log('Connected to AISStream');
-    reconnectAttempts = 0;
-    wsConnection.send(JSON.stringify(subscriptionMessage));
-    
+  const ws = new WebSocket(provider.url);
+  rec.ws = ws;
+  const isCurrent = () => rec.generation === generation;
+
+  ws.on('open', () => {
+    if (!isCurrent()) return;
+    console.log(`Connected to ${provider.name}`);
+    rec.reconnectAttempts = 0;
+    rec.state = 'connected';
+    rec.connectedAt = Date.now();
+    ws.send(JSON.stringify(subscriptionMessage));
+
     // Set up ping interval to keep connection alive
-    pingInterval = setInterval(() => {
-      if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-        wsConnection.ping();
-      }
+    rec.pingInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) ws.ping();
     }, 30000); // Ping every 30 seconds
   });
 
-  wsConnection.on('message', (data) => {
+  ws.on('message', (data) => {
+    if (!isCurrent()) return;
     try {
       const message = JSON.parse(data.toString());
-      processAISMessage(message);
+      // Providers send control frames (e.g. SubscriptionConfirmation, {"error": ...}) without AIS payloads
+      if (message.error) {
+        console.warn(`${provider.name} error frame:`, sanitizeLogInput(String(message.error)));
+        return;
+      }
+      processAISMessage(message, providerId);
     } catch (error) {
       if (error instanceof SyntaxError) {
-        console.warn('Invalid JSON in AIS message:', sanitizeLogInput(error.message || ''));
+        console.warn(`Invalid JSON in ${provider.name} message:`, sanitizeLogInput(error.message || ''));
       } else {
-        console.warn('Failed to process AIS message:', sanitizeLogInput(error.message || ''));
+        console.warn(`Failed to process ${provider.name} message:`, sanitizeLogInput(error.message || ''));
       }
       if (DEBUG) console.warn('Raw data:', sanitizeLogInput(data.toString().substring(0, 200)));
     }
   });
-  
-  wsConnection.on('ping', () => {
-    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-      wsConnection.pong();
-    }
-  });
-  
-  wsConnection.on('pong', () => {
-    if (DEBUG) console.log('Received pong from AISStream');
+
+  ws.on('ping', () => {
+    if (isCurrent() && ws.readyState === WebSocket.OPEN) ws.pong();
   });
 
-  wsConnection.on('error', (error) => {
-    console.error('WebSocket error:', sanitizeLogInput(String(error.message || error)));
-    scheduleReconnect();
+  ws.on('pong', () => {
+    if (DEBUG) console.log(`Received pong from ${provider.name}`);
   });
 
-  wsConnection.on('close', (code, reason) => {
-    console.log(`WebSocket connection closed (code: ${code}, reason: ${sanitizeLogInput(String(reason || 'unknown'))})`);
-    
-    if (pingInterval) {
-      clearInterval(pingInterval);
-      pingInterval = null;
+  ws.on('error', (error) => {
+    if (!isCurrent()) return;
+    console.error(`${provider.name} WebSocket error:`, sanitizeLogInput(String(error.message || error)));
+    scheduleReconnect(providerId);
+  });
+
+  ws.on('close', (code, reason) => {
+    if (!isCurrent()) return;
+    console.log(`${provider.name} WebSocket connection closed (code: ${code}, reason: ${sanitizeLogInput(String(reason || 'unknown'))})`);
+    rec.lastCloseCode = code;
+
+    if (rec.pingInterval) {
+      clearInterval(rec.pingInterval);
+      rec.pingInterval = null;
     }
-    
+
     // Don't reconnect if it was a normal closure or authentication error
     if (code === 1000 || code === 1008) {
-      console.log('Connection closed normally or due to auth error, not reconnecting');
+      console.log(`${provider.name} connection closed normally or due to auth error, not reconnecting`);
+      rec.state = code === 1008 ? 'auth-failed' : 'stopped';
       return;
     }
-    
-    scheduleReconnect();
+
+    scheduleReconnect(providerId);
   });
 }
 
-// Schedule reconnection with exponential backoff
-function scheduleReconnect() {
-  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    console.error(`Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Stopping reconnection.`);
+// Schedule reconnection with exponential backoff (per provider)
+function scheduleReconnect(providerId) {
+  const rec = getConnectionRecord(providerId);
+  if (rec.reconnectTimer) return; // an attempt is already pending (error + close both fire)
+  if (rec.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.error(`${providerId}: max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Stopping reconnection until the next provider check.`);
+    rec.state = 'stopped';
     return;
   }
-  
-  const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts), 60000); // Max 1 minute
-  reconnectAttempts++;
-  
-  console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
-  setTimeout(connectToAISStream, delay);
+
+  const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, rec.reconnectAttempts), 60000); // Max 1 minute
+  rec.reconnectAttempts++;
+  rec.state = 'reconnecting';
+
+  console.log(`${providerId}: reconnecting in ${delay}ms (attempt ${rec.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+  rec.reconnectTimer = setTimeout(() => connectProvider(providerId), delay);
+}
+
+// Start, stop or restart provider connections so they match the S3 config.
+// Runs at startup and every few minutes, so a change to "aisProviders" takes
+// effect without a restart (subject to the 1 hour config cache).
+let reconcileInProgress = false;
+async function reconcileProviders() {
+  if (reconcileInProgress) return;
+  reconcileInProgress = true;
+  try {
+    const desired = await getActiveAISProviders();
+    const desiredIds = new Set(desired.map(p => p.id));
+
+    for (const [id, rec] of providerConnections) {
+      if (!desiredIds.has(id)) {
+        console.log(`AIS provider ${id} removed from config, disconnecting`);
+        teardownConnection(rec, 1000, 'Provider disabled');
+        providerConnections.delete(id);
+      }
+    }
+
+    for (const provider of desired) {
+      const rec = providerConnections.get(provider.id);
+      if (!rec) {
+        console.log(`AIS provider ${provider.id} enabled, connecting`);
+        connectProvider(provider.id);
+      } else if (rec.state === 'stopped') {
+        rec.reconnectAttempts = 0;
+        connectProvider(provider.id);
+      } else if (rec.state === 'auth-failed' && (provider.apiKey || null) !== rec.lastKey) {
+        console.log(`AIS provider ${provider.id} key changed, reconnecting`);
+        rec.reconnectAttempts = 0;
+        connectProvider(provider.id);
+      }
+    }
+  } catch (error) {
+    console.warn('Provider reconcile failed:', sanitizeLogInput(String(error.message || error)));
+  } finally {
+    reconcileInProgress = false;
+  }
+}
+
+function closeAllProviderConnections(code, reason) {
+  for (const rec of providerConnections.values()) teardownConnection(rec, code, reason);
+}
+
+// Names that providers include in MetaData.ShipName. Trimmed, with AIS padding
+// ('@') removed. Returns '' when there is no usable name.
+function cleanShipName(name) {
+  if (typeof name !== 'string') return '';
+  return name.replace(/[@\u0000]+/g, ' ').trim().slice(0, 120);
+}
+
+// Fill a missing vessel name from the provider's MetaData.ShipName. Never
+// overrides a name we already have (AIS static data, Marinesia or the identity store).
+function applyMetadataName(vessel, message) {
+  if (vessel.NAME) return false;
+  const name = cleanShipName(message.MetaData?.ShipName);
+  if (!name) return false;
+  vessel.NAME = name;
+  vessel._nameSource = 'ais-metadata';
+  recordStaticIdentity(vessel.MMSI, { NAME: name }, 'ais-metadata');
+  return true;
 }
 
 
+const CLASS_B_POSITION_TYPES = new Set(['StandardClassBPositionReport', 'ExtendedClassBPositionReport']);
+// Message types only a Class B transponder sends: position reports 18/19 and static data report 24
+const CLASS_B_EVIDENCE_TYPES = new Set(['StandardClassBPositionReport', 'ExtendedClassBPositionReport', 'StaticDataReport']);
 
+// A vessel known to be Class B keeps a Class B type whatever the latest message looked like
+function enforceClassBType(vessel, previousClassBType) {
+  // Class B has no navigational status (an earlier Class A style report only carried a placeholder)
+  if (vessel._classB && vessel._messageType !== 'AidsToNavigationReport') vessel.NAVSTAT = null;
+  if (vessel._classB && !CLASS_B_POSITION_TYPES.has(vessel._messageType) && vessel._messageType !== 'AidsToNavigationReport') {
+    vessel._messageType = previousClassBType || 'StandardClassBPositionReport';
+  }
+}
 
+// Does this message carry a vessel name (static data, or the provider's MetaData.ShipName)?
+function messageHasName(message) {
+  const m = message.Message || {};
+  return !!(
+    cleanShipName(message.MetaData?.ShipName) ||
+    m.ShipStaticData?.Name?.trim() ||
+    m.StaticDataReport?.Name?.trim() ||
+    m.AidsToNavigationReport?.Name?.trim()
+  );
+}
 
-function processAISMessage(message) {
+// Record which source (provider id, or "upload") has delivered this vessel
+function tagVesselSource(vessel, source, accepted) {
+  if (!Array.isArray(vessel._providers)) vessel._providers = [];
+  if (!vessel._providers.includes(source)) vessel._providers.push(source);
+  if (accepted) vessel._lastProvider = source;
+}
+
+// source: upstream provider id ("aisstream", "openwaters") or "upload" for client uploads
+function processAISMessage(message, source = 'unknown') {
   try {
     // Validate message structure
     if (!message.MetaData?.MMSI || !message.MessageType || !message.Message) {
@@ -519,7 +793,11 @@ function processAISMessage(message) {
       _fixType: null,
       _valid: null,
       _messageType: null,
-      _nameSource: null // 'ais' | 'marinesia' | 'identity-cache' | null
+      _nameSource: null, // 'ais' | 'ais-metadata' | 'marinesia' | 'identity-cache' | null
+      _providers: [], // sources that have delivered this vessel (provider ids, "upload")
+      _lastProvider: null, // source of the most recent accepted update
+      _classB: false, // true once any Class B message (18, 19, 24) has been seen for this MMSI
+      _posTimeMs: null // provider timestamp (ms) of the newest accepted update
     };
 
     // For a freshly-created record, restore any static identity (name, callsign,
@@ -527,20 +805,51 @@ function processAISMessage(message) {
     if (!existingVessel) {
       applyStaticIdentity(vessel);
     }
+
+    // With several providers running, the same vessel arrives from more than one
+    // of them and messages can arrive out of order. Never let an older report
+    // overwrite the position of a newer one.
+    const msgTime = new Date(message.MetaData.time_utc);
+    const msgTimeMs = msgTime.getTime();
+    const isStale = !!existingVessel && Number.isFinite(msgTimeMs) && Number.isFinite(existingVessel._posTimeMs) && msgTimeMs < existingVessel._posTimeMs;
+    const hasPositionPayload = !!(message.Message.PositionReport || message.Message.StandardClassBPositionReport ||
+      message.Message.ExtendedClassBPositionReport || message.Message.AidsToNavigationReport);
+    // Class B is sticky. Some providers (Open Waters, for data relayed through aggregators) send Class B
+    // vessels as Class A PositionReport messages with placeholder values, so the latest message type
+    // alone would flip a vessel between A and B depending on which provider reported last.
+    if (!vessel._classB && (CLASS_B_EVIDENCE_TYPES.has(messageType) || CLASS_B_POSITION_TYPES.has(vessel._messageType))) {
+      vessel._classB = true;
+      recordStaticIdentity(mmsi, { CLASS: 'B' });
+    }
+    recordProviderMessage(source, mmsi, messageType, messageHasName(message));
+    if (isStale && hasPositionPayload) {
+      getProviderStats(source).positionStale++;
+      tagVesselSource(vessel, source, false);
+      enforceClassBType(vessel, null);
+      applyMetadataName(vessel, message);
+      return;
+    }
+    if (hasPositionPayload) getProviderStats(source).positionAccepted++;
+    tagVesselSource(vessel, source, true);
     
     // Update common fields
     vessel.MMSI = mmsi;
-    vessel.TIME = new Date(message.MetaData.time_utc).toISOString().replace('T', ' ').replace('Z', ' UTC');
-    vessel.LONGITUDE = lon;
-    vessel.LATITUDE = lat;
+    if (!isStale) {
+      vessel.TIME = msgTime.toISOString().replace('T', ' ').replace('Z', ' UTC');
+      vessel.LONGITUDE = lon;
+      vessel.LATITUDE = lat;
+      vessel._posTimeMs = msgTimeMs;
+    }
     vessel.lastUpdate = new Date();
     // Only update _messageType for position/nav reports (used for vessel classification)
     // Static data messages should not change the vessel's class category
+    const previousClassBType = CLASS_B_POSITION_TYPES.has(vessel._messageType) ? vessel._messageType : null;
     if (['PositionReport', 'StandardClassBPositionReport', 'ExtendedClassBPositionReport', 'AidsToNavigationReport'].includes(messageType)) {
       vessel._messageType = messageType;
     } else if (!vessel._messageType) {
       vessel._messageType = messageType;
     }
+    enforceClassBType(vessel, previousClassBType);
     
     // Process position reports (Class A)
     if (message.Message.PositionReport) {
@@ -555,7 +864,8 @@ function processAISMessage(message) {
       vessel.COG = pos.Cog;
       vessel.SOG = pos.Sog;
       vessel.HEADING = pos.TrueHeading;
-      vessel.NAVSTAT = pos.NavigationalStatus;
+      // Class B has no navigational status; a relayed Class A style report carries only a placeholder
+      vessel.NAVSTAT = vessel._classB ? null : pos.NavigationalStatus;
       
       // Store additional internal fields
       vessel._rateOfTurn = pos.RateOfTurn;
@@ -724,6 +1034,10 @@ function processAISMessage(message) {
       }, 'ais');
     }
     
+    // Providers include the vessel name in MetaData.ShipName on most messages,
+    // including Class B position reports that carry no name of their own.
+    applyMetadataName(vessel, message);
+
     vesselCache.set(mmsi, vessel);
     
     // Enrich from Marinesia data if available
@@ -954,7 +1268,9 @@ app.get('/ais-proxy/v2/vessels', async (req, res) => {
         lastUpdate: vessel.lastUpdate.toISOString(),
         // Easy identification
         category: isNavigationAid ? 'navigation-aid' : 'vessel',
-        nameSource: vessel._nameSource
+        nameSource: vessel._nameSource,
+        providers: Array.isArray(vessel._providers) ? vessel._providers : [],
+        lastProvider: vessel._lastProvider || null
       });
     }
   }
@@ -997,7 +1313,7 @@ app.get('/ais-proxy/health', async (req, res) => {
   try {
     const keys = await loadApiKeys();
     const enabledUserKeys = Object.values(keys.users || {}).filter(k => k.enabled).length;
-    const hasAISStreamKey = !!(keys.aisstream?.primary?.key || keys.aisstream?.backup?.key);
+    const hasAISStreamKey = !!getProviderKey(keys, 'aisstream');
     
     res.json({ 
       status: 'ok', 
@@ -1005,6 +1321,9 @@ app.get('/ais-proxy/health', async (req, res) => {
       uptime: process.uptime(),
       user_keys_configured: enabledUserKeys,
       aisstream_key_configured: hasAISStreamKey,
+      ais_providers: resolveAISProviderIds(keys),
+      ais_providers_connected: Array.from(providerConnections.values()).filter(r => r.ws?.readyState === 1).map(r => r.id),
+      ais_provider_keys_configured: resolveAISProviderIds(keys).every(id => !!getProviderKey(keys, id)),
       public_mode: !!keys._publicMode,
       config_bucket: !!CONFIG_BUCKET,
       upload_clients_24h: Array.from(clientStatusCache.values())
@@ -1080,7 +1399,7 @@ app.post('/ais-proxy/jsonais/:apiKey', async (req, res) => {
         const aisMessage = convertJsonaisToAIS(message);
         if (aisMessage) {
           console.log(`📡 JSONAIS upload from ${clientId}: MMSI ${aisMessage.MetaData.MMSI}, pos ${aisMessage.MetaData.latitude},${aisMessage.MetaData.longitude}`);
-          processAISMessage(aisMessage);
+          processAISMessage(aisMessage, 'upload');
           processed++;
         }
       } catch (error) {
@@ -1115,7 +1434,7 @@ app.post('/ais-proxy/jsonais/:apiKey', async (req, res) => {
               const aisMessage = convertJsonaisToAIS({ msgs: [message] });
               if (aisMessage) {
                 console.log(`📡 Recovered JSONAIS upload from ${clientId}: MMSI ${aisMessage.MetaData.MMSI}`);
-                processAISMessage(aisMessage);
+                processAISMessage(aisMessage, 'upload');
                 processed++;
               }
             }
@@ -1474,7 +1793,7 @@ app.get('/ais-proxy/v2/health', async (req, res) => {
   try {
     const keys = await loadApiKeys();
     const enabledUserKeys = Object.values(keys.users || {}).filter(k => k.enabled).length;
-    const hasAISStreamKey = !!(keys.aisstream?.primary?.key || keys.aisstream?.backup?.key);
+    const hasAISStreamKey = !!getProviderKey(keys, 'aisstream');
     
     // Calculate vessel statistics
     let classA = 0, classB = 0, navigationAids = 0, other = 0;
@@ -1510,14 +1829,25 @@ app.get('/ais-proxy/v2/health', async (req, res) => {
       configuration: {
         userKeysConfigured: enabledUserKeys,
         aisstreamKeyConfigured: hasAISStreamKey,
+        aisProviders: resolveAISProviderIds(keys),
+        aisProviderKeysConfigured: Object.fromEntries(resolveAISProviderIds(keys).map(id => [id, !!getProviderKey(keys, id)])),
         publicMode: !!keys._publicMode,
         configBucket: !!CONFIG_BUCKET,
         debugMode: DEBUG
       },
       websocket: {
-        connected: wsConnection?.readyState === 1,
-        reconnectAttempts
+        connected: Array.from(providerConnections.values()).some(r => r.ws?.readyState === 1),
+        reconnectAttempts: Math.max(0, ...Array.from(providerConnections.values()).map(r => r.reconnectAttempts)),
+        providers: Object.fromEntries(Array.from(providerConnections.values()).map(r => [r.id, {
+          state: r.state,
+          connected: r.ws?.readyState === 1,
+          reconnectAttempts: r.reconnectAttempts,
+          connectedSince: r.state === 'connected' && r.connectedAt ? new Date(r.connectedAt).toISOString() : null,
+          lastCloseCode: r.lastCloseCode
+        }]))
       },
+      // Per-provider delivery, for comparing providers. Window defaults to 60 minutes (?window=minutes, 1-360).
+      providerStats: getProviderStatsSummary(Math.min(Math.max(parseInt(req.query.window) || 60, 1), 360) * 60000),
       marinesia: {
         enabled: marinesiaEnabled,
         cachedVessels: marinesiaCache.size,
@@ -1546,12 +1876,7 @@ app.get('/ais-proxy/v2/health', async (req, res) => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('Received SIGTERM, shutting down gracefully');
-  if (wsConnection) {
-    wsConnection.close(1000, 'Server shutdown');
-  }
-  if (pingInterval) {
-    clearInterval(pingInterval);
-  }
+  closeAllProviderConnections(1000, 'Server shutdown');
   saveCache();
   saveStaticIdentity();
   process.exit(0);
@@ -1559,12 +1884,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('Received SIGINT, shutting down gracefully');
-  if (wsConnection) {
-    wsConnection.close(1000, 'Server shutdown');
-  }
-  if (pingInterval) {
-    clearInterval(pingInterval);
-  }
+  closeAllProviderConnections(1000, 'Server shutdown');
   saveCache();
   saveStaticIdentity();
   process.exit(0);
@@ -1752,6 +2072,7 @@ app.listen(PORT, () => {
     if (!before && vessel.NAME) restored++;
   }
   if (restored > 0) console.log(`Restored names for ${restored} cached vessels from identity store`);
-  connectToAISStream();
+  reconcileProviders();
+  setInterval(reconcileProviders, PROVIDER_RECONCILE_INTERVAL);
   startMarinesiaEnrichment();
 });
