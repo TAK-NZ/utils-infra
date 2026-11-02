@@ -231,6 +231,14 @@ The ais-proxy service loads API keys from S3 for user authentication and AISStre
     }
   },
 
+  "aisProviders": ["aisstream", "openwaters"],
+  "openwaters": {
+    "primary": {
+      "key": "your-open-waters-personal-token-here",
+      "comment": "Open Waters AIS personal token",
+      "enabled": true
+    }
+  },
   "users": {
     "primary": {
       "key": "user-api-key-1",
@@ -261,6 +269,12 @@ The ais-proxy service loads API keys from S3 for user authentication and AISStre
 
 **Key Features:**
 - **AISStream Keys**: Primary/backup keys for connecting to AISStream service
+- **Upstream Providers (`aisProviders`)**: Array of `"aisstream"` and/or `"openwaters"`. Every listed provider is connected at the same time and their data is merged into one vessel set. Default (setting missing) is `["aisstream"]`. The older single value `"aisProvider": "openwaters"` is still read when `aisProviders` is absent. Both providers use the aisstream.io protocol; `openwaters` connects to `wss://ais.openwaters.io/v0/stream` using the token in `openwaters.primary.key` (or `openwaters.backup.key`). The config is cached for up to an hour and checked every 5 minutes, so adding or removing a provider takes effect without a restart (within about an hour).
+- **Merging**: Messages are applied in provider-timestamp order. An older report never overwrites the position of a newer one, whichever provider delivered it.
+- **Class A/B Stability**: Open Waters sends Class B vessels that were relayed through aggregators as Class A `PositionReport` messages with placeholder values (communication state 0, heading 511, navigational status 15). Once any Class B message (18, 19 or 24) has been seen for a vessel, it stays Class B and its navigational status stays empty. The flag is kept in the identity store, so it survives cache expiry. A vessel that is only ever seen through such a feed cannot be identified as Class B and is reported as Class A.
+- **Vessel Names**: Names come from AIS static data first, then the provider's `MetaData.ShipName` (`nameSource: "ais-metadata"`), then Marinesia and the identity store. A name already known is never replaced.
+- **Comparing Providers**: `/ais-proxy/v2/health` returns `providerStats` per source (`aisstream`, `openwaters`, and `upload` for client uploads): messages and messages/minute, unique vessels in the window (`?window=minutes`, default 60, max 360), `exclusiveVessels` (seen by that source only), `namedVessels`, and accepted vs stale position updates. Each vessel in `/ais-proxy/v2/vessels` has `providers` (all sources that delivered it) and `lastProvider`. Stale-update counts include duplicates of the same report from the other provider, so read them as indicative.
+- **Open Waters Limits**: A personal token allows 2 concurrent streams, 50 messages/s per stream and a 400 sq° subscribed area (the NZ box is ~182 sq°). The proxy uses one stream per environment. A rolling ECS deployment briefly runs two tasks, and sharing one token across environments adds to that, so a separate token per environment is safer.
 - **User Keys**: Individual API keys for service users with custom rate limits
 - **Per-Key Rate Limits**: Individual rate limits for each user API key
 - **Enable/Disable**: Control key usage without removing from file
@@ -271,7 +285,7 @@ The ais-proxy service loads API keys from S3 for user authentication and AISStre
 ## Integration Notes
 
 - **Data Sources**: 
-  - Real-time AIS data from AISStream WebSocket
+  - Real-time AIS data from AISStream or Open Waters WebSocket (selected by `aisProviders`, run side by side)
 - **Coverage**: New Zealand waters (configurable bounding box)
 - **Caching**: Vessel data cached in memory with 1-hour expiration
 - **Persistence**: Cache persisted to disk for service restarts
