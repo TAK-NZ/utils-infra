@@ -22,7 +22,7 @@ Config (via environment variables, set by CDK):
   SITREP_KEY           S3 key to write the SitRep result to
                        (default: sitrep/latest.json)
   MODEL_ID             Bedrock model id, without a region-profile prefix
-                       (default: anthropic.claude-sonnet-5). The correct
+                       (default: anthropic.claude-sonnet-5-5). The correct
                        us./au./eu. prefix is resolved at runtime from
                        BEDROCK_REGION/AWS_REGION — see resolve_model_id() —
                        so this Lambda deploys to any region unmodified.
@@ -38,6 +38,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any
 
 import boto3
+from botocore.exceptions import ClientError
 
 CONFIG_BUCKET = os.environ.get("CONFIG_BUCKET", "")
 CONFIG_KEY = os.environ.get("CONFIG_KEY", "Utils-Display-Proxy-Config.json")
@@ -83,7 +84,7 @@ def resolve_model_id(base_model_id: str, region: str) -> str:
 # MODEL_ID env var holds the bare model name (e.g. "anthropic.claude-sonnet-5"),
 # set via cdk.json's sitrep.modelId — no region prefix, so the same config
 # value works no matter which region this Lambda gets deployed to.
-MODEL_ID = resolve_model_id(os.environ.get("MODEL_ID", "anthropic.claude-sonnet-5"), BEDROCK_REGION)
+MODEL_ID = resolve_model_id(os.environ.get("MODEL_ID", "anthropic.claude-sonnet-5-5"), BEDROCK_REGION)
 
 # Layer IDs pulled from the display-proxy config's "layers" array for the
 # SitRep context. Any of these missing from the config (or with no
@@ -181,6 +182,10 @@ ASSESSMENT: <same assessment word decided above, capitalised> — brief reasonin
 
 Rules:
 - Use 24-hour time, NZ timezone
+- Volcanoes with changed_24h=false must NEVER appear in summary_line or
+  brief_report, even if little else is happening. They may appear only in
+  the full report's VOLCANIC section. If the rest of the context is quiet,
+  say the situation is quiet instead of filling space with a steady volcano.
 - Use "as the kea flies" for distances
 - Omit empty sections entirely
 - Be concise — this is for operational awareness, not detailed analysis
@@ -494,6 +499,43 @@ def feature_to_line_context(feature: dict) -> dict:
     return ctx
 
 
+# NZTA road events make up ~96% of the model context (a few hundred items with
+# ~35 metadata fields each, mostly routine roadworks and area warnings), and
+# input tokens are almost all of the Bedrock cost. The SYSTEM_PROMPT only asks
+# for emergency closures and hazards ("not planned works"), so only those are
+# sent, with just the fields the prompt can use.
+NZTA_KEEP_FIELDS = (
+    "Name", "EventType", "Impact", "IsPlanned", "LocationArea", "EventDescription",
+    "EventComments", "ExpectedResolutionText", "EventIsland", "StartDate", "EndDate",
+)
+NZTA_COMMENT_MAX_CHARS = 400
+
+
+def is_emergency_road_event(item: dict) -> bool:
+    """Road closures and hazards (planned or not; the model decides what is
+    noteworthy), and anything NZTA marks critical. Roadworks, scheduled works
+    and area warnings are left out."""
+    meta = item.get("metadata") or {}
+    return (
+        meta.get("EventType") in ("Road Closure", "Road Hazard")
+        or meta.get("Impact") == "Road Closed"
+        or meta.get("IsCritical") == 1
+    )
+
+
+def slim_road_event(item: dict) -> dict:
+    meta = item.get("metadata") or {}
+    slim_meta = {k: meta[k] for k in NZTA_KEEP_FIELDS if meta.get(k) not in (None, "")}
+    comments = slim_meta.get("EventComments")
+    if isinstance(comments, str) and len(comments) > NZTA_COMMENT_MAX_CHARS:
+        slim_meta["EventComments"] = comments[:NZTA_COMMENT_MAX_CHARS] + "..."
+    slim = {"callsign": item.get("callsign"), "metadata": slim_meta}
+    for key in ("start_coords", "end_coords"):
+        if key in item:
+            slim[key] = item[key]
+    return slim
+
+
 def build_context(config: dict) -> tuple[dict, dict[str, int], dict]:
     base_url = config.get("cloudtak_url", "").rstrip("/")
     # CloudTAK accepts the profile-scoped etl.<jwt> API token directly as a
@@ -563,7 +605,10 @@ def build_context(config: dict) -> tuple[dict, dict[str, int], dict]:
         if layer_id == "nzta":
             lines = [f for f in features if (f.get("geometry") or {}).get("type") in ("LineString", "MultiLineString")]
             layer_items += [feature_to_line_context(f) for f in lines]
-            layers_context[layer_id] = layer_items
+            # Only emergency closures/hazards, trimmed — see NZTA_KEEP_FIELDS.
+            # feature_counts keeps the total fetched, so the published counts
+            # are unchanged.
+            layers_context[layer_id] = [slim_road_event(i) for i in layer_items if is_emergency_road_event(i)]
             feature_counts[layer_id] = len(points) + len(lines)
         else:
             layers_context[layer_id] = layer_items
@@ -597,32 +642,62 @@ def extract_json(text: str) -> dict:
     return json.loads(match.group(0), strict=False)
 
 
+# How to switch off extended thinking depends on the model. Sonnet 5 takes
+# {"type": "disabled"}; Sonnet 5.5 rejects that with a ValidationException and
+# wants {"type": "between_tools"} (it does not think before responding).
+THINKING_DISABLED = {"type": "disabled"}
+THINKING_BETWEEN_TOOLS = {"type": "between_tools"}
+_thinking_off = (
+    THINKING_BETWEEN_TOOLS
+    if re.search(r"claude-(sonnet|opus|haiku)-5-5", MODEL_ID)
+    else THINKING_DISABLED
+)
+
+
 def call_bedrock(context: dict) -> dict:
+    global _thinking_off
     client = boto3.client("bedrock-runtime", region_name=BEDROCK_REGION)
     user_content = f"{SYSTEM_PROMPT}\n\nContext:\n{json.dumps(context)}"
 
-    body = {
-        "anthropic_version": "bedrock-2023-05-31",
-        # 1500 was too low for models like Opus that tend to produce longer,
-        # more detailed full_report text — the response was getting cut off
-        # mid-JSON before the closing brace, causing extract_json() to fail.
-        # Bumped again to cover the added brief_report field.
-        "max_tokens": 3500,
-        # Some models (e.g. Sonnet 5) default to emitting an extended
-        # "thinking" block, which counts against max_tokens — observed
-        # 3210 of 3500 output tokens spent on thinking, cutting the actual
-        # JSON answer off mid-field. We don't need visible reasoning here,
-        # just the structured output, so disable it explicitly.
-        "thinking": {"type": "disabled"},
-        "messages": [{"role": "user", "content": user_content}],
-    }
+    def invoke(thinking: dict) -> dict:
+        body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            # 1500 was too low for models like Opus that tend to produce longer,
+            # more detailed full_report text — the response was getting cut off
+            # mid-JSON before the closing brace, causing extract_json() to fail.
+            # Bumped again to cover the added brief_report field.
+            "max_tokens": 3500,
+            # Some models (e.g. Sonnet 5) default to emitting an extended
+            # "thinking" block, which counts against max_tokens — observed
+            # 3210 of 3500 output tokens spent on thinking, cutting the actual
+            # JSON answer off mid-field. We don't need visible reasoning here,
+            # just the structured output, so switch it off. The value that does
+            # that differs per model; see _thinking_off.
+            "thinking": thinking,
+            "messages": [{"role": "user", "content": user_content}],
+        }
+        return client.invoke_model(
+            modelId=MODEL_ID,
+            body=json.dumps(body),
+            contentType="application/json",
+            accept="application/json",
+        )
 
-    response = client.invoke_model(
-        modelId=MODEL_ID,
-        body=json.dumps(body),
-        contentType="application/json",
-        accept="application/json",
-    )
+    try:
+        response = invoke(_thinking_off)
+    except ClientError as e:
+        # A model we did not expect may want the other value. The error names
+        # the one to use; switch once and remember it for later invocations.
+        if (
+            e.response.get("Error", {}).get("Code") == "ValidationException"
+            and "between_tools" in str(e)
+            and _thinking_off != THINKING_BETWEEN_TOOLS
+        ):
+            print("Model rejected thinking=disabled, retrying with between_tools")
+            _thinking_off = THINKING_BETWEEN_TOOLS
+            response = invoke(_thinking_off)
+        else:
+            raise
     payload = json.loads(response["body"].read(), strict=False)
     text = "".join(block.get("text", "") for block in payload.get("content", []))
     return extract_json(text)
