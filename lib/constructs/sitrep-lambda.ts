@@ -41,8 +41,8 @@ export interface SitRepLambdaProps {
     volcanoStateKey?: string;
 
     /**
-     * Bedrock model id, without a region-profile prefix (e.g. "anthropic.claude-sonnet-5",
-     * not "au.anthropic.claude-sonnet-5"). Most current Claude models require a
+     * Bedrock model id, without a region-profile prefix (e.g. "anthropic.claude-sonnet-5-5",
+     * not "au.anthropic.claude-sonnet-5-5"). Most current Claude models require a
      * cross-region inference profile rather than direct on-demand invocation,
      * and the correct profile prefix (us./au./eu./etc.) depends on which
      * region the stack deploys to. The Lambda resolves the right prefix at
@@ -60,7 +60,7 @@ export class SitRepLambda extends Construct {
     constructor(scope: Construct, id: string, props: SitRepLambdaProps) {
         super(scope, id);
 
-        const modelId = props.modelId ?? 'anthropic.claude-sonnet-5';
+        const modelId = props.modelId ?? 'anthropic.claude-sonnet-5-5';
         const sitrepKey = props.sitrepKey ?? 'sitrep/latest.json';
         const volcanoStateKey = props.volcanoStateKey ?? 'volcano/state.json';
 

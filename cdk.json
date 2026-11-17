@@ -94,7 +94,7 @@
       },
       "sitrep": {
         "enabled": true,
-        "modelId": "anthropic.claude-sonnet-5"
+        "modelId": "anthropic.claude-sonnet-5-5"
       },
       "terrainProxy": {
         "enabled": true,
@@ -208,7 +208,7 @@
       },
       "sitrep": {
         "enabled": true,
-        "modelId": "anthropic.claude-sonnet-5"
+        "modelId": "anthropic.claude-sonnet-5-5"
       },
       "terrainProxy": {
         "enabled": true,
