@@ -331,6 +331,14 @@ A separate scheduled Lambda (`lambda/sitrep-generator`, deployed via
    (ema, weather, flooding, quakes, volcano, nzta, fires, avalanche).
 3. Sends a compact JSON context to Bedrock (Claude) with a prompt asking
    for three outputs at different levels of detail.
+   Input tokens are nearly all of the Bedrock cost, and NZTA road events used
+   to be about 96% of the context (hundreds of routine roadworks and area
+   warnings with ~35 fields each). Only emergency closures and hazards
+   (`EventType` Road Closure / Road Hazard, `Impact` Road Closed, or
+   `IsCritical`) are sent, with a short list of fields (`NZTA_KEEP_FIELDS` in
+   `index.py`) and comments capped at 400 characters. That is about 17k input
+   tokens per run instead of about 188k. `feature_counts` still reports the
+   number of features fetched.
 4. Writes the result to `s3://<config-bucket>/sitrep/latest.json`.
 
 #### Volcano alert-level change tracking

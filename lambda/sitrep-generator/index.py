@@ -181,6 +181,10 @@ ASSESSMENT: <same assessment word decided above, capitalised> — brief reasonin
 
 Rules:
 - Use 24-hour time, NZ timezone
+- Volcanoes with changed_24h=false must NEVER appear in summary_line or
+  brief_report, even if little else is happening. They may appear only in
+  the full report's VOLCANIC section. If the rest of the context is quiet,
+  say the situation is quiet instead of filling space with a steady volcano.
 - Use "as the kea flies" for distances
 - Omit empty sections entirely
 - Be concise — this is for operational awareness, not detailed analysis
@@ -494,6 +498,43 @@ def feature_to_line_context(feature: dict) -> dict:
     return ctx
 
 
+# NZTA road events make up ~96% of the model context (a few hundred items with
+# ~35 metadata fields each, mostly routine roadworks and area warnings), and
+# input tokens are almost all of the Bedrock cost. The SYSTEM_PROMPT only asks
+# for emergency closures and hazards ("not planned works"), so only those are
+# sent, with just the fields the prompt can use.
+NZTA_KEEP_FIELDS = (
+    "Name", "EventType", "Impact", "IsPlanned", "LocationArea", "EventDescription",
+    "EventComments", "ExpectedResolutionText", "EventIsland", "StartDate", "EndDate",
+)
+NZTA_COMMENT_MAX_CHARS = 400
+
+
+def is_emergency_road_event(item: dict) -> bool:
+    """Road closures and hazards (planned or not; the model decides what is
+    noteworthy), and anything NZTA marks critical. Roadworks, scheduled works
+    and area warnings are left out."""
+    meta = item.get("metadata") or {}
+    return (
+        meta.get("EventType") in ("Road Closure", "Road Hazard")
+        or meta.get("Impact") == "Road Closed"
+        or meta.get("IsCritical") == 1
+    )
+
+
+def slim_road_event(item: dict) -> dict:
+    meta = item.get("metadata") or {}
+    slim_meta = {k: meta[k] for k in NZTA_KEEP_FIELDS if meta.get(k) not in (None, "")}
+    comments = slim_meta.get("EventComments")
+    if isinstance(comments, str) and len(comments) > NZTA_COMMENT_MAX_CHARS:
+        slim_meta["EventComments"] = comments[:NZTA_COMMENT_MAX_CHARS] + "..."
+    slim = {"callsign": item.get("callsign"), "metadata": slim_meta}
+    for key in ("start_coords", "end_coords"):
+        if key in item:
+            slim[key] = item[key]
+    return slim
+
+
 def build_context(config: dict) -> tuple[dict, dict[str, int], dict]:
     base_url = config.get("cloudtak_url", "").rstrip("/")
     # CloudTAK accepts the profile-scoped etl.<jwt> API token directly as a
@@ -563,7 +604,10 @@ def build_context(config: dict) -> tuple[dict, dict[str, int], dict]:
         if layer_id == "nzta":
             lines = [f for f in features if (f.get("geometry") or {}).get("type") in ("LineString", "MultiLineString")]
             layer_items += [feature_to_line_context(f) for f in lines]
-            layers_context[layer_id] = layer_items
+            # Only emergency closures/hazards, trimmed — see NZTA_KEEP_FIELDS.
+            # feature_counts keeps the total fetched, so the published counts
+            # are unchanged.
+            layers_context[layer_id] = [slim_road_event(i) for i in layer_items if is_emergency_road_event(i)]
             feature_counts[layer_id] = len(points) + len(lines)
         else:
             layers_context[layer_id] = layer_items
