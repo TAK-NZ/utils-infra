@@ -1,7 +1,8 @@
 """
 SitRep Lambda — scheduled AI Situational Report generator.
 
-Runs on an EventBridge schedule (cron at :00/:15/:30/:45). Fetches
+Runs on an EventBridge schedule (every 30 minutes on the clock by default; set with
+sitrep.scheduleIntervalMinutes in cdk.json). Fetches
 active/non-stale features from a fixed set of CloudTAK layers, builds a
 compact JSON context, asks Bedrock (Claude) to summarise it into a
 display-ticker line, a 3-4 line brief report, and a full multi-section
