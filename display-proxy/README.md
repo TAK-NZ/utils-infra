@@ -322,7 +322,8 @@ road closures, fire detections, avalanche risk).
 ### How it works
 
 A separate scheduled Lambda (`lambda/sitrep-generator`, deployed via
-`lib/constructs/sitrep-lambda.ts`) runs every 15 minutes:
+`lib/constructs/sitrep-lambda.ts`) runs every 30 minutes by default (see
+[Run frequency](#run-frequency)):
 
 1. Reads `cloudtak_url` / `cloudtak_token` / `layers` from the same
    `Utils-Display-Proxy-Config.json` this container reads — no separate
@@ -340,6 +341,13 @@ A separate scheduled Lambda (`lambda/sitrep-generator`, deployed via
    tokens per run instead of about 188k. `feature_counts` still reports the
    number of features fetched.
 4. Writes the result to `s3://<config-bucket>/sitrep/latest.json`.
+
+#### Run frequency
+
+The schedule is `sitrep.scheduleIntervalMinutes` in `cdk.json` (default 30). It fires on the
+clock (:00 and :30 for 30), so the value must be a whole number of minutes that divides 60,
+for example 15, 20, 30 or 60; anything else fails at synth time. Each run is one Bedrock call,
+so cost scales with how often it runs: halving the interval doubles the model cost.
 
 #### Volcano alert-level change tracking
 

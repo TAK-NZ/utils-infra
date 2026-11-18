@@ -576,6 +576,7 @@ export class UtilsInfraStack extends cdk.Stack {
         kmsKeyArn: cdk.Token.asString(kmsKeyArn),
         configKey: 'Utils-Display-Proxy-Config.json',
         modelId: envConfig.sitrep.modelId,
+        scheduleIntervalMinutes: envConfig.sitrep.scheduleIntervalMinutes,
         removalPolicy: envConfig.general.removalPolicy === 'DESTROY' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
       });
 

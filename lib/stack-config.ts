@@ -126,6 +126,10 @@ export interface ContextEnvironmentConfig {
      * prefix (us./au./etc). The SitRep Lambda resolves the correct prefix for
      * its own deploy region at runtime, so this works unchanged in any region. */
     modelId?: string;
+    /** Minutes between SitRep runs. Must divide 60 evenly (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30
+     * or 60) so runs land on the clock. Defaults to 30. Each run costs one Bedrock call, so a
+     * shorter interval costs proportionally more. */
+    scheduleIntervalMinutes?: number;
   };
   cloudfront?: {
     tileserver?: {

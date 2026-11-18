@@ -50,8 +50,32 @@ export interface SitRepLambdaProps {
      */
     modelId?: string;
 
+    /**
+     * Minutes between runs. Must divide 60 evenly (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 or 60),
+     * so that runs land on the clock. Defaults to 30.
+     */
+    scheduleIntervalMinutes?: number;
+
     /** CDK removalPolicy — DESTROY for dev, RETAIN for prod */
     removalPolicy: RemovalPolicy;
+}
+
+/** Default minutes between SitRep runs; see SitRepLambdaProps.scheduleIntervalMinutes. */
+export const DEFAULT_SITREP_INTERVAL_MINUTES = 30;
+
+/**
+ * EventBridge cron minute field for a run every `intervalMinutes` minutes, anchored to the
+ * top of the hour. Throws unless the interval is a whole number of minutes that divides 60,
+ * since any other value would fire unevenly across the hour boundary.
+ */
+export function sitrepCronMinute(intervalMinutes: number): string {
+    if (!Number.isInteger(intervalMinutes) || intervalMinutes < 1 || intervalMinutes > 60 || 60 % intervalMinutes !== 0) {
+        throw new Error(
+            `sitrep.scheduleIntervalMinutes must be a whole number of minutes that divides 60 ` +
+            `(1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 or 60), got ${intervalMinutes}`,
+        );
+    }
+    return intervalMinutes === 60 ? '0' : `0/${intervalMinutes}`;
 }
 
 export class SitRepLambda extends Construct {
@@ -137,13 +161,14 @@ export class SitRepLambda extends Construct {
             ],
         }));
 
-        // EventBridge schedule — fires at :00, :15, :30, :45 every hour
-        // (UTC). rate(15 minutes) would instead fire relative to whenever
-        // this rule happened to be created/enabled, never landing on a
-        // clean quarter-hour boundary — cron() ties it to the clock.
+        // EventBridge schedule — fires every N minutes on the clock (UTC), at
+        // :00 and :30 for the default of 30. rate(N minutes) would instead fire
+        // relative to whenever this rule happened to be created/enabled, never
+        // landing on a clean boundary — cron() ties it to the clock.
+        const intervalMinutes = props.scheduleIntervalMinutes ?? DEFAULT_SITREP_INTERVAL_MINUTES;
         const rule = new events.Rule(this, 'Schedule', {
-            description: 'Triggers the SitRep Lambda at :00, :15, :30, :45 every hour',
-            schedule: events.Schedule.cron({ minute: '0/15' }),
+            description: `Triggers the SitRep Lambda every ${intervalMinutes} minutes, on the clock`,
+            schedule: events.Schedule.cron({ minute: sitrepCronMinute(intervalMinutes) }),
         });
         rule.addTarget(new targets.LambdaFunction(this.fn));
     }
