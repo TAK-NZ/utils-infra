@@ -56,6 +56,13 @@ describe('SitRepLambda function', () => {
     const sitrep = fns.find((f) => f.Properties.Environment?.Variables?.MODEL_ID);
     expect(sitrep.Properties.Timeout).toBe(120);
   });
+
+  test('has 512 MB of memory, since the parallel layer fetch holds every layer in memory at once', () => {
+    const template = build();
+    const fns = Object.values(template.findResources('AWS::Lambda::Function')) as any[];
+    const sitrep = fns.find((f) => f.Properties.Environment?.Variables?.MODEL_ID);
+    expect(sitrep.Properties.MemorySize).toBe(512);
+  });
 });
 
 describe('sitrepCronMinute', () => {
