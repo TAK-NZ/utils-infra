@@ -405,6 +405,25 @@ const providerConnections = new Map(); // providerId -> connection record
 const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_RECONNECT_DELAY = 1000;
 const PROVIDER_RECONCILE_INTERVAL = 300000; // 5 minutes
+// A provider that closes with 1008 (authentication / key rejected) is retried with a growing delay
+// instead of being abandoned, because a rejection can be temporary (an upstream hiccup, or too many
+// concurrent connections on one key during a rolling deployment). Retries are made by the reconcile
+// loop, so the real delay is rounded up to a multiple of PROVIDER_RECONCILE_INTERVAL.
+const AUTH_RETRY_BASE_MS = 10 * 60 * 1000; // first retry after 10 minutes
+const AUTH_RETRY_MAX_MS = 60 * 60 * 1000; // never wait more than an hour between attempts
+
+// Delay before the next attempt after `failures` consecutive authentication failures (1 = first).
+function authRetryDelayMs(failures) {
+  const n = Math.max(1, failures);
+  return Math.min(AUTH_RETRY_BASE_MS * Math.pow(2, n - 1), AUTH_RETRY_MAX_MS);
+}
+
+// Should an auth-failed provider be reconnected now? Yes when its key changed, or when the retry delay has passed.
+function shouldRetryAuthFailed(rec, apiKey, now) {
+  if ((apiKey || null) !== rec.lastKey) return { retry: true, reason: 'key changed' };
+  if (rec.failedAt && now - rec.failedAt >= authRetryDelayMs(rec.authFailures)) return { retry: true, reason: 'retry delay passed' };
+  return { retry: false };
+}
 const PROVIDER_ACTIVITY_TTL = 6 * 3600000; // matches vessel cache retention
 
 // Per-source delivery statistics, used to compare providers. A "source" is an
@@ -505,7 +524,11 @@ function getConnectionRecord(providerId) {
       state: 'idle', // idle | connecting | connected | reconnecting | auth-failed | stopped
       lastKey: null,
       connectedAt: null,
-      lastCloseCode: null
+      lastCloseCode: null,
+      lastCloseReason: null,
+      lastError: null, // last {"error": ...} frame the provider sent, to explain a rejection
+      authFailures: 0, // consecutive 1008 closes; reset when real AIS data arrives
+      failedAt: null // when the latest 1008 close happened
     };
     providerConnections.set(providerId, rec);
   }
@@ -583,9 +606,11 @@ async function connectProvider(providerId) {
       const message = JSON.parse(data.toString());
       // Providers send control frames (e.g. SubscriptionConfirmation, {"error": ...}) without AIS payloads
       if (message.error) {
-        console.warn(`${provider.name} error frame:`, sanitizeLogInput(String(message.error)));
+        rec.lastError = sanitizeLogInput(String(message.error)).slice(0, 200);
+        console.warn(`${provider.name} error frame:`, rec.lastError);
         return;
       }
+      if (message.MetaData && rec.authFailures) rec.authFailures = 0; // real data: the key works
       processAISMessage(message, providerId);
     } catch (error) {
       if (error instanceof SyntaxError) {
@@ -615,16 +640,25 @@ async function connectProvider(providerId) {
     if (!isCurrent()) return;
     console.log(`${provider.name} WebSocket connection closed (code: ${code}, reason: ${sanitizeLogInput(String(reason || 'unknown'))})`);
     rec.lastCloseCode = code;
+    rec.lastCloseReason = sanitizeLogInput(String(reason || '')).slice(0, 200) || null;
 
     if (rec.pingInterval) {
       clearInterval(rec.pingInterval);
       rec.pingInterval = null;
     }
 
-    // Don't reconnect if it was a normal closure or authentication error
+    // A normal closure (1000) is picked up again by the next reconcile. An authentication error
+    // (1008) is retried with a growing delay, see shouldRetryAuthFailed().
     if (code === 1000 || code === 1008) {
-      console.log(`${provider.name} connection closed normally or due to auth error, not reconnecting`);
-      rec.state = code === 1008 ? 'auth-failed' : 'stopped';
+      if (code === 1008) {
+        rec.authFailures++;
+        rec.failedAt = Date.now();
+        console.log(`${provider.name} connection rejected (auth failure #${rec.authFailures}), retrying in about ${Math.round(authRetryDelayMs(rec.authFailures) / 60000)} minutes`);
+        rec.state = 'auth-failed';
+      } else {
+        console.log(`${provider.name} connection closed normally, will reconnect on the next provider check`);
+        rec.state = 'stopped';
+      }
       return;
     }
 
@@ -677,10 +711,13 @@ async function reconcileProviders() {
       } else if (rec.state === 'stopped') {
         rec.reconnectAttempts = 0;
         connectProvider(provider.id);
-      } else if (rec.state === 'auth-failed' && (provider.apiKey || null) !== rec.lastKey) {
-        console.log(`AIS provider ${provider.id} key changed, reconnecting`);
-        rec.reconnectAttempts = 0;
-        connectProvider(provider.id);
+      } else if (rec.state === 'auth-failed') {
+        const decision = shouldRetryAuthFailed(rec, provider.apiKey, Date.now());
+        if (decision.retry) {
+          console.log(`AIS provider ${provider.id} was rejected earlier, reconnecting (${decision.reason})`);
+          rec.reconnectAttempts = 0;
+          connectProvider(provider.id);
+        }
       }
     }
   } catch (error) {
@@ -1843,7 +1880,11 @@ app.get('/ais-proxy/v2/health', async (req, res) => {
           connected: r.ws?.readyState === 1,
           reconnectAttempts: r.reconnectAttempts,
           connectedSince: r.state === 'connected' && r.connectedAt ? new Date(r.connectedAt).toISOString() : null,
-          lastCloseCode: r.lastCloseCode
+          lastCloseCode: r.lastCloseCode,
+          lastCloseReason: r.lastCloseReason,
+          lastError: r.lastError,
+          authFailures: r.authFailures,
+          nextRetryAt: r.state === 'auth-failed' && r.failedAt ? new Date(r.failedAt + authRetryDelayMs(r.authFailures)).toISOString() : null
         }]))
       },
       // Per-provider delivery, for comparing providers. Window defaults to 60 minutes (?window=minutes, 1-360).
