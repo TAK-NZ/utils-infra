@@ -102,7 +102,9 @@ export class SitRepLambda extends Construct {
             // some deployments the CloudTAK reads alone have taken 40+ seconds. A run that
             // times out leaves the report stale for a whole schedule interval.
             timeout: Duration.seconds(120),
-            memorySize: 256,
+            // The layers are fetched in parallel, so all of them are held in memory at once. A run
+            // peaked at 235 MB of 256 MB, which leaves no room for a day with many more features.
+            memorySize: 512,
             logGroup,
             environment: {
                 CONFIG_BUCKET: props.configBucket.bucketName,
