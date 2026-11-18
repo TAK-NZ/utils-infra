@@ -49,6 +49,15 @@ describe('SitRepLambda schedule', () => {
   });
 });
 
+describe('SitRepLambda function', () => {
+  test('has a 120 second timeout, enough for slow CloudTAK reads plus the model call', () => {
+    const template = build();
+    const fns = Object.values(template.findResources('AWS::Lambda::Function')) as any[];
+    const sitrep = fns.find((f) => f.Properties.Environment?.Variables?.MODEL_ID);
+    expect(sitrep.Properties.Timeout).toBe(120);
+  });
+});
+
 describe('sitrepCronMinute', () => {
   test('anchors to the top of the hour', () => {
     expect(sitrepCronMinute(1)).toBe('0/1');

@@ -98,7 +98,10 @@ export class SitRepLambda extends Construct {
             runtime: lambda.Runtime.PYTHON_3_12,
             handler: 'index.handler',
             code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda/sitrep-generator')),
-            timeout: Duration.seconds(60),
+            // Generous on purpose: most of a run is waiting on CloudTAK and Bedrock, and in
+            // some deployments the CloudTAK reads alone have taken 40+ seconds. A run that
+            // times out leaves the report stale for a whole schedule interval.
+            timeout: Duration.seconds(120),
             memorySize: 256,
             logGroup,
             environment: {

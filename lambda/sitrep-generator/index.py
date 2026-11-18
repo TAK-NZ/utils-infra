@@ -35,6 +35,7 @@ import os
 import re
 import urllib.request
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 from typing import Any
 
@@ -93,6 +94,10 @@ MODEL_ID = resolve_model_id(os.environ.get("MODEL_ID", "anthropic.claude-sonnet-
 SITREP_LAYER_IDS = [
     "ema", "weather", "flooding", "quakes", "volcano", "nzta", "fires", "avalanche",
 ]
+
+# Upper bound on parallel CloudTAK requests while building the context. There are
+# only a handful of layers, so this is effectively "all at once".
+SITREP_FETCH_WORKERS = 8
 
 SYSTEM_PROMPT = """You are a New Zealand emergency management situational awareness analyst
 generating a periodic Situational Report (SitRep) for the TAK.NZ Common
@@ -555,11 +560,26 @@ def build_context(config: dict) -> tuple[dict, dict[str, int], dict]:
 
     now = datetime.now(timezone.utc)
 
+    # Fetch every layer at once. Each CloudTAK request can take several seconds
+    # (up to about 15 s per layer in some deployments), and fetching the layers
+    # one after another used to take most of the Lambda's run time. Only the
+    # network fetches run in parallel; the per-layer processing below stays
+    # sequential and in SITREP_LAYER_IDS order, so the context is unchanged.
+    wanted = [layer_id for layer_id in SITREP_LAYER_IDS if layer_defs.get(layer_id)]
+    with ThreadPoolExecutor(max_workers=max(1, min(len(wanted), SITREP_FETCH_WORKERS))) as pool:
+        pending = {
+            layer_id: pool.submit(
+                fetch_layer_features, base_url, token,
+                layer_defs[layer_id]["connection"], layer_defs[layer_id].get("layer"),
+            )
+            for layer_id in wanted
+        }
+
     for layer_id in SITREP_LAYER_IDS:
         layer_def = layer_defs.get(layer_id)
         if not layer_def:
             continue
-        features = fetch_layer_features(base_url, token, layer_def["connection"], layer_def.get("layer"))
+        features = pending[layer_id].result()
 
         # Earthquakes: drop any GeoNet has flagged as deleted/retracted —
         # see is_deleted_quake(). Note this filtering does not exist in the
