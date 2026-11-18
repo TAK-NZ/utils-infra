@@ -292,6 +292,7 @@ The ais-proxy service loads API keys from S3 for user authentication and AISStre
 - **Compatibility**: AISHub-compatible API format (vessels only, no navigation aids)
 - **WebSocket**: Maintains persistent connection to AISStream
 - **Reconnection**: Automatic reconnection on connection loss
+- **Rejected keys**: A provider that closes the connection with code 1008 (key rejected, or too many connections on one key) is marked `auth-failed` and retried by the provider check, which runs every 5 minutes. The wait before each retry doubles from 10 minutes up to 1 hour, and resets once real AIS data arrives. A changed key is retried at the next check. `/ais-proxy/v2/health` shows `lastCloseCode`, `lastCloseReason`, `lastError`, `authFailures` and `nextRetryAt` per provider under `websocket.providers`, so a provider that has stopped delivering is visible without reading logs.
 - **Filtering**: Navigation aids are automatically filtered out to maintain AISHub compatibility
 - **Name Lookup**: Class B vessel names enhanced via VesselFinder API when not available from AIS
 - **Class B Static Data**: Processes AIS Message Type 24 for Class B vessel names and types

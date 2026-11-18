@@ -49,7 +49,7 @@
           "cpu": 256,
           "memory": 512,
           "priority": 2,
-          "imageTag": "v1.2.4"
+          "imageTag": "v1.3.0"
         },
         "tileserver-gl": {
           "enabled": true,
@@ -164,7 +164,7 @@
           "cpu": 512,
           "memory": 1024,
           "priority": 2,
-          "imageTag": "v1.2.4"
+          "imageTag": "v1.3.0"
         },
         "tileserver-gl": {
           "enabled": true,
